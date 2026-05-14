@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar, Type, Any
 from sqlalchemy.orm import Session
-from ..data.database import Base
+from appdata.database import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 
@@ -37,7 +37,7 @@ class BaseRepository(Generic[ModelType]):
             db.commit()
         return obj
 
-from ..domain.models import User, Task, PomodoroSession
+from appdomain.models import User, Task, PomodoroSession
 
 class UserRepository(BaseRepository[User]):
     def __init__(self):
