@@ -113,3 +113,32 @@ class SettingResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ── Dashboard DTOs ──────────────────────────────────────────────────────────
+
+class HeatmapEntry(BaseModel):
+    date: str   # "YYYY-MM-DD"
+    count: int
+
+class WeeklyEvolutionEntry(BaseModel):
+    day: str        # "YYYY-MM-DD"
+    day_label: str  # "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"
+    pomodoros: int
+    focus_minutes: int
+
+class DashboardStatsResponse(BaseModel):
+    hours_studied_today: float
+    hours_studied_week: float
+    hours_studied_all: float
+    current_streak: int
+    consistency_pct: float
+    efficiency_pct: float
+    weekly_focus_minutes: int
+    weekly_goal_minutes: int
+    most_studied_subject: Optional[str]
+    most_studied_subject_minutes: Optional[int]
+
+class DashboardResponse(BaseModel):
+    stats: DashboardStatsResponse
+    heatmap: list[HeatmapEntry]
+    weekly_evolution: list[WeeklyEvolutionEntry]

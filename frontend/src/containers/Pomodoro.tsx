@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TypeSelect from '../components/TypeSelect';
 import TimeDisplay from '../components/TimeDisplay';
 import Controls from '../components/Controls';
@@ -28,6 +29,7 @@ const STATUS_MAP: Record<string, 'Finished' | 'Paused' | 'Running' | null> = {
 };
 
 const Pomodoro: React.FC = () => {
+  const navigate  = useNavigate();
   const engine   = usePomodoroEngine();
   const settings = usePomodoroSettings();
 

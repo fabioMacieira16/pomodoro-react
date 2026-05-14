@@ -1,0 +1,32 @@
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heatmap__title {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  margin: 0;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.heatmap__grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.heatmap__cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+}
+
+.heatmap__cell--l0 { background: var(--pomo-border, rgba(0, 0, 0, 0.10)); }
+.heatmap__cell--l1 { background: rgba(99, 102, 241, 0.25); }
+.heatmap__cell--l2 { background: rgba(99, 102, 241, 0.50); }
+.heatmap__cell--l3 { background: rgba(99, 102, 241, 0.75); }
+.heatmap__cell--l4 { background: rgba(99, 102, 241, 1.00); }

@@ -1,0 +1,39 @@
+.consistency-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.consistency-bar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.consistency-bar__label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.consistency-bar__value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.consistency-bar__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pomo-border, rgba(0, 0, 0, 0.12));
+  overflow: hidden;
+}
+
+.consistency-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--pomo-accent, #6366f1);
+  transition: width 0.4s ease;
+}

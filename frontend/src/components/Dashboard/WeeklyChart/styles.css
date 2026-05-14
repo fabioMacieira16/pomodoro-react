@@ -1,0 +1,14 @@
+.weekly-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weekly-chart__title {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  margin: 0;
+  color: var(--pomo-text, #1a1a2e);
+}

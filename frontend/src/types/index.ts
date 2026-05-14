@@ -96,3 +96,34 @@ export interface StudyMetric {
   total_minutes: number;
   streak_days: number;
 }
+
+export interface DashboardStats {
+  hours_studied_today: number;
+  hours_studied_week: number;
+  hours_studied_all: number;
+  current_streak: number;
+  consistency_pct: number;
+  efficiency_pct: number;
+  weekly_focus_minutes: number;
+  weekly_goal_minutes: number;
+  most_studied_subject?: string;
+  most_studied_subject_minutes?: number;
+}
+
+export interface HeatmapEntry {
+  date: string;
+  count: number;
+}
+
+export interface WeeklyEvolutionEntry {
+  day: string;
+  day_label: string;
+  pomodoros: number;
+  focus_minutes: number;
+}
+
+export interface DashboardData {
+  stats: DashboardStats;
+  heatmap: HeatmapEntry[];
+  weekly_evolution: WeeklyEvolutionEntry[];
+}
