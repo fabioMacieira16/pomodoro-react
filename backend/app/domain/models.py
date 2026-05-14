@@ -15,6 +15,8 @@ class User(Base):
 
     tasks = relationship("Task", back_populates="user")
     pomodoro_sessions = relationship("PomodoroSession", back_populates="user")
+    anki_decks = relationship("AnkiDeck", back_populates="user")
+    exercise_attempts = relationship("ExerciseAttempt", back_populates="user")
 
 class StudyType(Base):
     __tablename__ = "study_types"
@@ -50,6 +52,8 @@ class Subject(Base):
     tasks = relationship("Task", back_populates="subject")
     schedules = relationship("Schedule", back_populates="subject")
     pomodoro_sessions = relationship("PomodoroSession", back_populates="subject")
+    anki_decks = relationship("AnkiDeck", back_populates="subject")
+    exercises = relationship("Exercise", back_populates="subject")
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -117,19 +121,54 @@ class StudyMetric(Base):
     total_minutes = Column(Integer, default=0)
     streak_days = Column(Integer, default=0)
 
-# Simplistic models for future AI integration as requested
+class AnkiDeck(Base):
+    __tablename__ = "anki_decks"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    subject_id = Column(Integer, ForeignKey("subjects.id"))
+    
+    user = relationship("User", back_populates="anki_decks")
+    subject = relationship("Subject", back_populates="anki_decks")
+    flashcards = relationship("Flashcard", back_populates="deck")
+
+class Flashcard(Base):
+    __tablename__ = "flashcards"
+    id = Column(Integer, primary_key=True, index=True)
+    deck_id = Column(Integer, ForeignKey("anki_decks.id"))
+    front = Column(Text)
+    back = Column(Text)
+    last_reviewed = Column(DateTime(timezone=True), nullable=True)
+    next_review = Column(DateTime(timezone=True), nullable=True)
+    ease_factor = Column(Float, default=2.5)
+    interval = Column(Integer, default=0)
+
+    deck = relationship("AnkiDeck", back_populates="flashcards")
+
 class Exercise(Base):
     __tablename__ = "exercises"
     id = Column(Integer, primary_key=True, index=True)
     subject_id = Column(Integer, ForeignKey("subjects.id"))
     question_text = Column(Text)
+    correct_answer = Column(Text)
+    explanation = Column(Text, nullable=True)
+    difficulty = Column(String, default="Medium")
+    exam_board = Column(String, nullable=True)
 
-class Flashcard(Base):
-    __tablename__ = "flashcards"
+    subject = relationship("Subject", back_populates="exercises")
+    attempts = relationship("ExerciseAttempt", back_populates="exercise")
+
+class ExerciseAttempt(Base):
+    __tablename__ = "exercise_attempts"
     id = Column(Integer, primary_key=True, index=True)
-    subject_id = Column(Integer, ForeignKey("subjects.id"))
-    front = Column(Text)
-    back = Column(Text)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    exercise_id = Column(Integer, ForeignKey("exercises.id"))
+    user_answer = Column(Text)
+    is_correct = Column(Boolean)
+    attempted_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="exercise_attempts")
+    exercise = relationship("Exercise", back_populates="attempts")
 
 class AiHistory(Base):
     __tablename__ = "ai_history"
