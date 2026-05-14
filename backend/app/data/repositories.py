@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar, Type, Any
 from sqlalchemy.orm import Session
-from appdata.database import Base
+from app.data.database import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 
@@ -37,7 +37,7 @@ class BaseRepository(Generic[ModelType]):
             db.commit()
         return obj
 
-from appdomain.models import User, Task, PomodoroSession
+from app.domain.models import User, Task, PomodoroSession, Setting
 
 class UserRepository(BaseRepository[User]):
     def __init__(self):
@@ -57,6 +57,63 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
     def __init__(self):
         super().__init__(PomodoroSession)
 
+    def get_by_user(self, db: Session, user_id: int, limit: int = 50) -> list[PomodoroSession]:
+        return (
+            db.query(self.model)
+            .filter(self.model.user_id == user_id)
+            .order_by(self.model.start_time.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_stats(self, db: Session, user_id: int) -> dict:
+        from datetime import date
+        from sqlalchemy import func, cast, Date
+        today = date.today()
+        today_count = (
+            db.query(func.count(self.model.id))
+            .filter(
+                self.model.user_id == user_id,
+                self.model.session_type == "Pomodoro",
+                self.model.completed == True,
+                cast(self.model.start_time, Date) == today,
+            )
+            .scalar()
+        ) or 0
+        total_minutes = (
+            db.query(func.sum(self.model.duration_minutes))
+            .filter(
+                self.model.user_id == user_id,
+                self.model.session_type == "Pomodoro",
+                self.model.completed == True,
+            )
+            .scalar()
+        ) or 0
+        total_sessions = (
+            db.query(func.count(self.model.id))
+            .filter(self.model.user_id == user_id, self.model.completed == True)
+            .scalar()
+        ) or 0
+        return {
+            "today_pomodoros": today_count,
+            "total_focus_minutes": total_minutes,
+            "total_sessions": total_sessions,
+        }
+
+class SettingRepository(BaseRepository[Setting]):
+    def __init__(self):
+        super().__init__(Setting)
+
+    def get_by_user(self, db: Session, user_id: int) -> Setting | None:
+        return db.query(self.model).filter(self.model.user_id == user_id).first()
+
+    def get_or_create(self, db: Session, user_id: int) -> Setting:
+        setting = self.get_by_user(db, user_id)
+        if not setting:
+            setting = self.create(db, {"user_id": user_id})
+        return setting
+
 user_repo = UserRepository()
 task_repo = TaskRepository()
 pomodoro_repo = PomodoroSessionRepository()
+setting_repo = SettingRepository()

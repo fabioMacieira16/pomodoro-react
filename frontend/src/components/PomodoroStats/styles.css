@@ -1,0 +1,37 @@
+.pomo-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
+  border-radius: 12px;
+  padding: 6px 14px;
+}
+
+.pomo-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 36px;
+}
+
+.pomo-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.pomo-stat-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.5;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.pomo-stat-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--pomo-border, rgba(0,0,0,0.12));
+  margin: 0 8px;
+}

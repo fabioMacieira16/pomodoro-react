@@ -6,13 +6,12 @@ interface TimeDisplayProps {
   time: number;
   status: string | null;
   progress: number;
+  phaseColor?: string;
 }
 
-const TimeDisplay: React.FC<TimeDisplayProps> = ({ time, status, progress }) => {
-  document.title = `(${formatTime(time)}) Pomodoro`;
-
+const TimeDisplay: React.FC<TimeDisplayProps> = ({ time, status, progress, phaseColor = '#ef4444' }) => {
   const radius = 150;
-  const stroke = 5;
+  const stroke = 6;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
@@ -21,27 +20,27 @@ const TimeDisplay: React.FC<TimeDisplayProps> = ({ time, status, progress }) => 
     <div className="TimeDisplay">
       <svg width="100%" viewBox={`0 0 ${radius * 2} ${radius * 2}`}>
         <circle
-          stroke="#ddd"
-          fill="#fff"
+          className="time-ring-bg"
           strokeWidth={stroke}
           r={normalizedRadius}
           cx={radius}
           cy={radius}
         />
         <circle
-          stroke="#D9534F"
+          stroke={phaseColor}
           fill="transparent"
           strokeWidth={stroke}
+          strokeLinecap="round"
           strokeDasharray={circumference + ' ' + circumference}
-          style={{ strokeDashoffset }}
+          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.9s ease, stroke 0.4s ease' }}
           r={normalizedRadius}
           cx={radius}
           cy={radius}
         />
       </svg>
       <div>
-        <h1>{formatTime(time)}</h1>
-        <p>{status}</p>
+        <h1 className="time-digits">{formatTime(time)}</h1>
+        {status && <p className="time-status">{status}</p>}
       </div>
     </div>
   );

@@ -1,0 +1,20 @@
+.pomo-dots {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.pomo-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pomo-accent, #ef4444);
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.pomo-dot.filled {
+  background: var(--pomo-accent, #ef4444);
+}

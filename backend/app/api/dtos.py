@@ -59,8 +59,16 @@ class TaskResponse(TaskBase):
 # --- Pomodoro ---
 class PomodoroSessionCreate(BaseModel):
     duration_minutes: int
-    session_type: str # Pomodoro, Short Break, Long Break
+    session_type: str  # Pomodoro, Short Break, Long Break
+    completed: bool = True
+    interruptions: int = 0
+    productivity_rating: Optional[int] = None
     subject_id: Optional[int] = None
+
+class PomodoroSessionUpdate(BaseModel):
+    productivity_rating: Optional[int] = None
+    interruptions: Optional[int] = None
+    completed: Optional[bool] = None
 
 class PomodoroSessionResponse(BaseModel):
     id: int
@@ -73,6 +81,35 @@ class PomodoroSessionResponse(BaseModel):
     productivity_rating: Optional[int]
     user_id: int
     subject_id: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+class PomodoroStatsResponse(BaseModel):
+    today_pomodoros: int
+    total_focus_minutes: int
+    total_sessions: int
+
+# --- Settings ---
+class SettingUpdate(BaseModel):
+    auto_start_breaks: Optional[bool] = None
+    auto_start_pomodoros: Optional[bool] = None
+    long_break_interval: Optional[int] = None
+    dark_mode: Optional[bool] = None
+    focus_mode: Optional[bool] = None
+    theme_color: Optional[str] = None
+    sound_enabled: Optional[bool] = None
+
+class SettingResponse(BaseModel):
+    id: int
+    user_id: int
+    auto_start_breaks: bool
+    auto_start_pomodoros: bool
+    long_break_interval: int
+    dark_mode: bool
+    focus_mode: bool
+    theme_color: str
+    sound_enabled: bool
 
     class Config:
         from_attributes = True

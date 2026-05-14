@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import auth, tasks
-from app.core.config import settings
+from app.api.routers import auth, tasks, pomodoro_sessions, settings
+from app.core.config import settings as app_settings
 
-app = FastAPI(title=settings.PROJECT_NAME)
+app = FastAPI(title=app_settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +15,8 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
+app.include_router(pomodoro_sessions.router, prefix="/api")
+app.include_router(settings.router, prefix="/api")
 
 @app.get("/")
 def read_root():

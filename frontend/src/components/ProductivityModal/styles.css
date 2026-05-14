@@ -1,0 +1,93 @@
+.prod-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.prod-card {
+  background: var(--pomo-surface, #fff);
+  color: var(--pomo-text, #1a1a2e);
+  border-radius: 20px;
+  padding: 40px 48px;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  animation: slideUp 0.25s ease;
+  max-width: 420px;
+  width: 90%;
+}
+
+.prod-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.prod-sub {
+  font-size: 0.95rem;
+  opacity: 0.7;
+  margin: 0 0 28px;
+}
+
+.prod-stars {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.prod-star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  transition: transform 0.15s, background 0.15s;
+  font-size: 1.8rem;
+}
+
+.prod-star-btn:hover {
+  transform: scale(1.2);
+  background: var(--pomo-hover, rgba(0,0,0,0.05));
+}
+
+.prod-star-label {
+  font-size: 0.65rem;
+  color: var(--pomo-text, #1a1a2e);
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+.prod-skip {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--pomo-text, #1a1a2e);
+  opacity: 0.5;
+  text-decoration: underline;
+  transition: opacity 0.15s;
+}
+
+.prod-skip:hover {
+  opacity: 0.9;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

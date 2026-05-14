@@ -2,7 +2,7 @@ from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, F
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
-from appdata.database import Base
+from app.data.database import Base
 
 class User(Base):
     __tablename__ = "users"

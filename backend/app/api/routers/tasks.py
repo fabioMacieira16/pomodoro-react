@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app import dtos
-from appdata.database import get_db
-from appdata.repositories import task_repo
-from appdependencies import get_current_user
-from appdomain.models import User
+from app.api import dtos
+from app.data.database import get_db
+from app.data.repositories import task_repo
+from app.api.dependencies import get_current_user
+from app.domain.models import User
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 

@@ -50,12 +50,18 @@ export interface PomodoroSession {
   start_time: string;
   end_time?: string;
   duration_minutes: number;
-  session_type: string; // "Pomodoro", "Short Break", "Long Break"
+  session_type: string;
   completed: boolean;
   interruptions: number;
   productivity_rating?: number;
   user_id: number;
   subject_id?: number;
+}
+
+export interface PomodoroStats {
+  today_pomodoros: number;
+  total_focus_minutes: number;
+  total_sessions: number;
 }
 
 export interface Schedule {
@@ -77,6 +83,11 @@ export interface Setting {
   theme_color: string;
   sound_enabled: boolean;
 }
+
+export type TimerPhase = 'pomodoro' | 'shortBreak' | 'longBreak';
+export type TimerStatus = 'idle' | 'running' | 'paused' | 'finished' | 'countdown';
+export type DarkModePreference = 'auto' | 'dark' | 'light';
+export type SoundType = 'bell' | 'beep' | 'digital' | 'none';
 
 export interface StudyMetric {
   id: number;
