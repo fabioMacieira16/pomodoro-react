@@ -1,7 +1,12 @@
 import React, { memo } from 'react';
 import './styles.css';
 
-const TaskToggle = ({ task, toggleTask }) => (
+interface TaskToggleProps {
+  task: boolean | null;
+  toggleTask: () => void;
+}
+
+const TaskToggle: React.FC<TaskToggleProps> = ({ task, toggleTask }) => (
   <button
     className={`ToggleTask ${task && 'active'}`}
     onClick={toggleTask}
