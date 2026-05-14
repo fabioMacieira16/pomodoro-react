@@ -1,4 +1,4 @@
-import React, { useRef, useContext } from 'react';
+import { useRef, useContext } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import './styles.css';
 
@@ -31,9 +31,10 @@ export default function Task({ task, index }: TaskProps) {
 
   const [, dropRef] = useDrop({
     accept: 'TASK',
-    hover(item: DragItem, monitor: DropTargetMonitor) {
+    hover(item: unknown, monitor: DropTargetMonitor) {
+      const dragItem = item as DragItem;
       if (!ref.current) return;
-      if (item.id === task.id) return;
+      if (dragItem.id === task.id) return;
 
       const targetSize = ref.current.getBoundingClientRect();
       const targetCenter = (targetSize.bottom - targetSize.top) / 2;
@@ -42,11 +43,11 @@ export default function Task({ task, index }: TaskProps) {
       const draggedTop = draggedOffset.y - targetSize.top;
 
       // item.index and index are used for moving
-      if (item.index < index && draggedTop < targetCenter) return;
-      if (item.index > index && draggedTop > targetCenter) return;
+      if (dragItem.index < index && draggedTop < targetCenter) return;
+      if (dragItem.index > index && draggedTop > targetCenter) return;
 
-      move(item.index, index);
-      item.index = index;
+      move(dragItem.index, index);
+      dragItem.index = index;
     },
   });
 

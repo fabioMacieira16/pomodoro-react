@@ -21,7 +21,7 @@ interface PomodoroState {
   fetchStats: () => Promise<void>;
 }
 
-export const usePomodoroStore = create<PomodoroState>((set, get) => ({
+export const usePomodoroStore = create<PomodoroState>((set) => ({
   sessions: [],
   stats: { today_pomodoros: 0, total_focus_minutes: 0, total_sessions: 0 },
   lastSessionId: null,

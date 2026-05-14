@@ -1,57 +1,229 @@
-html,
-body,
-#root {
+/* ── CSS variables (light mode) ─────────────────────────────────────────── */
+:root {
+  --pomo-bg:           #f0ede8;
+  --pomo-surface:      #ffffff;
+  --pomo-surface-alt:  rgba(0, 0, 0, 0.05);
+  --pomo-text:         #1a1a2e;
+  --pomo-text-muted:   #999;
+  --pomo-border:       rgba(0, 0, 0, 0.1);
+  --pomo-hover:        rgba(0, 0, 0, 0.06);
+  --pomo-input-bg:     #f4f4f8;
+  --pomo-ring-bg:      #f0f0f0;
+  --pomo-ring-track:   #e0e0e0;
+  --pomo-accent:       #ef4444;
+  --pomo-header-bg:    rgba(255,255,255,0.7);
+}
+
+/* ── Dark mode variables ─────────────────────────────────────────────────── */
+html.dark {
+  --pomo-bg:           #0f0f1a;
+  --pomo-surface:      #1e1e2e;
+  --pomo-surface-alt:  rgba(255,255,255,0.06);
+  --pomo-text:         #e0e0f0;
+  --pomo-text-muted:   #666;
+  --pomo-border:       rgba(255,255,255,0.1);
+  --pomo-hover:        rgba(255,255,255,0.08);
+  --pomo-input-bg:     #2a2a3e;
+  --pomo-ring-bg:      #1e1e2e;
+  --pomo-ring-track:   #2e2e44;
+  --pomo-accent:       #ef4444;
+  --pomo-header-bg:    rgba(30,30,46,0.85);
+}
+
+/* ── Phase accent colours ────────────────────────────────────────────────── */
+.phase-pomodoro   { --pomo-accent: #ef4444; }
+.phase-shortBreak { --pomo-accent: #22c55e; }
+.phase-longBreak  { --pomo-accent: #3b82f6; }
+
+/* ── Base reset ──────────────────────────────────────────────────────────── */
+html, body, #root {
   height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  padding: 0 5%;
-  background: #eee;
+  background: var(--pomo-bg);
   font-family: "Roboto", sans-serif;
+  color: var(--pomo-text);
+  transition: background 0.3s, color 0.3s;
 }
 
-*,
-*:before,
-*:after {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
 ::selection {
-  background: #d9534f;
+  background: var(--pomo-accent);
   color: #fff;
 }
 
-.Content {
+/* ── App root ────────────────────────────────────────────────────────────── */
+.app-root {
   display: flex;
-  flex-direction: row;
-  text-align: -webkit-center;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-@media (max-width: 1000px) {
-  .Content {
-    flex-direction: column;
-  }
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--pomo-header-bg);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--pomo-border);
+  transition: background 0.3s;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.3rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.15s, transform 0.1s;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  background: var(--pomo-hover);
+  transform: scale(1.08);
+}
+
+.icon-btn.active {
+  background: var(--pomo-surface-alt);
+}
+
+/* ── Main area ───────────────────────────────────────────────────────────── */
+.app-main {
+  display: flex;
+  flex: 1;
+  padding: 0 5%;
+}
+
+/* ── Pomodoro column ─────────────────────────────────────────────────────── */
 .Pomodoro {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 600px;
-  justify-content: space-between;
+  min-height: calc(100vh - 62px);
+  justify-content: center;
   align-items: center;
-  padding: 80px 0;
+  gap: 8px;
+  padding: 48px 0 60px;
 }
 
+/* ── Task panel ──────────────────────────────────────────────────────────── */
 .TaskPainel {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
-  min-height: 600px;
-  justify-content: space-between;
+  min-height: calc(100vh - 62px);
+  justify-content: flex-start;
   align-items: center;
-  padding: 80px 0;
+  padding: 48px 0 60px;
 }
+
+@media (max-width: 900px) {
+  .app-main {
+    flex-direction: column;
+  }
+}
+
+/* ── Skip button ─────────────────────────────────────────────────────────── */
+.skip-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: var(--pomo-text-muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  letter-spacing: 0.03em;
+}
+
+.skip-btn:hover {
+  color: var(--pomo-text);
+  background: var(--pomo-surface-alt);
+}
+
+/* ── Auto-start countdown banner ─────────────────────────────────────────── */
+.auto-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--pomo-surface);
+  border: 1.5px solid var(--pomo-border);
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  color: var(--pomo-text);
+  animation: slideUp 0.2s ease;
+}
+
+.auto-cancel {
+  background: none;
+  border: 1px solid var(--pomo-border);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--pomo-text);
+  transition: background 0.15s;
+}
+
+.auto-cancel:hover {
+  background: var(--pomo-hover);
+}
+
+/* ── Focus mode ──────────────────────────────────────────────────────────── */
+.app-root.focus-mode .app-header {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.app-root.focus-mode:hover .app-header,
+.app-root.focus-mode .app-header:focus-within {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.app-root.focus-mode .Pomodoro {
+  padding-top: 0;
+}
+
+/* ── Fullscreen extras ───────────────────────────────────────────────────── */
+.app-root.is-fullscreen {
+  background: var(--pomo-bg);
+}
+
+.app-root.is-fullscreen .Pomodoro {
+  min-height: 100vh;
+  padding: 32px 0;
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+

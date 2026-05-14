@@ -15,5 +15,7 @@
 }
 
 body {
-  @apply bg-background text-foreground antialiased;
+  @apply antialiased;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }

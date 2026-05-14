@@ -1,9 +1,14 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import './styles.css';
 
-const TypeSelect = ({ types, changeType, selected }) => (
+interface StatusType {
+  name: string;
+  value: boolean | number;
+}
+
+const TypeSelect = ({ types, changeType, selected }: { types: StatusType[]; changeType: (t: StatusType) => void; selected: StatusType }) => (
   <div className="TypeSelect">
-    {types.map((type, index) => (
+    {types.map((type) => (
       <button
         key={type.name}
         onClick={() => changeType(type)}

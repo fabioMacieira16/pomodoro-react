@@ -7,16 +7,12 @@ import { Task as TaskType } from '../../../types';
 
 import './styles.css';
 
-interface TaskListProps {
-  selectedTaskType?: any; // To be refined if used
-}
-
 interface StatusType {
   name: string;
   value: boolean | number;
 }
 
-const TaskList: React.FC<TaskListProps> = ({ selectedTaskType }) => {
+const TaskList: React.FC = () => {
   const [input, setInput] = useState('');
   const taskStatus: StatusType[] = [
     { name: 'All', value: -1 },
