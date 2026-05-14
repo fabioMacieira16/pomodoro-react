@@ -1,7 +1,12 @@
 import React, { memo } from 'react';
 import './ToggleSound.css';
 
-const ToggleSound = ({ sound, toggleSound }) => (
+interface ToggleSoundProps {
+  sound: boolean;
+  toggleSound: () => void;
+}
+
+const ToggleSound: React.FC<ToggleSoundProps> = ({ sound, toggleSound }) => (
   <button
     className={`ToggleSound ${sound && 'active'}`}
     onClick={toggleSound}

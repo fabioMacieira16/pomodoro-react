@@ -1,7 +1,14 @@
 import React, { memo } from 'react';
 import './Controls.css';
 
-const Controls = ({ start, reset, pause, status }) => (
+interface ControlsProps {
+  start: () => void;
+  reset: () => void;
+  pause: () => void;
+  status: 'Finished' | 'Paused' | 'Running' | null;
+}
+
+const Controls: React.FC<ControlsProps> = ({ start, reset, pause, status }) => (
   <div className="Controls">
     {!status && (
       <button onClick={start} className="start">

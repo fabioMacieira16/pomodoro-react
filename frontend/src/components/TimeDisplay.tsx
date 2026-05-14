@@ -2,7 +2,13 @@ import React from 'react';
 import { formatTime } from '../helpers';
 import './TimeDisplay.css';
 
-const TimeDisplay = ({ time, status, progress }) => {
+interface TimeDisplayProps {
+  time: number;
+  status: string | null;
+  progress: number;
+}
+
+const TimeDisplay: React.FC<TimeDisplayProps> = ({ time, status, progress }) => {
   document.title = `(${formatTime(time)}) Pomodoro`;
 
   const radius = 150;

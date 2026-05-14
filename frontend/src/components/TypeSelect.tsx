@@ -1,9 +1,20 @@
 import React, { memo } from 'react';
 import './TypeSelect.css';
 
-const TypeSelect = ({ types, changeType, selected }) => (
+interface TimerType {
+  name: string;
+  time: number;
+}
+
+interface TypeSelectProps {
+  types: TimerType[];
+  changeType: (type: TimerType) => void;
+  selected: TimerType;
+}
+
+const TypeSelect: React.FC<TypeSelectProps> = ({ types, changeType, selected }) => (
   <div className="TypeSelect">
-    {types.map((type, index) => (
+    {types.map((type) => (
       <button
         key={type.name}
         onClick={() => changeType(type)}
