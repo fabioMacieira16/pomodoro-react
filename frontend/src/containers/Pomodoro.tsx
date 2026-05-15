@@ -148,6 +148,13 @@ const Pomodoro: React.FC = () => {
         <PomodoroStats />
         <div className="header-actions">
           <button
+            className="icon-btn"
+            onClick={() => navigate('/dashboard')}
+            title="Dashboard"
+          >
+            📊
+          </button>
+          <button
             className={`icon-btn ${settings.focusMode ? 'active' : ''}`}
             onClick={() => settings.update({ focusMode: !settings.focusMode })}
             title="Modo foco (F)"
