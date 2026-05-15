@@ -1,0 +1,234 @@
+.planner-page {
+  min-height: 100vh;
+  background: var(--pomo-bg, #f0ede8);
+  color: var(--pomo-text, #1a1a2e);
+  font-family: 'Roboto', sans-serif;
+  padding-bottom: 48px;
+}
+
+.planner-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 32px;
+  background: var(--pomo-header-bg, rgba(255,255,255,0.7));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--pomo-border, rgba(0,0,0,0.1));
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.planner-header h1 { flex: 1; margin: 0; font-size: 1.3rem; }
+.back-btn, .edit-btn {
+  background: none;
+  border: 1px solid var(--pomo-border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  color: var(--pomo-text);
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+.back-btn:hover, .edit-btn:hover { background: var(--pomo-hover); }
+
+.planner-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+  text-align: center;
+  padding: 32px;
+}
+.empty-icon { font-size: 4rem; }
+.planner-empty h2 { font-size: 1.6rem; margin: 0; }
+.planner-empty p { color: var(--pomo-text-muted); max-width: 440px; }
+
+.start-wizard-btn {
+  background: var(--pomo-accent, #ef4444);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.start-wizard-btn:hover { opacity: 0.88; }
+
+/* ── Wizard ── */
+.wizard-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 16px;
+}
+.wizard-card {
+  background: var(--pomo-surface, #fff);
+  border-radius: 16px;
+  padding: 40px 36px 32px;
+  max-width: 520px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.wizard-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted);
+}
+.wizard-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 28px;
+}
+.wizard-dot {
+  height: 4px;
+  flex: 1;
+  background: var(--pomo-border);
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+.wizard-dot.active { background: var(--pomo-accent, #ef4444); }
+.wizard-question { font-size: 1.2rem; margin: 0 0 20px; }
+.wizard-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--pomo-border);
+  border-radius: 10px;
+  background: var(--pomo-input-bg);
+  color: var(--pomo-text);
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.15s;
+}
+.wizard-input:focus { border-color: var(--pomo-accent); }
+.wizard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+.wizard-back {
+  background: none;
+  border: 1px solid var(--pomo-border);
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  color: var(--pomo-text);
+}
+.wizard-next {
+  background: var(--pomo-accent, #ef4444);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.wizard-next:disabled { opacity: 0.5; cursor: default; }
+.boolean-btns { display: flex; gap: 12px; margin-top: 8px; }
+.bool-btn {
+  flex: 1;
+  padding: 14px;
+  border: 1.5px solid var(--pomo-border);
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--pomo-text);
+  transition: border-color 0.15s, background 0.15s;
+}
+.bool-btn.selected {
+  border-color: var(--pomo-accent);
+  background: rgba(239,68,68,0.1);
+}
+.days-selector { margin-top: 20px; }
+.days-selector label { font-size: 0.9rem; color: var(--pomo-text-muted); }
+.days-grid { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.day-btn {
+  padding: 8px 12px;
+  border: 1.5px solid var(--pomo-border);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--pomo-text);
+  transition: border-color 0.15s;
+}
+.day-btn.selected {
+  border-color: var(--pomo-accent);
+  background: rgba(239,68,68,0.1);
+  color: var(--pomo-accent);
+}
+
+/* ── Plan view ── */
+.plan-view { padding: 32px; max-width: 860px; margin: 0 auto; }
+.multi-edital-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  margin-bottom: 20px;
+}
+.plan-summary {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.plan-stat {
+  flex: 1;
+  min-width: 100px;
+  background: var(--pomo-surface);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid var(--pomo-border);
+}
+.stat-value { display: block; font-size: 2rem; font-weight: 700; color: var(--pomo-accent); }
+.stat-label { display: block; font-size: 0.8rem; color: var(--pomo-text-muted); margin-top: 4px; }
+.plan-meta { color: var(--pomo-text-muted); margin: 4px 0 24px; }
+.topics-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.topic-card {
+  background: var(--pomo-surface);
+  border: 1px solid var(--pomo-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--pomo-accent);
+}
+.topic-card.priority-1 { border-left-color: #ef4444; }
+.topic-card.priority-2 { border-left-color: #f97316; }
+.topic-card.priority-3 { border-left-color: #eab308; }
+.topic-name { font-weight: 600; margin-bottom: 8px; }
+.topic-meta { display: flex; gap: 10px; font-size: 0.8rem; color: var(--pomo-text-muted); }
+.priorities-section h3 { margin-bottom: 12px; }
+.priorities-section ul { padding-left: 20px; line-height: 1.8; color: var(--pomo-text-muted); }
+.plan-error { color: #ef4444; margin-top: 16px; }
+.planner-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 1.2rem;
+  color: var(--pomo-text-muted);
+}
