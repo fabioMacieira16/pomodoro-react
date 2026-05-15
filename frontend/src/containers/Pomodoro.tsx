@@ -156,6 +156,13 @@ const Pomodoro: React.FC = () => {
           </button>
           <button
             className="icon-btn"
+            onClick={() => navigate('/anki')}
+            title="Anki - Flashcards"
+          >
+            🧠
+          </button>
+          <button
+            className="icon-btn"
             onClick={() => navigate('/scheduler')}
             title="Planejador de Estudos"
           >
