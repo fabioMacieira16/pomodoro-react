@@ -1,0 +1,26 @@
+# Optional AI dependencies – install what you need.
+# Core (already in requirements.txt): fastapi, httpx
+
+# ── LLM / LangChain ──────────────────────────────────────────────────────────
+# langchain==0.3.*
+# langchain-openai==0.2.*
+# langchain-community==0.3.*      # Ollama integration
+# langchain-core==0.3.*
+
+# ── PDF extraction ────────────────────────────────────────────────────────────
+# pypdf==4.*
+
+# ── Audio / Video transcription ───────────────────────────────────────────────
+# openai-whisper==20240930        # Whisper (requires ffmpeg on PATH)
+# ffmpeg-python==0.2.0            # ffmpeg wrapper for video audio extraction
+
+# ── OpenAI SDK (alternative to raw httpx calls) ───────────────────────────────
+# openai==1.*
+
+# ── Ollama Python SDK (alternative to raw httpx calls) ────────────────────────
+# ollama==0.3.*
+
+# Install a preset:
+#   OpenAI stack:  pip install pypdf langchain langchain-openai openai
+#   Ollama stack:  pip install pypdf langchain langchain-community ollama
+#   Full (audio):  pip install openai-whisper ffmpeg-python pypdf langchain langchain-openai
