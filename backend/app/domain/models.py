@@ -105,14 +105,29 @@ class Setting(Base):
     __tablename__ = "settings"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    
+
+    # Pomodoro
+    work_duration_minutes = Column(Integer, default=25)
+    short_break_minutes = Column(Integer, default=5)
+    long_break_minutes = Column(Integer, default=15)
+    long_break_interval = Column(Integer, default=4)
     auto_start_breaks = Column(Boolean, default=False)
     auto_start_pomodoros = Column(Boolean, default=False)
-    long_break_interval = Column(Integer, default=4)
+
+    # Display
     dark_mode = Column(Boolean, default=False)
     focus_mode = Column(Boolean, default=True)
     theme_color = Column(String, default="blue")
+    language = Column(String, default="pt")
+    weekly_goal_minutes = Column(Integer, default=600)
+
+    # AI
+    ai_provider_preference = Column(String, default="")  # "" = use server default
     sound_enabled = Column(Boolean, default=True)
+
+    # Notifications
+    notifications_enabled = Column(Boolean, default=True)
+    desktop_notifications = Column(Boolean, default=False)
 
 class StudyMetric(Base):
     __tablename__ = "study_metrics"

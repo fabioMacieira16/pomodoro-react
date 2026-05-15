@@ -1,0 +1,28 @@
+# Development overrides – loaded automatically by `docker compose up`.
+# Enables hot-reload, bind mounts, and dev build target.
+
+services:
+  backend:
+    build:
+      target: development        # uses the 'development' Dockerfile stage
+    volumes:
+      - ./backend:/app           # live code reload
+      - db-data:/database
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  db-init:
+    build:
+      target: development
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules        # anonymous volume keeps node_modules from host
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev -- --host 0.0.0.0

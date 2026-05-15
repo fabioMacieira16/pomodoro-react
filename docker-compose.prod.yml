@@ -1,0 +1,32 @@
+# Production overrides.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differences from base:
+#   - No bind mounts (immutable images)
+#   - Production build target
+#   - Stricter resource limits
+#   - Frontend serves a static build via nginx
+
+services:
+  backend:
+    build:
+      target: production
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod    # nginx-based production image (create separately)
+    environment:
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M

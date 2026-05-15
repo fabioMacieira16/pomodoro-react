@@ -1,30 +1,65 @@
-version: '3.8'
+# Base docker-compose configuration.
+# Use with override files:
+#   Dev:  docker compose up                         (auto-loads override.yml)
+#   Prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   AI:   docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d
 
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: production
     container_name: pomodoro-backend
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - .env
     volumes:
-      - ./backend:/app
-      - ./database:/database
-    environment:
-      - PYTHONUNBUFFERED=1
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - db-data:/database
+    depends_on:
+      - db-init
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # One-shot container that runs Alembic migrations before the app starts.
+  db-init:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: pomodoro-db-init
+    restart: "no"
+    env_file:
+      - .env
+    volumes:
+      - db-data:/database
+    command: alembic upgrade head
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: pomodoro-frontend
+    restart: unless-stopped
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    command: npm run dev
+      - "${FRONTEND_PORT:-3000}:3000"
+    env_file:
+      - .env
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  db-data:

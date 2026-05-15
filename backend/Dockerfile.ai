@@ -1,0 +1,29 @@
+# Backend with optional heavy AI dependencies (whisper, langchain, pypdf).
+# Use this image when full AI features are required.
+#
+# Build: docker build -f Dockerfile.ai -t pomodoro-backend-ai .
+
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt requirements-ai.txt ./
+
+# Install core deps first, then AI deps
+RUN pip install --no-cache-dir -r requirements.txt
+# Uncomment the AI deps you need in requirements-ai.txt before building:
+RUN grep -v '^#' requirements-ai.txt | grep -v '^$' | pip install --no-cache-dir -r /dev/stdin || true
+
+COPY . .
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
