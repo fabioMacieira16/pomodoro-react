@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { ListTodo } from 'lucide-react';
 import './styles.css';
 
 interface TaskToggleProps {
@@ -10,9 +11,10 @@ const TaskToggle: React.FC<TaskToggleProps> = ({ task, toggleTask }) => (
   <button
     className={`ToggleTask ${task && 'active'}`}
     onClick={toggleTask}
-    title={task ? 'Disable Task' : 'Enable Task'}
+    title={task ? 'Ocultar tasks' : 'Mostrar tasks'}
+    aria-label={task ? 'Ocultar tasks' : 'Mostrar tasks'}
   >
-    <i className={'fa fa-tasks'} />
+    <ListTodo size={20} strokeWidth={2.25} />
   </button>
 );
 

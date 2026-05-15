@@ -40,32 +40,6 @@ const Pomodoro: React.FC = () => {
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // ── Dark mode ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const applyDark = (dark: boolean) => {
-      document.documentElement.classList.toggle('dark', dark);
-    };
-    if (settings.darkMode === 'dark') {
-      applyDark(true);
-      return;
-    }
-    if (settings.darkMode === 'light') {
-      applyDark(false);
-      return;
-    }
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    applyDark(mq.matches);
-    const handler = (e: MediaQueryListEvent) => applyDark(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [settings.darkMode]);
-
-  // ── Sync settings from backend on mount ───────────────────────────────────
-  useEffect(() => {
-    settings.syncFromBackend();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // ── Fullscreen ─────────────────────────────────────────────────────────────
   const toggleFullscreen = useCallback(async () => {
     try {
@@ -245,15 +219,12 @@ const Pomodoro: React.FC = () => {
             </div>
           )}
 
-          {!settings.focusMode && (
-            <>
-              <ToggleTask task={taskOpen} toggleTask={handleToggleTask} />
-              <Shortcuts />
-            </>
-          )}
+          <ToggleTask task={taskOpen} toggleTask={handleToggleTask} />
+
+          {!settings.focusMode && <Shortcuts />}
         </div>
 
-        {!settings.focusMode && taskOpen && (
+        {taskOpen && (
           <div className="TaskPainel">
             <TaskList />
           </div>

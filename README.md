@@ -238,22 +238,53 @@ docker exec pomodoro-ollama ollama pull llama3.2
 ## 🚀 Início Rápido (local sem Docker)
 
 ```bash
-# Backend
+# 1) Backend (Windows / PowerShell, Python 3.11)
 cd backend
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+py -3.11 -m venv .venv311
+.\.venv311\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp ../.env.example .env
-alembic upgrade head
-uvicorn app.main:app --reload
-# API em http://localhost:8000
-# Swagger em http://localhost:8000/docs
+Copy-Item ..\.env.example .env -Force
 
-# Frontend
-cd frontend
+# Ajuste o banco local em backend/.env para usar o arquivo isolado de dev:
+# SQLALCHEMY_DATABASE_URI="sqlite:///../database/pomodoro-local.db"
+
+alembic upgrade head
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir .
+
+# API em http://127.0.0.1:8000
+# Swagger em http://127.0.0.1:8000/docs
+
+# 2) Frontend
+cd ..\frontend
 npm install
 npm run dev
+
 # App em http://localhost:3000
 ```
+
+### Execução rápida em dois terminais
+
+Terminal 1:
+
+```powershell
+cd backend
+.\.venv311\Scripts\Activate.ps1
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir .
+```
+
+Terminal 2:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+### Observações para ambiente local
+
+- O backend local foi validado com `Python 3.11`. Com `Python 3.13`, o projeto pode falhar por incompatibilidade com a stack atual.
+- O `.env` usado para execução local fica em `backend/.env`.
+- O banco local recomendado para desenvolvimento é `database/pomodoro-local.db`, separado do banco principal.
+- Em ambiente local, o frontend consome a API em `http://localhost:8000/api`.
 
 ---
 

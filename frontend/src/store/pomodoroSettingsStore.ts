@@ -3,6 +3,30 @@ import { persist } from 'zustand/middleware';
 import api from '../api/client';
 import type { DarkModePreference, SoundType } from '../types';
 
+type SettingsResponse = {
+  auto_start_breaks?: boolean;
+  auto_start_pomodoros?: boolean;
+  long_break_interval?: number;
+  sound_enabled?: boolean;
+  focus_mode?: boolean;
+  dark_mode?: boolean;
+  pomodoro?: {
+    auto_start_breaks?: boolean;
+    auto_start_pomodoros?: boolean;
+    long_break_interval?: number;
+  };
+  display?: {
+    dark_mode?: boolean;
+    focus_mode?: boolean;
+  };
+  notifications?: {
+    sound_enabled?: boolean;
+  };
+  ai?: {
+    sound_enabled?: boolean;
+  };
+};
+
 interface PomodoroSettingsState {
   // Timer durations
   pomodoroMinutes: number;
@@ -43,14 +67,23 @@ export const usePomodoroSettings = create<PomodoroSettingsState>()(
       syncFromBackend: async () => {
         try {
           const res = await api.get('/settings/');
-          const d = res.data;
+          const d = res.data as SettingsResponse;
+          const pomodoro = d.pomodoro ?? d;
+          const display = d.display ?? d;
+          const notifications = d.notifications ?? d.ai ?? d;
+
           set({
-            autoStartBreaks: d.auto_start_breaks,
-            autoStartPomodoros: d.auto_start_pomodoros,
-            longBreakInterval: d.long_break_interval,
-            soundEnabled: d.sound_enabled,
-            focusMode: d.focus_mode,
-            darkMode: d.dark_mode ? 'dark' : get().darkMode,
+            autoStartBreaks: pomodoro.auto_start_breaks ?? get().autoStartBreaks,
+            autoStartPomodoros: pomodoro.auto_start_pomodoros ?? get().autoStartPomodoros,
+            longBreakInterval: pomodoro.long_break_interval ?? get().longBreakInterval,
+            soundEnabled: notifications.sound_enabled ?? get().soundEnabled,
+            focusMode: display.focus_mode ?? get().focusMode,
+            darkMode:
+              display.dark_mode === undefined
+                ? get().darkMode
+                : display.dark_mode
+                  ? 'dark'
+                  : 'light',
           });
         } catch {
           // Not authenticated or offline — use localStorage values

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { X } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import type { Deck, Flashcard, FlashcardOption, CardType } from '../../types';
 
@@ -53,7 +53,7 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!front.trim() || !back.trim()) return;
     setSaving(true);

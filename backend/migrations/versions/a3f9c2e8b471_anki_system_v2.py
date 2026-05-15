@@ -23,7 +23,13 @@ def upgrade() -> None:
     with op.batch_alter_table('anki_decks', schema=None) as batch_op:
         batch_op.add_column(sa.Column('description', sa.Text(), nullable=True))
         batch_op.add_column(sa.Column('color', sa.String(), nullable=True, server_default='#3b82f6'))
-        batch_op.add_column(sa.Column('parent_deck_id', sa.Integer(), sa.ForeignKey('anki_decks.id'), nullable=True))
+        batch_op.add_column(sa.Column('parent_deck_id', sa.Integer(), nullable=True))
+        batch_op.create_foreign_key(
+            'fk_anki_decks_parent_deck_id',
+            'anki_decks',
+            ['parent_deck_id'],
+            ['id'],
+        )
         batch_op.add_column(sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True))
         # subject_id may already be NOT NULL in old schema - make it nullable
         batch_op.alter_column('subject_id', existing_type=sa.Integer(), nullable=True)
