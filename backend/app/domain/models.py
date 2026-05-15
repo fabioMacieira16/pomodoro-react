@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, Float, Enum, Text
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, Float, Enum, Text, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -122,29 +122,79 @@ class StudyMetric(Base):
     total_minutes = Column(Integer, default=0)
     streak_days = Column(Integer, default=0)
 
+# ── Anki System ───────────────────────────────────────────────────────────────
+
+class CardType(str, enum.Enum):
+    qa = "qa"
+    multiple_choice = "multiple_choice"
+    cloze = "cloze"
+    true_false = "true_false"
+
 class AnkiDeck(Base):
     __tablename__ = "anki_decks"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    description = Column(Text, nullable=True)
+    color = Column(String, default="#3b82f6")
     user_id = Column(Integer, ForeignKey("users.id"))
-    subject_id = Column(Integer, ForeignKey("subjects.id"))
-    
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    parent_deck_id = Column(Integer, ForeignKey("anki_decks.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
     user = relationship("User", back_populates="anki_decks")
     subject = relationship("Subject", back_populates="anki_decks")
-    flashcards = relationship("Flashcard", back_populates="deck")
+    flashcards = relationship("Flashcard", back_populates="deck", cascade="all, delete-orphan")
+    subdecks = relationship(
+        "AnkiDeck",
+        backref=__import__('sqlalchemy.orm', fromlist=['backref']).backref("parent", remote_side="AnkiDeck.id"),
+    )
 
 class Flashcard(Base):
     __tablename__ = "flashcards"
     id = Column(Integer, primary_key=True, index=True)
     deck_id = Column(Integer, ForeignKey("anki_decks.id"))
+    card_type = Column(String, default="qa")  # qa, multiple_choice, cloze, true_false
     front = Column(Text)
     back = Column(Text)
+    hint = Column(Text, nullable=True)
+    tags = Column(JSON, default=list)
+    difficulty = Column(String, default="Medium")
+    # SM-2 fields
+    repetitions = Column(Integer, default=0)
+    easiness_factor = Column(Float, default=2.5)
+    interval = Column(Integer, default=0)
+    lapses = Column(Integer, default=0)
     last_reviewed = Column(DateTime(timezone=True), nullable=True)
     next_review = Column(DateTime(timezone=True), nullable=True)
-    ease_factor = Column(Float, default=2.5)
-    interval = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     deck = relationship("AnkiDeck", back_populates="flashcards")
+    options = relationship("FlashcardOption", back_populates="flashcard", cascade="all, delete-orphan")
+    reviews = relationship("FlashcardReview", back_populates="flashcard", cascade="all, delete-orphan")
+
+class FlashcardOption(Base):
+    __tablename__ = "flashcard_options"
+    id = Column(Integer, primary_key=True, index=True)
+    flashcard_id = Column(Integer, ForeignKey("flashcards.id"))
+    text = Column(Text)
+    is_correct = Column(Boolean, default=False)
+    position = Column(Integer, default=0)
+
+    flashcard = relationship("Flashcard", back_populates="options")
+
+class FlashcardReview(Base):
+    __tablename__ = "flashcard_reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    flashcard_id = Column(Integer, ForeignKey("flashcards.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    quality = Column(Integer)  # 0-5 SM-2 quality rating
+    response_time_ms = Column(Integer, nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    flashcard = relationship("Flashcard", back_populates="reviews")
+    user = relationship("User")
+
+# ── Exercises ─────────────────────────────────────────────────────────────────
 
 class Exercise(Base):
     __tablename__ = "exercises"
