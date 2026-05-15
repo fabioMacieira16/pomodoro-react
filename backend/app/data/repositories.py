@@ -37,7 +37,7 @@ class BaseRepository(Generic[ModelType]):
             db.commit()
         return obj
 
-from app.domain.models import User, Task, PomodoroSession, Setting
+from app.domain.models import User, Task, PomodoroSession, Setting, AnkiDeck, Flashcard, FlashcardOption, FlashcardReview
 
 class UserRepository(BaseRepository[User]):
     def __init__(self):
@@ -362,3 +362,223 @@ class SchedulerRepository(BaseRepository[Exam]):
 
 
 scheduler_repo = SchedulerRepository()
+
+
+# ── Anki Repositories ─────────────────────────────────────────────────────────────
+
+class AnkiDeckRepository(BaseRepository[AnkiDeck]):
+    def __init__(self):
+        super().__init__(AnkiDeck)
+
+    def get_by_user(self, db: Session, user_id: int) -> list[AnkiDeck]:
+        return db.query(self.model).filter(self.model.user_id == user_id).order_by(self.model.name).all()
+
+    def get_root_decks(self, db: Session, user_id: int) -> list[AnkiDeck]:
+        """Return top-level decks (no parent)."""
+        return (
+            db.query(self.model)
+            .filter(self.model.user_id == user_id, self.model.parent_deck_id.is_(None))
+            .order_by(self.model.name)
+            .all()
+        )
+
+    def get_with_counts(self, db: Session, deck: AnkiDeck) -> dict:
+        from datetime import datetime, timezone
+        from sqlalchemy import func
+        now = datetime.now(timezone.utc)
+        total = db.query(func.count(Flashcard.id)).filter(Flashcard.deck_id == deck.id).scalar() or 0
+        due = (
+            db.query(func.count(Flashcard.id))
+            .filter(Flashcard.deck_id == deck.id, Flashcard.next_review <= now)
+            .scalar()
+        ) or 0
+        new = db.query(func.count(Flashcard.id)).filter(Flashcard.deck_id == deck.id, Flashcard.next_review.is_(None)).scalar() or 0
+        return {"card_count": total, "due_count": due, "new_count": new}
+
+
+class FlashcardRepository(BaseRepository[Flashcard]):
+    def __init__(self):
+        super().__init__(Flashcard)
+
+    def get_by_deck(self, db: Session, deck_id: int) -> list[Flashcard]:
+        return db.query(self.model).filter(self.model.deck_id == deck_id).order_by(self.model.created_at).all()
+
+    def get_review_queue(self, db: Session, deck_id: int, limit: int = 50) -> list[Flashcard]:
+        """Return cards due now (next_review <= now) + new cards (next_review is None)."""
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        due = (
+            db.query(self.model)
+            .filter(self.model.deck_id == deck_id, self.model.next_review <= now)
+            .order_by(self.model.next_review)
+            .all()
+        )
+        new_cards = (
+            db.query(self.model)
+            .filter(self.model.deck_id == deck_id, self.model.next_review.is_(None))
+            .order_by(self.model.created_at)
+            .all()
+        )
+        combined = due + new_cards
+        return combined[:limit]
+
+    def apply_sm2(self, db: Session, card: Flashcard, quality: int, response_time_ms: int | None = None, user_id: int | None = None) -> Flashcard:
+        from app.core.sm2 import calculate_next_review
+        from datetime import datetime, timezone
+        result = calculate_next_review(quality, card.repetitions, card.easiness_factor, card.interval)
+        card.repetitions = result.repetitions
+        card.easiness_factor = result.easiness_factor
+        card.interval = result.interval
+        card.next_review = result.next_review
+        card.last_reviewed = datetime.now(timezone.utc)
+        if quality < 3:
+            card.lapses = (card.lapses or 0) + 1
+        db.add(card)
+        # Record review history
+        if user_id:
+            review = FlashcardReview(
+                flashcard_id=card.id,
+                user_id=user_id,
+                quality=quality,
+                response_time_ms=response_time_ms,
+            )
+            db.add(review)
+        db.commit()
+        db.refresh(card)
+        return card
+
+    def get_stats(self, db: Session, user_id: int) -> dict:
+        from datetime import datetime, timezone, timedelta
+        from sqlalchemy import func
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+
+        # All flashcards across user's decks
+        subq = db.query(AnkiDeck.id).filter(AnkiDeck.user_id == user_id).subquery()
+        total = db.query(func.count(self.model.id)).filter(self.model.deck_id.in_(subq)).scalar() or 0
+        due_today = (
+            db.query(func.count(self.model.id))
+            .filter(self.model.deck_id.in_(subq), self.model.next_review <= now)
+            .scalar()
+        ) or 0
+        new_cards = (
+            db.query(func.count(self.model.id))
+            .filter(self.model.deck_id.in_(subq), self.model.next_review.is_(None))
+            .scalar()
+        ) or 0
+
+        # Review stats
+        total_reviews = db.query(func.count(FlashcardReview.id)).filter(FlashcardReview.user_id == user_id).scalar() or 0
+        correct_30 = (
+            db.query(func.count(FlashcardReview.id))
+            .filter(FlashcardReview.user_id == user_id, FlashcardReview.quality >= 3, FlashcardReview.reviewed_at >= thirty_days_ago)
+            .scalar()
+        ) or 0
+        total_30 = (
+            db.query(func.count(FlashcardReview.id))
+            .filter(FlashcardReview.user_id == user_id, FlashcardReview.reviewed_at >= thirty_days_ago)
+            .scalar()
+        ) or 0
+        retention_rate = round((correct_30 / total_30 * 100), 1) if total_30 else 0.0
+
+        correct_all = db.query(func.count(FlashcardReview.id)).filter(FlashcardReview.user_id == user_id, FlashcardReview.quality >= 3).scalar() or 0
+        accuracy_rate = round((correct_all / total_reviews * 100), 1) if total_reviews else 0.0
+
+        avg_ease = db.query(func.avg(self.model.easiness_factor)).filter(self.model.deck_id.in_(subq)).scalar()
+        avg_ease = round(float(avg_ease), 2) if avg_ease else 2.5
+
+        # Maturity buckets
+        new_count = db.query(func.count(self.model.id)).filter(self.model.deck_id.in_(subq), self.model.repetitions == 0).scalar() or 0
+        learning_count = (
+            db.query(func.count(self.model.id))
+            .filter(self.model.deck_id.in_(subq), self.model.repetitions.between(1, 2))
+            .scalar()
+        ) or 0
+        young_count = (
+            db.query(func.count(self.model.id))
+            .filter(self.model.deck_id.in_(subq), self.model.interval.between(3, 20))
+            .scalar()
+        ) or 0
+        mature_count = (
+            db.query(func.count(self.model.id))
+            .filter(self.model.deck_id.in_(subq), self.model.interval >= 21)
+            .scalar()
+        ) or 0
+
+        # Streak
+        review_days = (
+            db.query(func.date(FlashcardReview.reviewed_at).label("day"))
+            .filter(FlashcardReview.user_id == user_id)
+            .group_by(func.date(FlashcardReview.reviewed_at))
+            .order_by(func.date(FlashcardReview.reviewed_at).desc())
+            .all()
+        )
+        from datetime import date
+        streak = 0
+        today = date.today()
+        cursor = today
+        for row in review_days:
+            d = row.day if isinstance(row.day, date) else date.fromisoformat(str(row.day))
+            if d == cursor or d == cursor - timedelta(days=1):
+                streak += 1
+                cursor = d - timedelta(days=1)
+            elif d < cursor:
+                break
+
+        # Weekly reviews (last 7 days)
+        weekly_rows = (
+            db.query(
+                func.date(FlashcardReview.reviewed_at).label("day"),
+                func.count(FlashcardReview.id).label("count"),
+            )
+            .filter(FlashcardReview.user_id == user_id, FlashcardReview.reviewed_at >= now - timedelta(days=6))
+            .group_by(func.date(FlashcardReview.reviewed_at))
+            .order_by(func.date(FlashcardReview.reviewed_at))
+            .all()
+        )
+        weekly_map = {str(r.day): r.count for r in weekly_rows}
+        weekly_reviews = []
+        for i in range(7):
+            d = (now - timedelta(days=6 - i)).date()
+            weekly_reviews.append({"day": str(d), "count": weekly_map.get(str(d), 0)})
+
+        return {
+            "total_cards": total,
+            "due_today": due_today,
+            "new_cards": new_cards,
+            "retention_rate": retention_rate,
+            "accuracy_rate": accuracy_rate,
+            "total_reviews": total_reviews,
+            "streak_days": streak,
+            "avg_ease": avg_ease,
+            "cards_by_maturity": [
+                {"label": "Novo", "count": new_count},
+                {"label": "Aprendendo", "count": learning_count},
+                {"label": "Jovem", "count": young_count},
+                {"label": "Maduro", "count": mature_count},
+            ],
+            "weekly_reviews": weekly_reviews,
+        }
+
+
+class FlashcardOptionRepository(BaseRepository[FlashcardOption]):
+    def __init__(self):
+        super().__init__(FlashcardOption)
+
+    def get_by_flashcard(self, db: Session, flashcard_id: int) -> list[FlashcardOption]:
+        return db.query(self.model).filter(self.model.flashcard_id == flashcard_id).order_by(self.model.position).all()
+
+    def replace_options(self, db: Session, flashcard_id: int, options: list[dict]) -> list[FlashcardOption]:
+        db.query(self.model).filter(self.model.flashcard_id == flashcard_id).delete()
+        result = []
+        for opt in options:
+            obj = FlashcardOption(flashcard_id=flashcard_id, **opt)
+            db.add(obj)
+            result.append(obj)
+        db.commit()
+        return result
+
+
+anki_deck_repo = AnkiDeckRepository()
+flashcard_repo = FlashcardRepository()
+flashcard_option_repo = FlashcardOptionRepository()
