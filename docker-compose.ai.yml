@@ -1,0 +1,38 @@
+# AI stack override – adds Ollama for local LLM inference.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d
+#
+# GPU support (recommended for Ollama):
+#   docker compose -f docker-compose.yml -f docker-compose.ai.yml \
+#     -f docker-compose.gpu.yml up -d
+#
+# Pull a model after first start:
+#   docker exec pomodoro-ollama ollama pull llama3.2
+
+services:
+  backend:
+    build:
+      dockerfile: Dockerfile.ai      # uses the AI-capable Dockerfile
+    environment:
+      - AI_PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: pomodoro-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-models:/root/.ollama   # persist downloaded models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  ollama-models:

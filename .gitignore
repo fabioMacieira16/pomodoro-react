@@ -1,41 +1,156 @@
-# Node
+# ── Secrets & Environment ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Packaging / distribution
+dist/
+build/
+*.egg-info/
+.eggs/
+MANIFEST
+*.egg
+wheels/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+*.coveragerc
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Node / React / Frontend ──────────────────────────────────────────────────
 node_modules/
 dist/
 build/
 .npm/
+*.tsbuildinfo
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-pip-log.txt
-pip-delete-this-directory.txt
+# Package manager lock files (keep one; ignore others)
+# Uncomment if using npm exclusively:
+# yarn.lock
+# Uncomment if using yarn exclusively:
+# package-lock.json
 
-# Database
-database/*.db
-database/*.sqlite3
+# Vite cache
+.vite/
 
-# Env
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Next.js / Nuxt (if ever adopted)
+.next/
+.nuxt/
+.output/
 
-# Logs
+# Storybook
+storybook-static/
+
+# ── Database / Data ──────────────────────────────────────────────────────────
+database/
+*.db
+*.sqlite
+*.sqlite3
+
+# Alembic auto-generated (keep migrations/versions/ in VCS)
+# migrations/versions/  <-- intentionally NOT ignored
+
+# ── AI / ML ──────────────────────────────────────────────────────────────────
+# Whisper / Torch model caches
+*.pt
+*.pth
+*.bin
+*.gguf
+*.ggml
+models/
+.cache/huggingface/
+.cache/whisper/
+
+# Ollama local model store (outside repo, but just in case)
+ollama_data/
+
+# LangChain verbose logs
+langchain.log
+
+# Temp media uploads (audio/video files processed by AI)
+uploads/
+tmp_media/
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+# Do NOT ignore docker-compose.*.yml – they are source-controlled.
+# Ignore local override not meant for VCS:
+docker-compose.local.yml
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+uvicorn.log
 
-# Uploads
-uploads/
-
-# IDEs and OS
-.vscode/
-.idea/
+# ── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+
+# ── IDEs & Editors ───────────────────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.orig
+*.patch
+.DS_Store
