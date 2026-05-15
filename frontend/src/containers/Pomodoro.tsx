@@ -155,6 +155,13 @@ const Pomodoro: React.FC = () => {
             📊
           </button>
           <button
+            className="icon-btn"
+            onClick={() => navigate('/scheduler')}
+            title="Planejador de Estudos"
+          >
+            📅
+          </button>
+          <button
             className={`icon-btn ${settings.focusMode ? 'active' : ''}`}
             onClick={() => settings.update({ focusMode: !settings.focusMode })}
             title="Modo foco (F)"

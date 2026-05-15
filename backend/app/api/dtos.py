@@ -142,3 +142,77 @@ class DashboardResponse(BaseModel):
     stats: DashboardStatsResponse
     heatmap: list[HeatmapEntry]
     weekly_evolution: list[WeeklyEvolutionEntry]
+
+
+# ── Smart Scheduler ──────────────────────────────────────────────────────────
+
+class ExamTopicCreate(BaseModel):
+    name: str
+    estimated_hours: float = 1.0
+    priority: int = 2
+    subject_id: Optional[int] = None
+
+
+class ExamCreate(BaseModel):
+    name: str
+    exam_date: datetime
+    daily_hours: float
+    available_days: list[int]
+    topics: list[ExamTopicCreate]
+
+
+class ExamTopicResponse(BaseModel):
+    id: int
+    exam_id: int
+    name: str
+    estimated_hours: float
+    priority: int
+    subject_id: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+
+class ExamSummary(BaseModel):
+    id: int
+    name: str
+    exam_date: datetime
+    daily_hours: float
+    available_days: str
+    created_at: datetime
+    topic_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class ExamResponse(BaseModel):
+    id: int
+    name: str
+    exam_date: datetime
+    daily_hours: float
+    available_days: str
+    created_at: datetime
+    topics: list[ExamTopicResponse]
+
+    class Config:
+        from_attributes = True
+
+
+class StudyPlanItemResponse(BaseModel):
+    id: int
+    exam_id: int
+    exam_topic_id: int
+    scheduled_date: datetime
+    duration_minutes: int
+    session_type: str
+    review_interval: Optional[int]
+    completed: bool
+    topic_name: str
+
+    class Config:
+        from_attributes = True
+
+
+class PlanItemUpdate(BaseModel):
+    completed: Optional[bool] = None

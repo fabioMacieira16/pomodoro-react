@@ -17,6 +17,7 @@ class User(Base):
     pomodoro_sessions = relationship("PomodoroSession", back_populates="user")
     anki_decks = relationship("AnkiDeck", back_populates="user")
     exercise_attempts = relationship("ExerciseAttempt", back_populates="user")
+    exams = relationship("Exam", back_populates="user")
 
 class StudyType(Base):
     __tablename__ = "study_types"
@@ -176,3 +177,49 @@ class AiHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     action = Column(String) # Summarize, Generate Quiz
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ── Smart Scheduler ──────────────────────────────────────────────────────────
+
+class Exam(Base):
+    __tablename__ = "exams"
+    id             = Column(Integer, primary_key=True, index=True)
+    user_id        = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name           = Column(String, nullable=False)
+    exam_date      = Column(DateTime(timezone=True), nullable=False)
+    daily_hours    = Column(Float, nullable=False)
+    available_days = Column(String, nullable=False, default="[0,1,2,3,4]")
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+
+    user       = relationship("User",          back_populates="exams")
+    topics     = relationship("ExamTopic",     back_populates="exam",  cascade="all, delete-orphan")
+    plan_items = relationship("StudyPlanItem", back_populates="exam",  cascade="all, delete-orphan")
+
+
+class ExamTopic(Base):
+    __tablename__ = "exam_topics"
+    id              = Column(Integer, primary_key=True, index=True)
+    exam_id         = Column(Integer, ForeignKey("exams.id"),    nullable=False)
+    subject_id      = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    name            = Column(String,  nullable=False)
+    estimated_hours = Column(Float,   nullable=False, default=1.0)
+    priority        = Column(Integer, nullable=False, default=2)
+
+    exam       = relationship("Exam",       back_populates="topics")
+    subject    = relationship("Subject")
+    plan_items = relationship("StudyPlanItem", back_populates="topic", cascade="all, delete-orphan")
+
+
+class StudyPlanItem(Base):
+    __tablename__ = "study_plan_items"
+    id               = Column(Integer,  primary_key=True, index=True)
+    exam_id          = Column(Integer,  ForeignKey("exams.id"),       nullable=False)
+    exam_topic_id    = Column(Integer,  ForeignKey("exam_topics.id"), nullable=False)
+    scheduled_date   = Column(DateTime(timezone=True), nullable=False)
+    duration_minutes = Column(Integer,  nullable=False)
+    session_type     = Column(String,   nullable=False)
+    review_interval  = Column(Integer,  nullable=True)
+    completed        = Column(Boolean,  nullable=False, default=False)
+
+    exam  = relationship("Exam",      back_populates="plan_items")
+    topic = relationship("ExamTopic", back_populates="plan_items")

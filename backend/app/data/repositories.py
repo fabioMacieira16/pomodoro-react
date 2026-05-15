@@ -283,3 +283,82 @@ user_repo = UserRepository()
 task_repo = TaskRepository()
 pomodoro_repo = PomodoroSessionRepository()
 setting_repo = SettingRepository()
+
+
+from app.domain.models import Exam, ExamTopic, StudyPlanItem
+
+
+class SchedulerRepository(BaseRepository[Exam]):
+    def __init__(self):
+        super().__init__(Exam)
+
+    def get_by_user(self, db: Session, user_id: int) -> list[Exam]:
+        from sqlalchemy.orm import joinedload
+        return (
+            db.query(Exam)
+            .options(joinedload(Exam.topics))
+            .filter(Exam.user_id == user_id)
+            .all()
+        )
+
+    def get_with_topics(self, db: Session, exam_id: int) -> Exam | None:
+        from sqlalchemy.orm import joinedload
+        return (
+            db.query(Exam)
+            .options(joinedload(Exam.topics))
+            .filter(Exam.id == exam_id)
+            .first()
+        )
+
+    def get_plan(self, db: Session, exam_id: int) -> list[StudyPlanItem]:
+        from sqlalchemy.orm import joinedload
+        return (
+            db.query(StudyPlanItem)
+            .options(joinedload(StudyPlanItem.topic))
+            .filter(StudyPlanItem.exam_id == exam_id)
+            .order_by(StudyPlanItem.scheduled_date)
+            .all()
+        )
+
+    def get_today_items(self, db: Session, user_id: int) -> list[StudyPlanItem]:
+        from datetime import date
+        from sqlalchemy import cast, Date
+        from sqlalchemy.orm import joinedload
+        today = date.today()
+        return (
+            db.query(StudyPlanItem)
+            .options(joinedload(StudyPlanItem.topic))
+            .join(Exam)
+            .filter(
+                Exam.user_id == user_id,
+                cast(StudyPlanItem.scheduled_date, Date) == today,
+            )
+            .order_by(StudyPlanItem.scheduled_date)
+            .all()
+        )
+
+    def get_item(self, db: Session, item_id: int) -> StudyPlanItem | None:
+        return db.query(StudyPlanItem).filter(StudyPlanItem.id == item_id).first()
+
+    def delete_plan(self, db: Session, exam_id: int) -> None:
+        db.query(StudyPlanItem).filter(StudyPlanItem.exam_id == exam_id).delete()
+        db.commit()
+
+    def bulk_create_plan(self, db: Session, exam_id: int, items: list[dict]) -> list[StudyPlanItem]:
+        db_items = [StudyPlanItem(exam_id=exam_id, **item) for item in items]
+        db.add_all(db_items)
+        db.commit()
+        for item in db_items:
+            db.refresh(item)
+        return db_items
+
+    def toggle_item(self, db: Session, item_id: int, completed: bool) -> StudyPlanItem | None:
+        item = self.get_item(db, item_id)
+        if item:
+            item.completed = completed
+            db.commit()
+            db.refresh(item)
+        return item
+
+
+scheduler_repo = SchedulerRepository()

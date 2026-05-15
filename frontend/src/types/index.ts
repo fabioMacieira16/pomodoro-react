@@ -127,3 +127,55 @@ export interface DashboardData {
   heatmap: HeatmapEntry[];
   weekly_evolution: WeeklyEvolutionEntry[];
 }
+
+// ── Smart Scheduler ──────────────────────────────────────────────────────────
+
+export interface ExamTopicCreate {
+  name: string;
+  estimated_hours: number;
+  priority: number;
+  subject_id?: number;
+}
+
+export interface ExamCreate {
+  name: string;
+  exam_date: string;
+  daily_hours: number;
+  available_days: number[];
+  topics: ExamTopicCreate[];
+}
+
+export interface ExamTopicResponse {
+  id: number;
+  exam_id: number;
+  name: string;
+  estimated_hours: number;
+  priority: number;
+  subject_id?: number;
+}
+
+export interface ExamSummary {
+  id: number;
+  name: string;
+  exam_date: string;
+  daily_hours: number;
+  available_days: string;
+  created_at: string;
+  topic_count: number;
+}
+
+export interface ExamResponse extends ExamSummary {
+  topics: ExamTopicResponse[];
+}
+
+export interface StudyPlanItemResponse {
+  id: number;
+  exam_id: number;
+  exam_topic_id: number;
+  scheduled_date: string;
+  duration_minutes: number;
+  session_type: 'first_study' | 'review';
+  review_interval: number | null;
+  completed: boolean;
+  topic_name: string;
+}

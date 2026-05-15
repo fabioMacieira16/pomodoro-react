@@ -1,0 +1,67 @@
+.exam-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exam-list__empty {
+  opacity: 0.5;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.exam-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 8px;
+  background: var(--pomo-surface, #fff);
+  transition: border-color 0.15s;
+}
+
+.exam-list__item--active {
+  border-color: var(--pomo-accent, #e53e3e);
+}
+
+.exam-list__info {
+  cursor: pointer;
+  flex: 1;
+}
+
+.exam-list__name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.exam-list__meta {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.55;
+  margin-top: 0.1rem;
+}
+
+.exam-list__actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.exam-list__btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.exam-list__btn:hover { opacity: 1; }
