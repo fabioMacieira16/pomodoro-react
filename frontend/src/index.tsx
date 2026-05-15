@@ -5,7 +5,7 @@ import { DndProvider } from 'react-dnd';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Pomodoro from './containers/Pomodoro';
 import Dashboard from './containers/Dashboard';
-import Scheduler from './containers/Scheduler';
+import AnkiPage from './containers/AnkiPage';
 import './style.css';
 
 const container = document.getElementById('root');
@@ -18,7 +18,7 @@ root.render(
         <Routes>
           <Route path="/" element={<Pomodoro />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/scheduler" element={<Scheduler />} />
+          <Route path="/anki" element={<AnkiPage />} />
         </Routes>
       </BrowserRouter>
     </DndProvider>

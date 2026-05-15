@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 # --- Users ---
@@ -114,7 +114,7 @@ class SettingResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# ── Dashboard DTOs ──────────────────────────────────────────────────────────
+# ── Dashboard DTOs ──────────────────────────────────────────────────
 
 class HeatmapEntry(BaseModel):
     date: str   # "YYYY-MM-DD"
@@ -144,7 +144,7 @@ class DashboardResponse(BaseModel):
     weekly_evolution: list[WeeklyEvolutionEntry]
 
 
-# ── Smart Scheduler ──────────────────────────────────────────────────────────
+# ── Smart Scheduler ──────────────────────────────────────────────────
 
 class ExamTopicCreate(BaseModel):
     name: str
@@ -216,3 +216,147 @@ class StudyPlanItemResponse(BaseModel):
 
 class PlanItemUpdate(BaseModel):
     completed: Optional[bool] = None
+
+
+# ── Anki DTOs ─────────────────────────────────────────────────────────────
+
+class DeckCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    color: str = "#3b82f6"
+    subject_id: Optional[int] = None
+    parent_deck_id: Optional[int] = None
+
+class DeckUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
+    subject_id: Optional[int] = None
+    parent_deck_id: Optional[int] = None
+
+class DeckResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    color: str
+    user_id: int
+    subject_id: Optional[int]
+    parent_deck_id: Optional[int]
+    created_at: datetime
+    card_count: int = 0
+    due_count: int = 0
+    new_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+class DeckTreeResponse(DeckResponse):
+    subdecks: List["DeckTreeResponse"] = []
+
+    class Config:
+        from_attributes = True
+
+DeckTreeResponse.model_rebuild()
+
+# ── Flashcard DTOs ────────────────────────────────────────────────────────────
+
+class FlashcardOptionCreate(BaseModel):
+    text: str
+    is_correct: bool = False
+    position: int = 0
+
+class FlashcardOptionResponse(BaseModel):
+    id: int
+    text: str
+    is_correct: bool
+    position: int
+
+    class Config:
+        from_attributes = True
+
+class FlashcardCreate(BaseModel):
+    deck_id: int
+    card_type: str = "qa"  # qa, multiple_choice, cloze, true_false
+    front: str
+    back: str
+    hint: Optional[str] = None
+    tags: List[str] = []
+    difficulty: str = "Medium"
+    options: List[FlashcardOptionCreate] = []
+
+class FlashcardUpdate(BaseModel):
+    card_type: Optional[str] = None
+    front: Optional[str] = None
+    back: Optional[str] = None
+    hint: Optional[str] = None
+    tags: Optional[List[str]] = None
+    difficulty: Optional[str] = None
+    options: Optional[List[FlashcardOptionCreate]] = None
+
+class FlashcardResponse(BaseModel):
+    id: int
+    deck_id: int
+    card_type: str
+    front: str
+    back: str
+    hint: Optional[str]
+    tags: List[str]
+    difficulty: str
+    repetitions: int
+    easiness_factor: float
+    interval: int
+    lapses: int
+    last_reviewed: Optional[datetime]
+    next_review: Optional[datetime]
+    created_at: datetime
+    options: List[FlashcardOptionResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# ── Review DTOs ────────────────────────────────────────────────────────────
+
+class ReviewSubmit(BaseModel):
+    flashcard_id: int
+    quality: int  # 0-5
+    response_time_ms: Optional[int] = None
+
+class ReviewResult(BaseModel):
+    flashcard_id: int
+    next_review: datetime
+    new_interval: int
+    new_easiness_factor: float
+    new_repetitions: int
+    lapses: int
+
+# ── Anki Stats DTOs ────────────────────────────────────────────────────────
+
+class MaturityBucket(BaseModel):
+    label: str
+    count: int
+
+class AnkiStatsResponse(BaseModel):
+    total_cards: int
+    due_today: int
+    new_cards: int
+    retention_rate: float       # % correct over last 30 days
+    accuracy_rate: float        # % correct all-time
+    total_reviews: int
+    streak_days: int
+    avg_ease: float
+    cards_by_maturity: List[MaturityBucket]  # New / Learning / Young / Mature
+    weekly_reviews: List[dict]   # [{day, count}]
+
+# ── AI Generation DTOs ────────────────────────────────────────────────────────
+
+class AIGenerateRequest(BaseModel):
+    deck_id: int
+    source_type: str = "text"   # text, pdf, url, summary
+    content: str
+    card_count: int = 10
+    card_types: List[str] = ["qa"]
+    language: str = "pt"
+
+class AIGenerateResponse(BaseModel):
+    created_count: int
+    flashcards: List[FlashcardResponse]

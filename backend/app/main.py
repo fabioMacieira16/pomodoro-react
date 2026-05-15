@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import auth, tasks, pomodoro_sessions, settings, dashboard, scheduler
+from app.api.routers import anki_decks, anki_flashcards, anki_review, anki_stats, anki_ai
 from app.core.config import settings as app_settings
 
 app = FastAPI(title=app_settings.PROJECT_NAME)
@@ -19,6 +20,11 @@ app.include_router(pomodoro_sessions.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(scheduler.router, prefix="/api")
+app.include_router(anki_decks.router, prefix="/api")
+app.include_router(anki_flashcards.router, prefix="/api")
+app.include_router(anki_review.router, prefix="/api")
+app.include_router(anki_stats.router, prefix="/api")
+app.include_router(anki_ai.router, prefix="/api")
 
 @app.get("/")
 def read_root():
