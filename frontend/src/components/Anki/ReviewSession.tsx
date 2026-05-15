@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, RotateCcw, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import type { Flashcard } from '../../types';
 

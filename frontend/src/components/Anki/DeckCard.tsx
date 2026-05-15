@@ -1,4 +1,3 @@
-import React from 'react';
 import { BookOpen, Brain, Clock } from 'lucide-react';
 import type { Deck } from '../../types';
 

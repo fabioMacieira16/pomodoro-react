@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Zap, Loader2 } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import type { Deck, CardType } from '../../types';
@@ -159,7 +159,7 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
                 <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{generateError}</p>
               )}
 
-              {!process.env.OPENAI_API_KEY && (
+              {!import.meta.env.VITE_OPENAI_API_KEY && (
                 <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
                   ⚠️ <strong>OPENAI_API_KEY</strong> não configurada &mdash; serão gerados cartões de demonstração.
                 </p>

@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
 } from 'recharts';
 import { Brain, Target, TrendingUp, Flame, BookOpen, Clock } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
@@ -76,7 +76,7 @@ export function AnkiDashboard() {
                   cx="50%"
                   cy="50%"
                   outerRadius={70}
-                  label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}
+                  label={({ payload, percent }: any) => `${payload?.label ?? ''} ${Math.round((percent ?? 0) * 100)}%`}
                   labelLine={false}
                 >
                   {stats.cards_by_maturity.map((_, i) => (

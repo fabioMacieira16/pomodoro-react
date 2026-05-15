@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Brain, Zap } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { FlashcardForm } from './FlashcardForm';
