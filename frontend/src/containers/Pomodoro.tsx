@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TypeSelect from '../components/TypeSelect';
 import TimeDisplay from '../components/TimeDisplay';
@@ -13,6 +13,7 @@ import PomodoroStats from '../components/PomodoroStats';
 import PomodoroDots from '../components/PomodoroDots';
 import { usePomodoroEngine, PHASE_LABELS } from '../hooks/usePomodoroEngine';
 import { usePomodoroSettings } from '../store/pomodoroSettingsStore';
+import { usePomodoroStore } from '../store/pomodoroStore';
 import type { TimerPhase } from '../types';
 import './Pomodoro.css';
 
@@ -32,6 +33,7 @@ const Pomodoro: React.FC = () => {
   const navigate  = useNavigate();
   const engine   = usePomodoroEngine();
   const settings = usePomodoroSettings();
+  const pomodoroStore = usePomodoroStore();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(() => {
@@ -39,8 +41,50 @@ const Pomodoro: React.FC = () => {
     return saved ? JSON.parse(saved) : false;
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const headerRevealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [headerVisible, setHeaderVisible] = useState(true);
 
-  // ── Fullscreen ─────────────────────────────────────────────────────────────
+  // ── Auto-enable focus mode when timer starts ───────────────────────────
+  useEffect(() => {
+    if (engine.status === 'running' && engine.phase === 'pomodoro') {
+      settings.update({ focusMode: true });
+      // Track early stop
+    } else if (engine.status === 'idle' || engine.status === 'finished') {
+      settings.update({ focusMode: false });
+    }
+  }, [engine.status, engine.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Track early interruption ──────────────────────────────────────────
+  const prevStatus = useRef(engine.status);
+  useEffect(() => {
+    // If timer was running and user paused → count as interruption
+    if (prevStatus.current === 'running' && engine.status === 'paused') {
+      pomodoroStore.incrementInterruption();
+    }
+    prevStatus.current = engine.status;
+  }, [engine.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Header reveal on hover near top in focus mode ─────────────────────────
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!settings.focusMode) return;
+    if (e.clientY < 64) {
+      setHeaderVisible(true);
+      if (headerRevealTimer.current) clearTimeout(headerRevealTimer.current);
+      headerRevealTimer.current = setTimeout(() => setHeaderVisible(false), 3000);
+    }
+  }, [settings.focusMode]);
+
+  // Hide header after 2s when focus mode activates
+  useEffect(() => {
+    if (settings.focusMode) {
+      const t = setTimeout(() => setHeaderVisible(false), 2000);
+      return () => clearTimeout(t);
+    } else {
+      setHeaderVisible(true);
+    }
+  }, [settings.focusMode]);
+
+  // ── Fullscreen ─────────────────────────────────────────────────────────
   const toggleFullscreen = useCallback(async () => {
     try {
       if (!document.fullscreenElement) {
@@ -57,7 +101,7 @@ const Pomodoro: React.FC = () => {
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
-  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'INPUT') return;
@@ -87,7 +131,7 @@ const Pomodoro: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [engine, settings, toggleFullscreen]);
 
-  // ── Controls adapter ───────────────────────────────────────────────────────
+  // ── Controls adapter ─────────────────────────────────────────────────────
   const controlStatus = STATUS_MAP[engine.status] ?? null;
 
   const handleStart = () => {
@@ -108,6 +152,11 @@ const Pomodoro: React.FC = () => {
     });
   };
 
+  const headerClass = [
+    'app-header',
+    settings.focusMode && !headerVisible ? 'header-hidden' : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <div
       className={[
@@ -116,9 +165,10 @@ const Pomodoro: React.FC = () => {
         settings.focusMode ? 'focus-mode' : '',
         isFullscreen ? 'is-fullscreen' : '',
       ].join(' ')}
+      onMouseMove={handleMouseMove}
     >
       {/* ── Header ── */}
-      <header className="app-header">
+      <header className={headerClass}>
         <PomodoroStats />
         <div className="header-actions">
           <button
@@ -143,11 +193,11 @@ const Pomodoro: React.FC = () => {
             📅
           </button>
           <button
-            className={`icon-btn ${settings.focusMode ? 'active' : ''}`}
-            onClick={() => settings.update({ focusMode: !settings.focusMode })}
-            title="Modo foco: destaca o timer e reduz distrações (F)"
+            className="icon-btn"
+            onClick={() => navigate('/planner')}
+            title="Planejador IA"
           >
-            🎯
+            📖
           </button>
           <button
             className="icon-btn"
@@ -161,7 +211,7 @@ const Pomodoro: React.FC = () => {
             onClick={toggleFullscreen}
             title="Tela cheia (D)"
           >
-            {isFullscreen ? '⊡' : '⛶'}
+            {isFullscreen ? '⊞' : '⛶'}
           </button>
           <ToggleSound
             sound={settings.soundEnabled}

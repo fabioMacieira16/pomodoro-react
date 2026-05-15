@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import auth, tasks, pomodoro_sessions, settings, dashboard, scheduler
 from app.api.routers import anki_decks, anki_flashcards, anki_review, anki_stats, anki_ai
 from app.api.routers import ai_module
+from app.api.routers import metrics
+from app.study_planner.router import router as study_planner_router
+from app.quiz.router import router as quiz_router
+from app.documents.router import router as documents_router
 from app.core.config import settings as app_settings
 
 app = FastAPI(title=app_settings.PROJECT_NAME)
@@ -27,6 +31,10 @@ app.include_router(anki_review.router, prefix="/api")
 app.include_router(anki_stats.router, prefix="/api")
 app.include_router(anki_ai.router, prefix="/api")
 app.include_router(ai_module.router, prefix="/api")
+app.include_router(metrics.router, prefix="/api")
+app.include_router(study_planner_router, prefix="/api")
+app.include_router(quiz_router, prefix="/api")
+app.include_router(documents_router, prefix="/api")
 
 
 @app.get("/")
