@@ -128,7 +128,7 @@ export interface DashboardData {
   weekly_evolution: WeeklyEvolutionEntry[];
 }
 
-// ── Smart Scheduler ──────────────────────────────────────────────────────────
+// ── Smart Scheduler ──────────────────────────────────────────────────
 
 export interface ExamTopicCreate {
   name: string;
@@ -178,4 +178,85 @@ export interface StudyPlanItemResponse {
   review_interval: number | null;
   completed: boolean;
   topic_name: string;
+}
+
+// ── Anki Types ─────────────────────────────────────────────────────────────────────────────
+
+export type CardType = 'qa' | 'multiple_choice' | 'cloze' | 'true_false';
+
+export interface FlashcardOption {
+  id: number;
+  text: string;
+  is_correct: boolean;
+  position: number;
+}
+
+export interface Flashcard {
+  id: number;
+  deck_id: number;
+  card_type: CardType;
+  front: string;
+  back: string;
+  hint?: string;
+  tags: string[];
+  difficulty: string;
+  repetitions: number;
+  easiness_factor: number;
+  interval: number;
+  lapses: number;
+  last_reviewed?: string;
+  next_review?: string;
+  created_at: string;
+  options: FlashcardOption[];
+}
+
+export interface Deck {
+  id: number;
+  name: string;
+  description?: string;
+  color: string;
+  user_id: number;
+  subject_id?: number;
+  parent_deck_id?: number;
+  created_at: string;
+  card_count: number;
+  due_count: number;
+  new_count: number;
+  subdecks?: Deck[];
+}
+
+export interface ReviewResult {
+  flashcard_id: number;
+  next_review: string;
+  new_interval: number;
+  new_easiness_factor: number;
+  new_repetitions: number;
+  lapses: number;
+}
+
+export interface MaturityBucket {
+  label: string;
+  count: number;
+}
+
+export interface AnkiStats {
+  total_cards: number;
+  due_today: number;
+  new_cards: number;
+  retention_rate: number;
+  accuracy_rate: number;
+  total_reviews: number;
+  streak_days: number;
+  avg_ease: number;
+  cards_by_maturity: MaturityBucket[];
+  weekly_reviews: { day: string; count: number }[];
+}
+
+export interface AIGenerateRequest {
+  deck_id: number;
+  source_type: string;
+  content: string;
+  card_count: number;
+  card_types: CardType[];
+  language: string;
 }
