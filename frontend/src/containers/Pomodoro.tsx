@@ -145,7 +145,7 @@ const Pomodoro: React.FC = () => {
           <button
             className={`icon-btn ${settings.focusMode ? 'active' : ''}`}
             onClick={() => settings.update({ focusMode: !settings.focusMode })}
-            title="Modo foco (F)"
+            title="Modo foco: destaca o timer e reduz distrações (F)"
           >
             🎯
           </button>
@@ -216,6 +216,14 @@ const Pomodoro: React.FC = () => {
               <button className="auto-cancel" onClick={engine.cancelAutoStart}>
                 Cancelar
               </button>
+            </div>
+          )}
+
+          {settings.focusMode && (
+            <div className="auto-banner">
+              <span>
+                <strong>Modo foco ativo</strong>: o timer fica em destaque, os atalhos são ocultados e o cabeçalho reaparece ao passar o mouse no topo.
+              </span>
             </div>
           )}
 

@@ -115,40 +115,54 @@ const ExamForm: React.FC<Props> = ({ onSuccess }) => {
 
       <div className="exam-form__field">
         <label className="exam-form__label">Tópicos</label>
+        <p className="exam-form__hint">
+          Informe quantas horas, em média, você acha que precisa para cobrir cada tópico. O plano usa esse valor para distribuir o estudo ao longo dos dias.
+        </p>
         {topics.map((t, idx) => (
           <div key={idx} className="exam-form__topic-row">
-            <input
-              className="exam-form__input"
-              type="text"
-              placeholder="Nome do tópico"
-              value={t.name}
-              onChange={(e) => updateTopic(idx, 'name', e.target.value)}
-              required
-            />
-            <input
-              className="exam-form__input exam-form__input--short"
-              type="number"
-              min={0.5}
-              max={20}
-              step={0.5}
-              title="Horas estimadas"
-              value={t.estimated_hours}
-              onChange={(e) => updateTopic(idx, 'estimated_hours', parseFloat(e.target.value))}
-            />
-            <select
-              className="exam-form__select"
-              value={t.priority}
-              onChange={(e) => updateTopic(idx, 'priority', parseInt(e.target.value))}
-            >
-              <option value={1}>Alta</option>
-              <option value={2}>Média</option>
-              <option value={3}>Baixa</option>
-            </select>
+            <div className="exam-form__topic-field exam-form__topic-field--name">
+              <span className="exam-form__topic-caption">Tópico</span>
+              <input
+                className="exam-form__input"
+                type="text"
+                placeholder="Nome do tópico"
+                value={t.name}
+                onChange={(e) => updateTopic(idx, 'name', e.target.value)}
+                required
+              />
+            </div>
+            <div className="exam-form__topic-field exam-form__topic-field--hours">
+              <span className="exam-form__topic-caption">Horas estimadas</span>
+              <input
+                className="exam-form__input exam-form__input--short"
+                type="number"
+                min={0.5}
+                max={20}
+                step={0.5}
+                placeholder="Ex: 8"
+                title="Horas estimadas para estudar esse tópico"
+                value={t.estimated_hours}
+                onChange={(e) => updateTopic(idx, 'estimated_hours', parseFloat(e.target.value))}
+              />
+            </div>
+            <div className="exam-form__topic-field exam-form__topic-field--priority">
+              <span className="exam-form__topic-caption">Prioridade</span>
+              <select
+                className="exam-form__select"
+                value={t.priority}
+                onChange={(e) => updateTopic(idx, 'priority', parseInt(e.target.value))}
+              >
+                <option value={1}>Alta</option>
+                <option value={2}>Média</option>
+                <option value={3}>Baixa</option>
+              </select>
+            </div>
             {topics.length > 1 && (
               <button
                 type="button"
                 className="exam-form__remove-btn"
                 onClick={() => removeTopic(idx)}
+                title="Remover tópico"
               >
                 ✕
               </button>

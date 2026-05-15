@@ -21,6 +21,14 @@
   margin-bottom: 1rem;
 }
 
+.exam-form__hint {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--pomo-text, #1a1a2e);
+  opacity: 0.78;
+}
+
 .exam-form__label {
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -77,9 +85,35 @@
 .exam-form__topic-row {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 0.4rem;
   flex-wrap: wrap;
+}
+
+.exam-form__topic-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.exam-form__topic-field--name {
+  flex: 1 1 240px;
+}
+
+.exam-form__topic-field--hours {
+  flex: 0 0 128px;
+}
+
+.exam-form__topic-field--priority {
+  flex: 0 0 120px;
+}
+
+.exam-form__topic-caption {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--pomo-text, #1a1a2e);
+  opacity: 0.72;
 }
 
 .exam-form__remove-btn {
@@ -89,7 +123,7 @@
   opacity: 0.4;
   cursor: pointer;
   font-size: 0.85rem;
-  padding: 0.2rem 0.4rem;
+  padding: 0.45rem 0.4rem;
 }
 
 .exam-form__remove-btn:hover { opacity: 0.8; }

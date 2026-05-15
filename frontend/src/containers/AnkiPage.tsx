@@ -14,6 +14,7 @@ const AnkiPage: React.FC = () => {
   const { startReview, isReviewing } = useAnkiStore();
   const [view, setView] = useState<AnkiView>('decks');
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
+  const canOpenCards = selectedDeck !== null;
 
   const handleSelectDeck = (deck: Deck) => {
     setSelectedDeck(deck);
@@ -48,12 +49,28 @@ const AnkiPage: React.FC = () => {
             <button
               onClick={() => { setView('decks'); setSelectedDeck(null); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                view === 'decks' || view === 'flashcards'
+                view === 'decks'
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               Decks
+            </button>
+            <button
+              onClick={() => {
+                if (selectedDeck) {
+                  setView('flashcards');
+                }
+              }}
+              disabled={!canOpenCards}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                view === 'flashcards'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              title={selectedDeck ? `Abrir cartões do deck ${selectedDeck.name}` : 'Selecione um deck para abrir os cartões'}
+            >
+              Cartões
             </button>
             <button
               onClick={() => setView('dashboard')}
@@ -72,10 +89,15 @@ const AnkiPage: React.FC = () => {
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
         {view === 'decks' && (
-          <DeckList
-            onSelectDeck={handleSelectDeck}
-            onStartReview={handleStartReview}
-          />
+          <div className="space-y-4">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
+              Selecione um deck para abrir os cartões, editar flashcards ou iniciar uma revisão.
+            </div>
+            <DeckList
+              onSelectDeck={handleSelectDeck}
+              onStartReview={handleStartReview}
+            />
+          </div>
         )}
 
         {view === 'flashcards' && selectedDeck && (
