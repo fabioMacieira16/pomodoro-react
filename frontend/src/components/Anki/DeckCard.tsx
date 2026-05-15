@@ -17,7 +17,7 @@ export function DeckCard({ deck, onStudy, onEdit, onDelete, onClick }: DeckCardP
       onClick={() => onClick(deck)}
     >
       {/* Color bar */}
-      <div className="h-2 rounded-t-xl" style={{ backgroundColor: deck.color }} /}
+      <div className="h-2 rounded-t-xl" style={{ backgroundColor: deck.color }} />
 
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
