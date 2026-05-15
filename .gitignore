@@ -154,5 +154,8 @@ desktop.ini
 *.orig
 *.patch
 .DS_Store
-docs/
 Thumbs.db
+
+
+# ── Docs ──────────────────────────────────────────────────────────
+docs/
