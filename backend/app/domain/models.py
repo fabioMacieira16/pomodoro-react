@@ -18,20 +18,20 @@ class User(Base):
     anki_decks = relationship("AnkiDeck", back_populates="user")
     exercise_attempts = relationship("ExerciseAttempt", back_populates="user")
     exams = relationship("Exam", back_populates="user")
+    study_plan_configs = relationship("StudyPlanConfig", back_populates="user")
+    quiz_sessions = relationship("QuizSession", back_populates="user")
 
 class StudyType(Base):
     __tablename__ = "study_types"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True) # e.g., Concurso, Certificações
-    
+    name = Column(String, unique=True, index=True)
     categories = relationship("Category", back_populates="study_type")
 
 class Category(Base):
     __tablename__ = "categories"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True) # e.g., TI, Direito
+    name = Column(String, index=True)
     study_type_id = Column(Integer, ForeignKey("study_types.id"))
-
     study_type = relationship("StudyType", back_populates="categories")
     subjects = relationship("Subject", back_populates="category")
 
@@ -43,7 +43,7 @@ class Subject(Base):
     priority = Column(Integer, default=1)
     weight = Column(Float, default=1.0)
     difficulty = Column(String, default="Medium")
-    exam_board = Column(String, nullable=True) # banca
+    exam_board = Column(String, nullable=True)
     color = Column(String, default="#3182ce")
     weekly_goal_minutes = Column(Integer, default=0)
     total_studied_minutes = Column(Integer, default=0)
@@ -55,6 +55,7 @@ class Subject(Base):
     pomodoro_sessions = relationship("PomodoroSession", back_populates="subject")
     anki_decks = relationship("AnkiDeck", back_populates="subject")
     exercises = relationship("Exercise", back_populates="subject")
+    document_indexes = relationship("DocumentIndex", back_populates="subject")
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -66,11 +67,9 @@ class Task(Base):
     completed = Column(Boolean, default=False)
     estimated_minutes = Column(Integer, default=25)
     actual_minutes = Column(Integer, default=0)
-    position = Column(Integer, default=0) # For drag and drop ordering
-    
+    position = Column(Integer, default=0)
     user_id = Column(Integer, ForeignKey("users.id"))
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
-
     user = relationship("User", back_populates="tasks")
     subject = relationship("Subject", back_populates="tasks")
 
@@ -80,24 +79,27 @@ class PomodoroSession(Base):
     start_time = Column(DateTime(timezone=True), server_default=func.now())
     end_time = Column(DateTime(timezone=True), nullable=True)
     duration_minutes = Column(Integer)
-    session_type = Column(String) # Pomodoro, Short Break, Long Break
+    session_type = Column(String)  # Pomodoro, Short Break, Long Break
     completed = Column(Boolean, default=False)
     interruptions = Column(Integer, default=0)
-    productivity_rating = Column(Integer, nullable=True) # 1-5
-    
+    productivity_rating = Column(Integer, nullable=True)
+    # New: track study content + early stop
+    topic_id = Column(Integer, ForeignKey("exam_topics.id"), nullable=True)
+    early_stopped = Column(Boolean, default=False)
+    focus_score = Column(Float, nullable=True)  # 0-100
     user_id = Column(Integer, ForeignKey("users.id"))
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
-
     user = relationship("User", back_populates="pomodoro_sessions")
     subject = relationship("Subject", back_populates="pomodoro_sessions")
+    topic = relationship("ExamTopic", foreign_keys=[topic_id])
+    quiz_sessions = relationship("QuizSession", back_populates="pomodoro_session")
 
 class Schedule(Base):
     __tablename__ = "schedules"
     id = Column(Integer, primary_key=True, index=True)
-    day_of_week = Column(Integer) # 0-6 (Mon-Sun)
-    time_of_day = Column(String) # Morning, Afternoon, Evening
+    day_of_week = Column(Integer)
+    time_of_day = Column(String)
     duration_minutes = Column(Integer, default=60)
-    
     subject_id = Column(Integer, ForeignKey("subjects.id"))
     subject = relationship("Subject", back_populates="schedules")
 
@@ -105,27 +107,19 @@ class Setting(Base):
     __tablename__ = "settings"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-
-    # Pomodoro
     work_duration_minutes = Column(Integer, default=25)
     short_break_minutes = Column(Integer, default=5)
     long_break_minutes = Column(Integer, default=15)
     long_break_interval = Column(Integer, default=4)
     auto_start_breaks = Column(Boolean, default=False)
     auto_start_pomodoros = Column(Boolean, default=False)
-
-    # Display
     dark_mode = Column(Boolean, default=False)
     focus_mode = Column(Boolean, default=True)
     theme_color = Column(String, default="blue")
     language = Column(String, default="pt")
     weekly_goal_minutes = Column(Integer, default=600)
-
-    # AI
-    ai_provider_preference = Column(String, default="")  # "" = use server default
+    ai_provider_preference = Column(String, default="")
     sound_enabled = Column(Boolean, default=True)
-
-    # Notifications
     notifications_enabled = Column(Boolean, default=True)
     desktop_notifications = Column(Boolean, default=False)
 
@@ -155,7 +149,6 @@ class AnkiDeck(Base):
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
     parent_deck_id = Column(Integer, ForeignKey("anki_decks.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
     user = relationship("User", back_populates="anki_decks")
     subject = relationship("Subject", back_populates="anki_decks")
     flashcards = relationship("Flashcard", back_populates="deck", cascade="all, delete-orphan")
@@ -168,13 +161,12 @@ class Flashcard(Base):
     __tablename__ = "flashcards"
     id = Column(Integer, primary_key=True, index=True)
     deck_id = Column(Integer, ForeignKey("anki_decks.id"))
-    card_type = Column(String, default="qa")  # qa, multiple_choice, cloze, true_false
+    card_type = Column(String, default="qa")
     front = Column(Text)
     back = Column(Text)
     hint = Column(Text, nullable=True)
     tags = Column(JSON, default=list)
     difficulty = Column(String, default="Medium")
-    # SM-2 fields
     repetitions = Column(Integer, default=0)
     easiness_factor = Column(Float, default=2.5)
     interval = Column(Integer, default=0)
@@ -182,10 +174,12 @@ class Flashcard(Base):
     last_reviewed = Column(DateTime(timezone=True), nullable=True)
     next_review = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
+    # Auto-generated from error?
+    from_error = Column(Boolean, default=False)
     deck = relationship("AnkiDeck", back_populates="flashcards")
     options = relationship("FlashcardOption", back_populates="flashcard", cascade="all, delete-orphan")
     reviews = relationship("FlashcardReview", back_populates="flashcard", cascade="all, delete-orphan")
+    error_card = relationship("ErrorCard", back_populates="flashcard", uselist=False)
 
 class FlashcardOption(Base):
     __tablename__ = "flashcard_options"
@@ -194,7 +188,6 @@ class FlashcardOption(Base):
     text = Column(Text)
     is_correct = Column(Boolean, default=False)
     position = Column(Integer, default=0)
-
     flashcard = relationship("Flashcard", back_populates="options")
 
 class FlashcardReview(Base):
@@ -202,10 +195,9 @@ class FlashcardReview(Base):
     id = Column(Integer, primary_key=True, index=True)
     flashcard_id = Column(Integer, ForeignKey("flashcards.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    quality = Column(Integer)  # 0-5 SM-2 quality rating
+    quality = Column(Integer)
     response_time_ms = Column(Integer, nullable=True)
     reviewed_at = Column(DateTime(timezone=True), server_default=func.now())
-
     flashcard = relationship("Flashcard", back_populates="reviews")
     user = relationship("User")
 
@@ -218,31 +210,43 @@ class Exercise(Base):
     question_text = Column(Text)
     correct_answer = Column(Text)
     explanation = Column(Text, nullable=True)
+    hint = Column(Text, nullable=True)
     difficulty = Column(String, default="Medium")
+    difficulty_score = Column(Float, default=0.5)  # 0-1 for adaptive system
     exam_board = Column(String, nullable=True)
-
     subject = relationship("Subject", back_populates="exercises")
     attempts = relationship("ExerciseAttempt", back_populates="exercise")
+    options = relationship("ExerciseOption", back_populates="exercise", cascade="all, delete-orphan")
+
+class ExerciseOption(Base):
+    """Multiple-choice options for exercises."""
+    __tablename__ = "exercise_options"
+    id = Column(Integer, primary_key=True, index=True)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"))
+    text = Column(Text)
+    is_correct = Column(Boolean, default=False)
+    position = Column(Integer, default=0)
+    exercise = relationship("Exercise", back_populates="options")
 
 class ExerciseAttempt(Base):
     __tablename__ = "exercise_attempts"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     exercise_id = Column(Integer, ForeignKey("exercises.id"))
+    quiz_session_id = Column(Integer, ForeignKey("quiz_sessions.id"), nullable=True)
     user_answer = Column(Text)
     is_correct = Column(Boolean)
     attempted_at = Column(DateTime(timezone=True), server_default=func.now())
-
     user = relationship("User", back_populates="exercise_attempts")
     exercise = relationship("Exercise", back_populates="attempts")
+    error_card = relationship("ErrorCard", back_populates="attempt", uselist=False)
 
 class AiHistory(Base):
     __tablename__ = "ai_history"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    action = Column(String) # Summarize, Generate Quiz
+    action = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
 
 # ── Smart Scheduler ──────────────────────────────────────────────────────────
 
@@ -254,12 +258,16 @@ class Exam(Base):
     exam_date      = Column(DateTime(timezone=True), nullable=False)
     daily_hours    = Column(Float, nullable=False)
     available_days = Column(String, nullable=False, default="[0,1,2,3,4]")
+    # Extended for concurso context
+    cargo          = Column(String, nullable=True)       # cargo pretendido
+    banca          = Column(String, nullable=True)       # ex: CESPE, FCC, FGV
+    is_active      = Column(Boolean, default=True)
     created_at     = Column(DateTime(timezone=True), server_default=func.now())
 
     user       = relationship("User",          back_populates="exams")
     topics     = relationship("ExamTopic",     back_populates="exam",  cascade="all, delete-orphan")
     plan_items = relationship("StudyPlanItem", back_populates="exam",  cascade="all, delete-orphan")
-
+    study_plan_configs = relationship("StudyPlanConfig", back_populates="exam")
 
 class ExamTopic(Base):
     __tablename__ = "exam_topics"
@@ -269,11 +277,14 @@ class ExamTopic(Base):
     name            = Column(String,  nullable=False)
     estimated_hours = Column(Float,   nullable=False, default=1.0)
     priority        = Column(Integer, nullable=False, default=2)
+    # Extended for intelligent planner
+    peso            = Column(Float, default=1.0)          # peso na prova (0-10)
+    incidencia      = Column(Float, default=0.5)          # incidência da banca (0-1)
+    personal_difficulty = Column(String, default="Medium") # Easy/Medium/Hard
 
     exam       = relationship("Exam",       back_populates="topics")
     subject    = relationship("Subject")
     plan_items = relationship("StudyPlanItem", back_populates="topic", cascade="all, delete-orphan")
-
 
 class StudyPlanItem(Base):
     __tablename__ = "study_plan_items"
@@ -285,6 +296,96 @@ class StudyPlanItem(Base):
     session_type     = Column(String,   nullable=False)
     review_interval  = Column(Integer,  nullable=True)
     completed        = Column(Boolean,  nullable=False, default=False)
-
     exam  = relationship("Exam",      back_populates="plan_items")
     topic = relationship("ExamTopic", back_populates="plan_items")
+
+# ── Study Planner (AI Wizard) ─────────────────────────────────────────────────
+
+class StudyPlanConfig(Base):
+    """Stores the wizard answers and generated plan metadata."""
+    __tablename__ = "study_plan_configs"
+    id          = Column(Integer, primary_key=True, index=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False)
+    exam_id     = Column(Integer, ForeignKey("exams.id"), nullable=True)
+    exam_id_2   = Column(Integer, ForeignKey("exams.id"), nullable=True)  # multi-edital
+    is_multi_edital = Column(Boolean, default=False)
+    compatibility_pct = Column(Float, nullable=True)  # % compatibilidade multi-edital
+    # Wizard answers stored as JSON
+    wizard_answers  = Column(JSON, default=dict)
+    # Generated plan metadata
+    generated_plan  = Column(JSON, nullable=True)
+    shared_topics   = Column(JSON, nullable=True)   # multi-edital: tópicos em comum
+    exclusive_topics = Column(JSON, nullable=True)  # multi-edital: exclusivos
+    status      = Column(String, default="draft")   # draft / active / archived
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at  = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", back_populates="study_plan_configs")
+    exam = relationship("Exam", foreign_keys=[exam_id], back_populates="study_plan_configs")
+
+# ── Quiz System ──────────────────────────────────────────────────────────────
+
+class QuizSession(Base):
+    """A quiz run during or after a Pomodoro session."""
+    __tablename__ = "quiz_sessions"
+    id                = Column(Integer, primary_key=True, index=True)
+    user_id           = Column(Integer, ForeignKey("users.id"), nullable=False)
+    pomodoro_session_id = Column(Integer, ForeignKey("pomodoro_sessions.id"), nullable=True)
+    subject_id        = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    total_questions   = Column(Integer, default=5)
+    correct_answers   = Column(Integer, default=0)
+    score_pct         = Column(Float, default=0.0)
+    difficulty_level  = Column(String, default="Medium")  # Easy/Medium/Hard
+    session_mode      = Column(String, default="quiz")    # quiz / revision / mixed
+    completed         = Column(Boolean, default=False)
+    created_at        = Column(DateTime(timezone=True), server_default=func.now())
+
+    user             = relationship("User", back_populates="quiz_sessions")
+    pomodoro_session = relationship("PomodoroSession", back_populates="quiz_sessions")
+    attempts         = relationship("ExerciseAttempt", back_populates="quiz_session",
+                                    primaryjoin="QuizSession.id == ExerciseAttempt.quiz_session_id")
+
+# ── Error Cards (auto-generated from wrong answers) ─────────────────────────
+
+class ErrorCard(Base):
+    """Auto-generated flashcard link when user answers incorrectly."""
+    __tablename__ = "error_cards"
+    id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    attempt_id   = Column(Integer, ForeignKey("exercise_attempts.id"), nullable=False, unique=True)
+    flashcard_id = Column(Integer, ForeignKey("flashcards.id"), nullable=False, unique=True)
+    subject_id   = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    subdeck      = Column(String, nullable=True)   # subdeck name within the subject deck
+    origin_text  = Column(Text, nullable=True)     # question text that caused the error
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+    attempt   = relationship("ExerciseAttempt", back_populates="error_card")
+    flashcard = relationship("Flashcard", back_populates="error_card")
+
+# ── Document Index ───────────────────────────────────────────────────────────
+
+class DocumentIndex(Base):
+    """Metadata for indexed study documents (PDFs, etc)."""
+    __tablename__ = "document_indexes"
+    id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subject_id   = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    # File info
+    filename     = Column(String, nullable=False)
+    file_path    = Column(String, nullable=False)
+    file_type    = Column(String, default="pdf")   # pdf, txt, docx
+    file_size_kb = Column(Integer, nullable=True)
+    # Detected context from path structure docs/concurso/disciplina/
+    concurso     = Column(String, nullable=True)   # e.g., sefaz-ce
+    disciplina   = Column(String, nullable=True)   # e.g., banco-de-dados
+    doc_type     = Column(String, default="material")  # edital / material / questoes
+    # Extracted content
+    page_count   = Column(Integer, nullable=True)
+    summary      = Column(Text, nullable=True)
+    topics_json  = Column(JSON, nullable=True)     # extracted topics
+    metadata_json = Column(JSON, default=dict)
+    indexed_at   = Column(DateTime(timezone=True), server_default=func.now())
+    is_indexed   = Column(Boolean, default=False)
+
+    user    = relationship("User")
+    subject = relationship("Subject", back_populates="document_indexes")

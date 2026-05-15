@@ -7,6 +7,10 @@ import { useEffect } from 'react';
 import Pomodoro from './containers/Pomodoro';
 import Dashboard from './containers/Dashboard';
 import AnkiPage from './containers/AnkiPage';
+import Scheduler from './containers/Scheduler';
+import StudyPlannerPage from './containers/StudyPlannerPage';
+import QuizPage from './containers/QuizPage';
+import DocumentsPage from './containers/DocumentsPage';
 import { usePomodoroSettings } from './store/pomodoroSettingsStore';
 import './style.css';
 
@@ -56,6 +60,10 @@ root.render(
           <Route path="/" element={<Pomodoro />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/anki" element={<AnkiPage />} />
+          <Route path="/scheduler" element={<Scheduler />} />
+          <Route path="/planner" element={<StudyPlannerPage />} />
+          <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/docs" element={<DocumentsPage />} />
         </Routes>
       </BrowserRouter>
     </DndProvider>
