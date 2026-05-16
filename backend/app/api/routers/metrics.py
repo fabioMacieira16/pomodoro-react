@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 from app.data.database import get_db
-from app.core.security import get_current_user
+from app.api.dependencies import get_current_user
 from app.domain.models import (
     User, ExerciseAttempt, PomodoroSession, Flashcard,
     Subject, Exam, ExamTopic, StudyPlanConfig,
