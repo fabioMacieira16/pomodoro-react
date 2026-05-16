@@ -15,39 +15,79 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    def has_table(name: str) -> bool:
+        return inspector.has_table(name)
+
+    def table_columns(name: str) -> set[str]:
+        if not has_table(name):
+            return set()
+        return {col['name'] for col in inspector.get_columns(name)}
+
+    def create_table_if_missing(name: str, *columns, **kwargs) -> None:
+        if not has_table(name):
+            op.create_table(name, *columns, **kwargs)
+
     # ── Extend Exam ────────────────────────────────────────────────────────
-    with op.batch_alter_table('exams') as batch_op:
-        batch_op.add_column(sa.Column('cargo',     sa.String(), nullable=True))
-        batch_op.add_column(sa.Column('banca',     sa.String(), nullable=True))
-        batch_op.add_column(sa.Column('is_active', sa.Boolean(), server_default='1', nullable=False))
+    exams_columns = table_columns('exams')
+    if exams_columns:
+        with op.batch_alter_table('exams') as batch_op:
+            if 'cargo' not in exams_columns:
+                batch_op.add_column(sa.Column('cargo', sa.String(), nullable=True))
+            if 'banca' not in exams_columns:
+                batch_op.add_column(sa.Column('banca', sa.String(), nullable=True))
+            if 'is_active' not in exams_columns:
+                batch_op.add_column(sa.Column('is_active', sa.Boolean(), server_default='1', nullable=False))
 
     # ── Extend ExamTopic ───────────────────────────────────────────────────
-    with op.batch_alter_table('exam_topics') as batch_op:
-        batch_op.add_column(sa.Column('peso',               sa.Float(),  server_default='1.0', nullable=False))
-        batch_op.add_column(sa.Column('incidencia',         sa.Float(),  server_default='0.5', nullable=False))
-        batch_op.add_column(sa.Column('personal_difficulty', sa.String(), server_default='Medium', nullable=False))
+    exam_topics_columns = table_columns('exam_topics')
+    if exam_topics_columns:
+        with op.batch_alter_table('exam_topics') as batch_op:
+            if 'peso' not in exam_topics_columns:
+                batch_op.add_column(sa.Column('peso', sa.Float(), server_default='1.0', nullable=False))
+            if 'incidencia' not in exam_topics_columns:
+                batch_op.add_column(sa.Column('incidencia', sa.Float(), server_default='0.5', nullable=False))
+            if 'personal_difficulty' not in exam_topics_columns:
+                batch_op.add_column(sa.Column('personal_difficulty', sa.String(), server_default='Medium', nullable=False))
 
     # ── Extend PomodoroSession ─────────────────────────────────────────────
-    with op.batch_alter_table('pomodoro_sessions') as batch_op:
-        batch_op.add_column(sa.Column('topic_id',      sa.Integer(), nullable=True))
-        batch_op.add_column(sa.Column('early_stopped', sa.Boolean(), server_default='0', nullable=False))
-        batch_op.add_column(sa.Column('focus_score',   sa.Float(),   nullable=True))
+    pomodoro_sessions_columns = table_columns('pomodoro_sessions')
+    if pomodoro_sessions_columns:
+        with op.batch_alter_table('pomodoro_sessions') as batch_op:
+            if 'topic_id' not in pomodoro_sessions_columns:
+                batch_op.add_column(sa.Column('topic_id', sa.Integer(), nullable=True))
+            if 'early_stopped' not in pomodoro_sessions_columns:
+                batch_op.add_column(sa.Column('early_stopped', sa.Boolean(), server_default='0', nullable=False))
+            if 'focus_score' not in pomodoro_sessions_columns:
+                batch_op.add_column(sa.Column('focus_score', sa.Float(), nullable=True))
 
     # ── Extend Flashcard ───────────────────────────────────────────────────
-    with op.batch_alter_table('flashcards') as batch_op:
-        batch_op.add_column(sa.Column('from_error', sa.Boolean(), server_default='0', nullable=False))
+    flashcards_columns = table_columns('flashcards')
+    if flashcards_columns:
+        with op.batch_alter_table('flashcards') as batch_op:
+            if 'from_error' not in flashcards_columns:
+                batch_op.add_column(sa.Column('from_error', sa.Boolean(), server_default='0', nullable=False))
 
     # ── Extend Exercise ────────────────────────────────────────────────────
-    with op.batch_alter_table('exercises') as batch_op:
-        batch_op.add_column(sa.Column('hint',            sa.Text(),  nullable=True))
-        batch_op.add_column(sa.Column('difficulty_score', sa.Float(), server_default='0.5', nullable=False))
+    exercises_columns = table_columns('exercises')
+    if exercises_columns:
+        with op.batch_alter_table('exercises') as batch_op:
+            if 'hint' not in exercises_columns:
+                batch_op.add_column(sa.Column('hint', sa.Text(), nullable=True))
+            if 'difficulty_score' not in exercises_columns:
+                batch_op.add_column(sa.Column('difficulty_score', sa.Float(), server_default='0.5', nullable=False))
 
     # ── Extend ExerciseAttempt ─────────────────────────────────────────────
-    with op.batch_alter_table('exercise_attempts') as batch_op:
-        batch_op.add_column(sa.Column('quiz_session_id', sa.Integer(), nullable=True))
+    exercise_attempts_columns = table_columns('exercise_attempts')
+    if exercise_attempts_columns:
+        with op.batch_alter_table('exercise_attempts') as batch_op:
+            if 'quiz_session_id' not in exercise_attempts_columns:
+                batch_op.add_column(sa.Column('quiz_session_id', sa.Integer(), nullable=True))
 
     # ── New: exercise_options ──────────────────────────────────────────────
-    op.create_table(
+    create_table_if_missing(
         'exercise_options',
         sa.Column('id',          sa.Integer(), primary_key=True),
         sa.Column('exercise_id', sa.Integer(), sa.ForeignKey('exercises.id'), nullable=False),
@@ -57,7 +97,7 @@ def upgrade() -> None:
     )
 
     # ── New: study_plan_configs ────────────────────────────────────────────
-    op.create_table(
+    create_table_if_missing(
         'study_plan_configs',
         sa.Column('id',               sa.Integer(), primary_key=True),
         sa.Column('user_id',          sa.Integer(), sa.ForeignKey('users.id'), nullable=False),
@@ -70,12 +110,12 @@ def upgrade() -> None:
         sa.Column('shared_topics',    sa.JSON(), nullable=True),
         sa.Column('exclusive_topics', sa.JSON(), nullable=True),
         sa.Column('status',           sa.String(), server_default='draft', nullable=False),
-        sa.Column('created_at',       sa.DateTime(timezone=True), server_default=sa.text('(datetime("now"))')),
+        sa.Column('created_at',       sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at',       sa.DateTime(timezone=True), nullable=True),
     )
 
     # ── New: quiz_sessions ─────────────────────────────────────────────────
-    op.create_table(
+    create_table_if_missing(
         'quiz_sessions',
         sa.Column('id',                   sa.Integer(), primary_key=True),
         sa.Column('user_id',              sa.Integer(), sa.ForeignKey('users.id'), nullable=False),
@@ -87,11 +127,11 @@ def upgrade() -> None:
         sa.Column('difficulty_level',     sa.String(),  server_default='Medium', nullable=False),
         sa.Column('session_mode',         sa.String(),  server_default='quiz', nullable=False),
         sa.Column('completed',            sa.Boolean(), server_default='0', nullable=False),
-        sa.Column('created_at',           sa.DateTime(timezone=True), server_default=sa.text('(datetime("now"))')),
+        sa.Column('created_at',           sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP')),
     )
 
     # ── New: error_cards ───────────────────────────────────────────────────
-    op.create_table(
+    create_table_if_missing(
         'error_cards',
         sa.Column('id',           sa.Integer(), primary_key=True),
         sa.Column('user_id',      sa.Integer(), sa.ForeignKey('users.id'),             nullable=False),
@@ -100,11 +140,11 @@ def upgrade() -> None:
         sa.Column('subject_id',   sa.Integer(), sa.ForeignKey('subjects.id'),          nullable=True),
         sa.Column('subdeck',      sa.String(),  nullable=True),
         sa.Column('origin_text',  sa.Text(),    nullable=True),
-        sa.Column('created_at',   sa.DateTime(timezone=True), server_default=sa.text('(datetime("now"))')),
+        sa.Column('created_at',   sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP')),
     )
 
     # ── New: document_indexes ─────────────────────────────────────────────
-    op.create_table(
+    create_table_if_missing(
         'document_indexes',
         sa.Column('id',            sa.Integer(), primary_key=True),
         sa.Column('user_id',       sa.Integer(), sa.ForeignKey('users.id'),     nullable=False),
@@ -120,7 +160,7 @@ def upgrade() -> None:
         sa.Column('summary',       sa.Text(),    nullable=True),
         sa.Column('topics_json',   sa.JSON(),    nullable=True),
         sa.Column('metadata_json', sa.JSON(),    nullable=True),
-        sa.Column('indexed_at',    sa.DateTime(timezone=True), server_default=sa.text('(datetime("now"))')),
+        sa.Column('indexed_at',    sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('is_indexed',    sa.Boolean(), server_default='0', nullable=False),
     )
 
