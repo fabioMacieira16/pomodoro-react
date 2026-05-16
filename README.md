@@ -245,14 +245,6 @@ py -3.11 -m venv .venv311
 pip install -r requirements.txt
 Copy-Item ..\.env.example .env -Force
 
-# Ajuste o banco local em backend/.env para usar o arquivo isolado de dev:
-# SQLALCHEMY_DATABASE_URI="sqlite:///../database/pomodoro-local.db"
-
-alembic upgrade heads
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir .
-
-# API em http://127.0.0.1:8000
-# Swagger em http://127.0.0.1:8000/docs
 
 # 2) Frontend
 cd ..\frontend
