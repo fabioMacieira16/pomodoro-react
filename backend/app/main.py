@@ -7,6 +7,7 @@ from app.api.routers import metrics
 from app.study_planner.router import router as study_planner_router
 from app.quiz.router import router as quiz_router
 from app.documents.router import router as documents_router
+from app.core.study_context_router import router as study_context_router
 from app.core.config import settings as app_settings
 
 app = FastAPI(title=app_settings.PROJECT_NAME)
@@ -35,6 +36,7 @@ app.include_router(metrics.router, prefix="/api")
 app.include_router(study_planner_router, prefix="/api")
 app.include_router(quiz_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
+app.include_router(study_context_router, prefix="/api")
 
 
 @app.get("/")

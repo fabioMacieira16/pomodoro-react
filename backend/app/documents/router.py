@@ -12,6 +12,8 @@ from app.documents.schemas import (
     IndexDocumentRequest, DocumentOut, IndexingStatus, ScanDirectoryRequest
 )
 from app.documents.indexer import DocumentIndexerService
+from app.documents.edital_analyzer import EditalAnalyzer, analyze_edital_file
+from app.core.study_context import StudyContextService
 
 router = APIRouter(prefix="/docs", tags=["documents"])
 
@@ -28,7 +30,7 @@ def index_document(
     return svc.index_document(req)
 
 
-@router.post("/upload", response_model=IndexingStatus, summary="Upload and index a PDF document")
+@router.post("/upload", response_model=dict, summary="Upload and index a PDF document")
 async def upload_document(
     file: UploadFile = File(...),
     concurso: Optional[str] = Form(None),
@@ -36,6 +38,15 @@ async def upload_document(
     doc_type: Optional[str] = Form(None),
     svc: DocumentIndexerService = Depends(_svc),
 ):
+    """
+    Upload de documento PDF.
+    
+    Se for detectado como edital:
+    - Analisa automaticamente com IA
+    - Extrai concurso, banca, cargos, disciplinas
+    - Atualiza StudyContext global
+    - Retorna dados para seleção de cargo (se múltiplos)
+    """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
 
@@ -43,6 +54,10 @@ async def upload_document(
     if suffix != ".pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
+    # Detectar tipo de documento
+    filename_lower = file.filename.lower()
+    is_edital = doc_type == "edital" or "edital" in filename_lower
+    
     repo_root = Path(__file__).resolve().parents[3]
     target_dir = repo_root / "docs" / (concurso or "uploads") / (disciplina or "geral")
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -51,7 +66,8 @@ async def upload_document(
     with target_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    return svc.index_document(
+    # Indexar documento
+    indexing_result = svc.index_document(
         IndexDocumentRequest(
             file_path=str(target_path),
             concurso=concurso,
@@ -59,6 +75,40 @@ async def upload_document(
             doc_type=doc_type,
         )
     )
+    
+    # Se for edital, analisar automaticamente
+    edital_info = None
+    if is_edital:
+        try:
+            edital_info = analyze_edital_file(str(target_path))
+            
+            # Atualizar StudyContext
+            if edital_info:
+                updates = {
+                    "edital_active": True,
+                    "concurso": edital_info.concurso,
+                    "banca": edital_info.banca,
+                    "available_cargos": edital_info.cargos,
+                    "subjects": list(edital_info.disciplinas.keys()),
+                    "subject_weights": edital_info.disciplinas,
+                }
+                
+                if edital_info.data_prova:
+                    updates["exam_date"] = edital_info.data_prova
+                
+                # Se só tem 1 cargo, define automaticamente
+                if len(edital_info.cargos) == 1:
+                    updates["cargo"] = edital_info.cargos[0]
+                
+                StudyContextService.update_context(**updates)
+        except Exception as e:
+            print(f"[EditalAnalyzer] Error: {e}")
+    
+    return {
+        "indexing": indexing_result.model_dump(),
+        "edital_info": edital_info.to_dict() if edital_info else None,
+        "requires_cargo_selection": edital_info and len(edital_info.cargos) > 1 if edital_info else False,
+    }
 
 
 @router.post("/scan", response_model=List[IndexingStatus], summary="Scan directory and index all PDFs")

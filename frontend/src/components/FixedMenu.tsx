@@ -28,20 +28,20 @@ const FixedMenu: React.FC = () => {
       <div />
       <div className="header-actions">
         
+        <button className="icon-btn" onClick={() => navigate('/dashboard')} title="Dashboard">
+          📊
+        </button>
+      
+        <button className="icon-btn" onClick={() => navigate('/estudos')} title="Estudos">
+          📚
+        </button>
+      
         <button className="icon-btn" onClick={() => navigate('/')} title="Pomodoro">
           🍅
         </button>
       
-        <button className="icon-btn" onClick={() => navigate('/study-planner')} title="Planejador de Estudos">
-          📅
-        </button>
-      
-        <button className="icon-btn" onClick={() => navigate('/anki')} title="Anki - Flashcards">
+        <button className="icon-btn" onClick={() => navigate('/anki')} title="Revisões">
           🧠
-        </button>
-      
-        <button className="icon-btn" onClick={() => navigate('/')} title="Configurações">
-          ⚙️
         </button>
       
         <button
