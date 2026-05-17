@@ -71,7 +71,6 @@ const StudyPlannerPage: React.FC = () => {
   return (
     <div className="planner-page">
       <header className="planner-header">
-        <button className="back-btn" onClick={() => navigate('/')}>← Voltar</button>
         <h1>📖 Planejador de Estudos IA</h1>
         {activePlan && (
           <button className="edit-btn" onClick={() => setShowWizard(true)}>✏️ Editar Plano</button>

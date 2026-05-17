@@ -37,13 +37,6 @@ const Dashboard: React.FC = () => {
   return (
     <div className="dashboard">
       <header className="dashboard__header">
-        <button
-          className="dashboard__back-btn"
-          onClick={() => navigate('/')}
-          title="Voltar ao Pomodoro"
-        >
-          ← Pomodoro
-        </button>
         <h1 className="dashboard__title">Dashboard</h1>
       </header>
 

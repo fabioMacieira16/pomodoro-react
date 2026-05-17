@@ -27,8 +27,9 @@ const FixedMenu: React.FC = () => {
     <header className="app-header">
       <div />
       <div className="header-actions">
-        <button className="icon-btn" onClick={() => navigate('/dashboard')} title="Dashboard">
-          📊
+        
+        <button className="icon-btn" onClick={() => navigate('/')} title="Pomodoro">
+          🍅
         </button>
         <button className="icon-btn" onClick={() => navigate('/anki')} title="Anki - Flashcards">
           🧠

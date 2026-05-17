@@ -175,6 +175,13 @@ const Pomodoro: React.FC = () => {
         <div className="header-actions">
           <button
             className="icon-btn"
+            onClick={() => navigate('/')}
+            title="Pomodoro"
+          >
+            🍅
+          </button>
+          <button
+            className="icon-btn"
             onClick={() => navigate('/dashboard')}
             title="Dashboard"
           >
@@ -272,14 +279,6 @@ const Pomodoro: React.FC = () => {
               <button className="auto-cancel" onClick={engine.cancelAutoStart}>
                 Cancelar
               </button>
-            </div>
-          )}
-
-          {settings.focusMode && (
-            <div className="auto-banner">
-              <span>
-                <strong>Modo foco ativo</strong>: o timer fica em destaque, os atalhos são ocultados e o cabeçalho reaparece ao passar o mouse no topo.
-              </span>
             </div>
           )}
 
