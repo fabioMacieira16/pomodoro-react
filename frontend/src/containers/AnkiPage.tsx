@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAnkiStore } from '../store/ankiStore';
 import { DeckList } from '../components/Anki/DeckList';
 import { FlashcardList } from '../components/Anki/FlashcardList';
@@ -10,7 +9,6 @@ import type { Deck } from '../types';
 type AnkiView = 'decks' | 'flashcards' | 'dashboard';
 
 const AnkiPage: React.FC = () => {
-  const navigate = useNavigate();
   const { startReview, isReviewing } = useAnkiStore();
   const [view, setView] = useState<AnkiView>('decks');
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);

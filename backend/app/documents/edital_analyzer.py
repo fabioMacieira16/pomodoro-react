@@ -62,7 +62,7 @@ class EditalAnalyzer:
     def __init__(self):
         self.provider = get_provider()
     
-    def analyze(self, text: str) -> EditalInfo:
+    async def analyze(self, text: str) -> EditalInfo:
         """Análise completa do edital"""
         info = EditalInfo()
         
@@ -77,7 +77,7 @@ class EditalAnalyzer:
         # Extração com IA (mais preciso)
         if self.provider.is_available():
             try:
-                ai_info = asyncio.run(self._extract_with_ai(text))
+                ai_info = await self._extract_with_ai(text)
                 info.cargos = ai_info.get("cargos", [])
                 info.disciplinas = ai_info.get("disciplinas", {})
                 info.requisitos = ai_info.get("requisitos", {})
@@ -285,7 +285,7 @@ Retorne APENAS o JSON válido, sem comentários ou texto adicional.
             return {}
 
 
-def analyze_edital_file(file_path: str) -> EditalInfo:
+async def analyze_edital_file(file_path: str) -> EditalInfo:
     """Função helper para analisar arquivo de edital"""
     from pathlib import Path
     
@@ -311,4 +311,4 @@ def analyze_edital_file(file_path: str) -> EditalInfo:
     
     # Analisar
     analyzer = EditalAnalyzer()
-    return analyzer.analyze(text)
+    return await analyzer.analyze(text)

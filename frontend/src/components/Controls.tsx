@@ -8,7 +8,7 @@ interface ControlsProps {
   status: 'Finished' | 'Paused' | 'Running' | null;
 }
 
-const Controls: React.FC<ControlsProps> = ({ start, reset, pause, status }) => (
+const Controls: React.FC<ControlsProps> = ({ start, pause, status }) => (
   <div className="Controls">
     {!status && (
       <button onClick={start} className="start">

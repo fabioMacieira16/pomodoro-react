@@ -80,7 +80,7 @@ async def upload_document(
     edital_info = None
     if is_edital:
         try:
-            edital_info = analyze_edital_file(str(target_path))
+            edital_info = await analyze_edital_file(str(target_path))
             
             # Atualizar StudyContext
             if edital_info:

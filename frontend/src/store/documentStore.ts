@@ -35,7 +35,7 @@ interface DocumentState {
   filterDisciplina: string | null;
   // Actions
   fetchDocuments: (concurso?: string, disciplina?: string) => Promise<void>;
-  uploadFile: (file: File, concurso?: string, disciplina?: string, docType?: string) => Promise<void>;
+  uploadFile: (file: File, concurso?: string, disciplina?: string, docType?: string) => Promise<any>;
   indexFile: (filePath: string, concurso?: string, disciplina?: string) => Promise<void>;
   scanDirectory: (dirPath: string) => Promise<void>;
   deleteDocument: (id: number) => Promise<void>;
@@ -84,6 +84,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         isIndexing: false,
       }));
       await get().fetchDocuments();
+      return res.data;
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -91,6 +92,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         isIndexing: false,
         error: detail || 'Erro ao enviar/indexar PDF.',
       });
+      return null;
     }
   },
 
