@@ -152,6 +152,8 @@ const Pomodoro: React.FC = () => {
     });
   };
 
+  const isTimerActive = engine.status === 'running' || engine.status === 'paused';
+
   const headerClass = [
     'app-header',
     settings.focusMode && !headerVisible ? 'header-hidden' : '',
@@ -194,7 +196,7 @@ const Pomodoro: React.FC = () => {
           </button>
           <button
             className="icon-btn"
-            onClick={() => navigate('/planner')}
+            onClick={() => navigate('/study-planner')}
             title="Planejador IA"
           >
             📖
@@ -223,14 +225,16 @@ const Pomodoro: React.FC = () => {
       {/* ── Main area ── */}
       <main className="app-main">
         <div className="Pomodoro">
-          <TypeSelect
-            types={PHASE_ITEMS}
-            selected={{ name: PHASE_LABELS[engine.phase], time: engine.timeRemaining }}
-            changeType={(t) => {
-              const item = PHASE_ITEMS.find((p) => p.name === t.name);
-              if (item) engine.changePhase(item.phase);
-            }}
-          />
+          {!isTimerActive && (
+            <TypeSelect
+              types={PHASE_ITEMS}
+              selected={{ name: PHASE_LABELS[engine.phase], time: engine.timeRemaining }}
+              changeType={(t) => {
+                const item = PHASE_ITEMS.find((p) => p.name === t.name);
+                if (item) engine.changePhase(item.phase);
+              }}
+            />
+          )}
 
           <TimeDisplay
             time={engine.timeRemaining}
@@ -239,10 +243,12 @@ const Pomodoro: React.FC = () => {
             phaseColor={engine.phaseColor}
           />
 
-          <PomodoroDots
-            pomodoroCount={engine.pomodoroCount}
-            longBreakInterval={settings.longBreakInterval}
-          />
+          {!isTimerActive && (
+            <PomodoroDots
+              pomodoroCount={engine.pomodoroCount}
+              longBreakInterval={settings.longBreakInterval}
+            />
+          )}
 
           <Controls
             start={handleStart}
@@ -251,7 +257,7 @@ const Pomodoro: React.FC = () => {
             status={controlStatus}
           />
 
-          {(engine.status === 'running' || engine.status === 'paused') && (
+          {!isTimerActive && (engine.status === 'running' || engine.status === 'paused') && (
             <button className="skip-btn" onClick={engine.skip}>
               Pular →
             </button>
@@ -277,12 +283,12 @@ const Pomodoro: React.FC = () => {
             </div>
           )}
 
-          <ToggleTask task={taskOpen} toggleTask={handleToggleTask} />
+          {!isTimerActive && <ToggleTask task={taskOpen} toggleTask={handleToggleTask} />}
 
-          {!settings.focusMode && <Shortcuts />}
+          {!isTimerActive && !settings.focusMode && <Shortcuts />}
         </div>
 
-        {taskOpen && (
+        {!isTimerActive && taskOpen && (
           <div className="TaskPainel">
             <TaskList />
           </div>

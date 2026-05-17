@@ -24,9 +24,6 @@ const Controls: React.FC<ControlsProps> = ({ start, reset, pause, status }) => (
 
     {(status === 'Paused' || status === 'Running') && (
       <div>
-        <button onClick={reset} className="reset">
-          Reset
-        </button>
         <button
           onClick={pause}
           className={status === 'Paused' ? 'resume' : 'pause'}

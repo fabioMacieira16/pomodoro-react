@@ -7,7 +7,7 @@ from app.domain.models import User
 from app.study_planner.schemas import WizardInput, PlanOutput, MultiEditalComparison, PlanEditRequest
 from app.study_planner.service import StudyPlannerService
 
-router = APIRouter(prefix="/api/planner", tags=["study-planner"])
+router = APIRouter(prefix="/planner", tags=["study-planner"])
 
 
 def _svc(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> StudyPlannerService:

@@ -11,7 +11,7 @@ from app.quiz.schemas import (
 )
 from app.quiz.service import QuizService
 
-router = APIRouter(prefix="/api/quiz", tags=["quiz"])
+router = APIRouter(prefix="/quiz", tags=["quiz"])
 
 
 def _svc(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> QuizService:

@@ -10,7 +10,7 @@ from app.documents.schemas import (
 )
 from app.documents.indexer import DocumentIndexerService
 
-router = APIRouter(prefix="/api/docs", tags=["documents"])
+router = APIRouter(prefix="/docs", tags=["documents"])
 
 
 def _svc(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
