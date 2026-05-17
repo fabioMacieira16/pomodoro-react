@@ -6,14 +6,15 @@ When USE_LANGCHAIN=true, chains are wired via LangChain.
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Any
 import json
+import asyncio
 
 from sqlalchemy.orm import Session
 
 from app.domain.models import (
-    Exam, ExamTopic, StudyPlanConfig, StudyPlanItem, Subject
+    Exam, ExamTopic, StudyPlanConfig, StudyPlanItem, Subject, DocumentIndex
 )
 from app.study_planner.schemas import (
-    WizardInput, PlanOutput, TopicPlan, MultiEditalComparison
+    WizardInput, PlanOutput, TopicPlan, MultiEditalComparison, QuickPlanRequest
 )
 from app.ai.factory import get_provider
 from app.core.config import settings
@@ -31,6 +32,7 @@ class StudyPlannerService:
         """Generate an AI study plan from wizard answers."""
         exam = self._upsert_exam(wizard)
         topics = self._build_topic_plans(exam, wizard)
+        self._sync_exam_topics(exam, topics)
         days_until = max(1, (wizard.exam_date - date.today()).days)
         total_hours = wizard.daily_hours * len(wizard.available_days) / 7 * days_until
 
@@ -68,6 +70,30 @@ class StudyPlannerService:
         self.db.refresh(config)
         plan_output.plan_id = config.id
         return plan_output
+
+    def generate_plan_from_prompt(self, body: QuickPlanRequest) -> PlanOutput:
+        parsed = self._parse_prompt_to_wizard(body.prompt)
+
+        concurso = body.concurso or parsed.get("concurso") or self._guess_concurso_from_docs() or "Concurso Público"
+        cargo = body.cargo or parsed.get("cargo") or "Analista"
+        banca = body.banca or parsed.get("banca") or "CESPE"
+        exam_date = body.exam_date or self._safe_date(parsed.get("exam_date")) or (date.today() + timedelta(days=120))
+        daily_hours = body.daily_hours or self._safe_float(parsed.get("daily_hours"), default=4.0)
+        available_days = body.available_days or parsed.get("available_days") or [0, 1, 2, 3, 4]
+
+        wizard = WizardInput(
+            concurso=str(concurso),
+            cargo=str(cargo),
+            banca=str(banca),
+            exam_date=exam_date,
+            daily_hours=float(daily_hours),
+            available_days=[int(d) for d in available_days if int(d) in range(0, 7)] or [0, 1, 2, 3, 4],
+            strong_subjects=self._safe_str_list(parsed.get("strong_subjects")),
+            weak_subjects=self._safe_str_list(parsed.get("weak_subjects")),
+            previous_experience=str(parsed.get("previous_experience") or body.prompt[:240]),
+            has_studied_edital=True,
+        )
+        return self.generate_plan(wizard)
 
     def get_active_plan(self) -> Optional[PlanOutput]:
         config = (
@@ -161,14 +187,19 @@ class StudyPlannerService:
         else:
             exam.exam_date = datetime.combine(wizard.exam_date, datetime.min.time())
             exam.daily_hours = wizard.daily_hours
+            exam.available_days = json.dumps(wizard.available_days)
             exam.cargo = wizard.cargo
             exam.banca = wizard.banca
+            exam.is_active = True
             self.db.commit()
         return exam
 
     def _build_topic_plans(self, exam: Exam, wizard: WizardInput) -> List[TopicPlan]:
         topics = self.db.query(ExamTopic).filter_by(exam_id=exam.id).all()
         if not topics:
+            from_docs = self._topic_plans_from_indexed_documents(wizard)
+            if from_docs:
+                return from_docs
             # Generate default topics from subjects if no exam topics exist
             return self._default_topic_plans(wizard)
 
@@ -243,3 +274,172 @@ class StudyPlannerService:
             prios.append(f"🟡 Alto peso na prova: {', '.join(high_weight[:3])}")
         prios.append(f"📅 {(wizard.exam_date - date.today()).days} dias até a prova — mantenha consistência diária")
         return prios
+
+    def _parse_prompt_to_wizard(self, prompt: str) -> Dict[str, Any]:
+        provider = get_provider()
+        if not provider.is_available():
+            return {}
+
+        parse_prompt = (
+            "Extraia campos para planejamento de estudos e retorne SOMENTE JSON valido com as chaves: "
+            "concurso,cargo,banca,exam_date(YYYY-MM-DD),daily_hours,available_days,strong_subjects,"
+            "weak_subjects,previous_experience. Se nao souber, omita a chave. Texto:\n\n"
+            f"{prompt[:4000]}"
+        )
+        try:
+            data = asyncio.run(provider.complete_json(parse_prompt))
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def _guess_concurso_from_docs(self) -> Optional[str]:
+        latest = (
+            self.db.query(DocumentIndex)
+            .filter(DocumentIndex.user_id == self.user_id, DocumentIndex.is_indexed == True)
+            .order_by(DocumentIndex.indexed_at.desc())
+            .first()
+        )
+        return latest.concurso if latest and latest.concurso else None
+
+    def _safe_date(self, value: Any) -> Optional[date]:
+        if not value:
+            return None
+        if isinstance(value, date):
+            return value
+        try:
+            return date.fromisoformat(str(value))
+        except Exception:
+            return None
+
+    def _safe_float(self, value: Any, default: float = 4.0) -> float:
+        try:
+            return float(value)
+        except Exception:
+            return default
+
+    def _safe_str_list(self, value: Any) -> List[str]:
+        if isinstance(value, list):
+            return [str(v).strip() for v in value if str(v).strip()]
+        if isinstance(value, str) and value.strip():
+            return [s.strip() for s in value.split(",") if s.strip()]
+        return []
+
+    def _topic_plans_from_indexed_documents(self, wizard: WizardInput) -> List[TopicPlan]:
+        docs = (
+            self.db.query(DocumentIndex)
+            .filter(DocumentIndex.user_id == self.user_id, DocumentIndex.is_indexed == True)
+            .order_by(DocumentIndex.indexed_at.desc())
+            .all()
+        )
+
+        if not docs:
+            return []
+
+        target_concurso = (wizard.concurso or "").strip().lower()
+        filtered = [
+            d for d in docs
+            if not target_concurso or (d.concurso or "").strip().lower() == target_concurso
+        ]
+        if not filtered:
+            filtered = docs[:]
+
+        frequency: dict[str, int] = {}
+        seed_difficulty: dict[str, str] = {}
+        seed_weight: dict[str, int] = {}
+
+        for d in filtered:
+            if not isinstance(d.topics_json, list):
+                continue
+            for item in d.topics_json:
+                if isinstance(item, str):
+                    title = item.strip()
+                    if not title:
+                        continue
+                    frequency[title] = frequency.get(title, 0) + 1
+                    seed_weight.setdefault(title, 2)
+                    seed_difficulty.setdefault(title, "Medium")
+                    continue
+                if isinstance(item, dict):
+                    title = str(item.get("title") or item.get("topic") or "").strip()
+                    if not title:
+                        continue
+                    frequency[title] = frequency.get(title, 0) + 1
+                    try:
+                        weight = int(item.get("weight", 2))
+                    except Exception:
+                        weight = 2
+                    seed_weight[title] = max(seed_weight.get(title, 1), max(1, min(3, weight)))
+                    difficulty = str(item.get("difficulty") or "Medium").title()
+                    if difficulty not in ("Easy", "Medium", "Hard"):
+                        difficulty = "Medium"
+                    seed_difficulty.setdefault(title, difficulty)
+
+        if not frequency:
+            fallback = {}
+            for d in filtered:
+                if d.disciplina:
+                    key = d.disciplina.strip().title()
+                    fallback[key] = fallback.get(key, 0) + 1
+            frequency = fallback
+            for k in fallback:
+                seed_weight.setdefault(k, 2)
+                seed_difficulty.setdefault(k, "Medium")
+
+        if not frequency:
+            return []
+
+        weak = {s.lower() for s in wizard.weak_subjects}
+        strong = {s.lower() for s in wizard.strong_subjects}
+
+        ranked = sorted(frequency.items(), key=lambda x: (-x[1], x[0]))[:15]
+        plans: List[TopicPlan] = []
+        base_hours = max(1.0, wizard.daily_hours * max(1, len(wizard.available_days)) / 3)
+
+        for idx, (name, freq) in enumerate(ranked, 1):
+            lname = name.lower()
+            if lname in weak:
+                difficulty = "Hard"
+            elif lname in strong:
+                difficulty = "Easy"
+            else:
+                difficulty = seed_difficulty.get(name, "Medium")
+
+            weight = float(seed_weight.get(name, 2))
+            incidencia = min(0.95, 0.55 + (freq * 0.05))
+            factor = 1.35 if difficulty == "Hard" else 0.85 if difficulty == "Easy" else 1.0
+            allocated = round(base_hours * factor * (1 + (freq - 1) * 0.08), 1)
+
+            plans.append(
+                TopicPlan(
+                    topic_name=name,
+                    subject=name,
+                    priority=max(1, min(5, idx)),
+                    weight=weight,
+                    incidencia=round(incidencia, 2),
+                    difficulty=difficulty,
+                    allocated_hours=allocated,
+                    study_days=[],
+                    review_dates=[],
+                )
+            )
+
+        return plans
+
+    def _sync_exam_topics(self, exam: Exam, topics: List[TopicPlan]) -> None:
+        existing_count = self.db.query(ExamTopic).filter_by(exam_id=exam.id).count()
+        if existing_count > 0:
+            return
+
+        for t in topics[:20]:
+            self.db.add(
+                ExamTopic(
+                    exam_id=exam.id,
+                    name=t.topic_name,
+                    estimated_hours=t.allocated_hours,
+                    priority=t.priority,
+                    peso=t.weight,
+                    incidencia=t.incidencia,
+                    personal_difficulty=t.difficulty,
+                )
+            )
+        self.db.commit()

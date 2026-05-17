@@ -35,6 +35,7 @@ interface DocumentState {
   filterDisciplina: string | null;
   // Actions
   fetchDocuments: (concurso?: string, disciplina?: string) => Promise<void>;
+  uploadFile: (file: File, concurso?: string, disciplina?: string, docType?: string) => Promise<void>;
   indexFile: (filePath: string, concurso?: string, disciplina?: string) => Promise<void>;
   scanDirectory: (dirPath: string) => Promise<void>;
   deleteDocument: (id: number) => Promise<void>;
@@ -62,6 +63,34 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ documents: res.data, isLoading: false });
     } catch {
       set({ isLoading: false, error: 'Erro ao carregar documentos.' });
+    }
+  },
+
+  uploadFile: async (file, concurso, disciplina, docType) => {
+    set({ isIndexing: true, error: null });
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      if (concurso) form.append('concurso', concurso);
+      if (disciplina) form.append('disciplina', disciplina);
+      if (docType) form.append('doc_type', docType);
+
+      const res = await api.post('/docs/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      set((s) => ({
+        indexingResults: [res.data, ...s.indexingResults],
+        isIndexing: false,
+      }));
+      await get().fetchDocuments();
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      set({
+        isIndexing: false,
+        error: detail || 'Erro ao enviar/indexar PDF.',
+      });
     }
   },
 

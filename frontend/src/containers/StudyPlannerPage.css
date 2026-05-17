@@ -3,23 +3,9 @@
   background: var(--pomo-bg, #f0ede8);
   color: var(--pomo-text, #1a1a2e);
   font-family: 'Roboto', sans-serif;
+  padding-top: 72px;
   padding-bottom: 48px;
 }
-
-.planner-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 32px;
-  background: var(--pomo-header-bg, rgba(255,255,255,0.7));
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--pomo-border, rgba(0,0,0,0.1));
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.planner-header h1 { flex: 1; margin: 0; font-size: 1.3rem; }
 .back-btn, .edit-btn {
   background: none;
   border: 1px solid var(--pomo-border);
@@ -45,6 +31,54 @@
 .empty-icon { font-size: 4rem; }
 .planner-empty h2 { font-size: 1.6rem; margin: 0; }
 .planner-empty p { color: var(--pomo-text-muted); max-width: 440px; }
+
+.planner-brief-card {
+  width: 100%;
+  max-width: 680px;
+  background: var(--pomo-surface, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--pomo-border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.planner-brief-label {
+  font-size: 0.9rem;
+  color: var(--pomo-text-muted);
+}
+
+.planner-brief-input {
+  width: 100%;
+  min-height: 104px;
+  padding: 12px;
+  border: 1px solid var(--pomo-border);
+  border-radius: 10px;
+  background: var(--pomo-input-bg);
+  color: var(--pomo-text);
+  resize: vertical;
+}
+
+.planner-upload-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--pomo-text-muted);
+}
+
+.planner-upload-info {
+  font-size: 0.85rem;
+  color: var(--pomo-text-muted);
+}
+
+.planner-divider {
+  font-size: 0.9rem;
+  color: var(--pomo-text-muted);
+  opacity: 0.8;
+}
 
 .start-wizard-btn {
   background: var(--pomo-accent, #ef4444);
@@ -175,7 +209,18 @@
 }
 
 /* ── Plan view ── */
-.plan-view { padding: 32px; max-width: 860px; margin: 0 auto; }
+.plan-view {
+  padding: 32px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.plan-view__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
 .multi-edital-badge {
   display: inline-block;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);

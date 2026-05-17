@@ -31,18 +31,23 @@ const FixedMenu: React.FC = () => {
         <button className="icon-btn" onClick={() => navigate('/')} title="Pomodoro">
           🍅
         </button>
+      
+        <button className="icon-btn" onClick={() => navigate('/study-planner')} title="Planejador de Estudos">
+          📅
+        </button>
+      
         <button className="icon-btn" onClick={() => navigate('/anki')} title="Anki - Flashcards">
           🧠
         </button>
-        <button className="icon-btn" onClick={() => navigate('/scheduler')} title="Planejador de Estudos">
-          📅
+      
+        <button className="icon-btn" onClick={() => navigate('/documents')} title="Documentos / Edital">
+          🎯
         </button>
-        <button className="icon-btn" onClick={() => navigate('/study-planner')} title="Planejador IA">
-          📖
-        </button>
+      
         <button className="icon-btn" onClick={() => navigate('/')} title="Configurações">
           ⚙️
         </button>
+      
         <button
           className={`icon-btn ${isFullscreen ? 'active' : ''}`}
           onClick={toggleFullscreen}

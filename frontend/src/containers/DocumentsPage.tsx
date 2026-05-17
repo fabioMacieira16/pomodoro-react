@@ -7,7 +7,7 @@ const DocumentsPage: React.FC = () => {
   const navigate = useNavigate();
   const {
     documents, indexingResults, isLoading, isIndexing, error,
-    fetchDocuments, indexFile, scanDirectory, deleteDocument,
+    fetchDocuments, uploadFile, scanDirectory, deleteDocument,
   } = useDocumentStore();
 
   const [dirPath, setDirPath] = useState('');
@@ -20,8 +20,7 @@ const DocumentsPage: React.FC = () => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file && file.name.endsWith('.pdf')) {
-      // In Tauri we'd get the full path; in browser we just index the name
-      indexFile(file.name);
+      uploadFile(file);
     }
   };
 
@@ -53,7 +52,7 @@ const DocumentsPage: React.FC = () => {
             style={{ display: 'none' }}
             onChange={e => {
               const f = e.target.files?.[0];
-              if (f) indexFile(f.name);
+              if (f) uploadFile(f);
             }}
           />
           {isIndexing ? '⏳ Indexando…' : '📎 Arraste um PDF ou clique para selecionar'}

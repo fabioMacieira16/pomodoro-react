@@ -4,7 +4,13 @@ from sqlalchemy.orm import Session
 from app.data.database import get_db
 from app.api.dependencies import get_current_user
 from app.domain.models import User
-from app.study_planner.schemas import WizardInput, PlanOutput, MultiEditalComparison, PlanEditRequest
+from app.study_planner.schemas import (
+    WizardInput,
+    PlanOutput,
+    MultiEditalComparison,
+    PlanEditRequest,
+    QuickPlanRequest,
+)
 from app.study_planner.service import StudyPlannerService
 
 router = APIRouter(prefix="/planner", tags=["study-planner"])
@@ -20,6 +26,14 @@ def run_wizard(
     svc: StudyPlannerService = Depends(_svc),
 ):
     return svc.generate_plan(wizard)
+
+
+@router.post("/quick-plan", response_model=PlanOutput, summary="Generate plan from prompt + indexed docs")
+def quick_plan(
+    body: QuickPlanRequest,
+    svc: StudyPlannerService = Depends(_svc),
+):
+    return svc.generate_plan_from_prompt(body)
 
 
 @router.get("/plan", response_model=PlanOutput, summary="Get the active study plan")

@@ -73,3 +73,13 @@ class PlanEditRequest(BaseModel):
     wizard_answers: Optional[WizardInput] = None
     manual_adjustments: Optional[Dict[str, Any]] = None
     recalculate: bool = True
+
+
+class QuickPlanRequest(BaseModel):
+    prompt: str = Field(..., min_length=8, description="Briefing in natural language")
+    concurso: Optional[str] = None
+    cargo: Optional[str] = None
+    banca: Optional[str] = None
+    exam_date: Optional[date] = None
+    daily_hours: Optional[float] = Field(default=4.0, ge=0.5, le=16)
+    available_days: Optional[List[int]] = Field(default=[0, 1, 2, 3, 4])

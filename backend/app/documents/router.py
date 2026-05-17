@@ -1,5 +1,8 @@
+from pathlib import Path
 from typing import Optional, List
+import shutil
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi import UploadFile, File, Form
 from sqlalchemy.orm import Session
 
 from app.data.database import get_db
@@ -23,6 +26,39 @@ def index_document(
     svc: DocumentIndexerService = Depends(_svc),
 ):
     return svc.index_document(req)
+
+
+@router.post("/upload", response_model=IndexingStatus, summary="Upload and index a PDF document")
+async def upload_document(
+    file: UploadFile = File(...),
+    concurso: Optional[str] = Form(None),
+    disciplina: Optional[str] = Form(None),
+    doc_type: Optional[str] = Form(None),
+    svc: DocumentIndexerService = Depends(_svc),
+):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Missing filename")
+
+    suffix = Path(file.filename).suffix.lower()
+    if suffix != ".pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    repo_root = Path(__file__).resolve().parents[3]
+    target_dir = repo_root / "docs" / (concurso or "uploads") / (disciplina or "geral")
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    target_path = target_dir / file.filename
+    with target_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return svc.index_document(
+        IndexDocumentRequest(
+            file_path=str(target_path),
+            concurso=concurso,
+            disciplina=disciplina,
+            doc_type=doc_type,
+        )
+    )
 
 
 @router.post("/scan", response_model=List[IndexingStatus], summary="Scan directory and index all PDFs")

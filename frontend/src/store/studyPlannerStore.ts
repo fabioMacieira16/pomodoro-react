@@ -99,9 +99,11 @@ export const useStudyPlannerStore = create<StudyPlannerState>((set) => ({
       const res = await api.post('/planner/wizard', answers);
       set({ activePlan: res.data, wizardLoading: false, wizardStep: 0 });
     } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       set({
         wizardLoading: false,
-        planError: 'Erro ao gerar plano. Verifique o backend.',
+        planError: detail || 'Erro ao gerar plano. Verifique o backend.',
       });
     }
   },
@@ -116,7 +118,12 @@ export const useStudyPlannerStore = create<StudyPlannerState>((set) => ({
       if (status === 404) {
         set({ activePlan: null, planLoading: false });
       } else {
+        const detail =
+          (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
         set({ planLoading: false, planError: 'Erro ao carregar plano.' });
+        if (detail) {
+          set({ planLoading: false, planError: detail });
+        }
       }
     }
   },
@@ -129,8 +136,10 @@ export const useStudyPlannerStore = create<StudyPlannerState>((set) => ({
         recalculate: true,
       });
       set({ activePlan: res.data, planLoading: false });
-    } catch {
-      set({ planLoading: false, planError: 'Erro ao editar plano.' });
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      set({ planLoading: false, planError: detail || 'Erro ao editar plano.' });
     }
   },
 

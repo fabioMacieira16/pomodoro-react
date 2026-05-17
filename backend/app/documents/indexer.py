@@ -9,6 +9,7 @@ Future stubs ready for:
 - Video/audio transcription (Whisper)
 """
 import os
+import asyncio
 from pathlib import Path
 from typing import Optional, List
 
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.domain.models import DocumentIndex, Subject
 from app.documents.schemas import IndexDocumentRequest, DocumentOut, IndexingStatus
 from app.core.config import settings
+from app.ai.factory import get_provider
 
 
 class DocumentIndexerService:
@@ -45,6 +47,8 @@ class DocumentIndexerService:
 
         # Extract metadata
         meta = self._extract_metadata(path)
+        text_sample = self._extract_text_sample(path)
+        summary, topics, provider_name = self._enrich_with_ai(text_sample, req.doc_type or "material")
 
         # Upsert DocumentIndex
         existing = self.db.query(DocumentIndex).filter_by(
@@ -70,7 +74,16 @@ class DocumentIndexerService:
         doc.page_count = meta.get("page_count")
         doc.subject_id = subject_id
         doc.metadata_json = meta
+        doc.summary = summary
+        doc.topics_json = topics
         doc.is_indexed = True
+
+        if provider_name:
+            doc.metadata_json = {
+                **(doc.metadata_json or {}),
+                "ai_provider": provider_name,
+                "text_sample_chars": len(text_sample),
+            }
 
         self.db.commit()
         self.db.refresh(doc)
@@ -180,8 +193,13 @@ class DocumentIndexerService:
             meta["author"] = doc.metadata.get("author", "")
             doc.close()
         except ImportError:
-            meta["page_count"] = None
-            meta["note"] = "Install PyMuPDF (pip install pymupdf) for page count extraction"
+            try:
+                from pypdf import PdfReader  # type: ignore
+                reader = PdfReader(str(path))
+                meta["page_count"] = len(reader.pages)
+            except Exception:
+                meta["page_count"] = None
+                meta["note"] = "Install PyMuPDF or pypdf for page/text extraction"
         except Exception as e:
             meta["error"] = str(e)
 
@@ -191,3 +209,102 @@ class DocumentIndexerService:
         # - Topic extraction: await extract_topics_chain.run(text)
 
         return meta
+
+    def _extract_text_sample(self, path: Path, max_chars: int = 16000) -> str:
+        if path.suffix.lower() != ".pdf":
+            return ""
+
+        try:
+            import fitz  # type: ignore
+            doc = fitz.open(str(path))
+            chunks: list[str] = []
+            for page in doc:
+                chunks.append(page.get_text("text"))
+                if sum(len(c) for c in chunks) >= max_chars:
+                    break
+            doc.close()
+            text = "\n".join(chunks).strip()
+            return text[:max_chars]
+        except Exception:
+            try:
+                from pypdf import PdfReader  # type: ignore
+                reader = PdfReader(str(path))
+                chunks = []
+                for page in reader.pages:
+                    chunks.append(page.extract_text() or "")
+                    if sum(len(c) for c in chunks) >= max_chars:
+                        break
+                text = "\n".join(chunks).strip()
+                return text[:max_chars]
+            except Exception:
+                return ""
+
+    def _enrich_with_ai(self, text_sample: str, doc_type: str) -> tuple[Optional[str], Optional[list], Optional[str]]:
+        if not text_sample.strip():
+            return None, None, None
+
+        provider = get_provider()
+        if not provider.is_available():
+            return None, None, None
+
+        summary_prompt = (
+            "Voce eh um assistente para concursos. Gere um resumo objetivo do edital/material abaixo "
+            "em portugues com foco em disciplinas e cobranca. Texto:\n\n"
+            f"{text_sample[:8000]}"
+        )
+        topics_prompt = (
+            "Extraia topicos de estudo do texto abaixo e retorne APENAS JSON valido no formato "
+            "[{\"title\":\"...\",\"weight\":1-3,\"difficulty\":\"Easy|Medium|Hard\"}] "
+            "com ate 20 itens. Priorize conteudos mais cobrados para concursos. Texto:\n\n"
+            f"{text_sample[:12000]}"
+        )
+
+        try:
+            summary = asyncio.run(provider.complete(summary_prompt))
+        except Exception:
+            summary = None
+
+        try:
+            raw_topics = asyncio.run(provider.complete_json(topics_prompt))
+            topics = self._normalize_topics(raw_topics)
+        except Exception:
+            topics = None
+
+        return summary, topics, provider.name
+
+    def _normalize_topics(self, raw_topics) -> Optional[list]:
+        if not isinstance(raw_topics, list):
+            return None
+
+        cleaned = []
+        for item in raw_topics:
+            if isinstance(item, str):
+                title = item.strip()
+                if title:
+                    cleaned.append({"title": title, "weight": 2, "difficulty": "Medium"})
+                continue
+
+            if isinstance(item, dict):
+                title = str(item.get("title") or item.get("topic") or "").strip()
+                if not title:
+                    continue
+                weight = item.get("weight", 2)
+                try:
+                    weight = int(weight)
+                except Exception:
+                    weight = 2
+                weight = max(1, min(3, weight))
+
+                difficulty = str(item.get("difficulty") or "Medium").title()
+                if difficulty not in ("Easy", "Medium", "Hard"):
+                    difficulty = "Medium"
+
+                cleaned.append(
+                    {
+                        "title": title,
+                        "weight": weight,
+                        "difficulty": difficulty,
+                    }
+                )
+
+        return cleaned[:20] if cleaned else None

@@ -2,12 +2,11 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Pomodoro from './containers/Pomodoro';
 import Dashboard from './containers/Dashboard';
 import AnkiPage from './containers/AnkiPage';
-import Scheduler from './containers/Scheduler';
 import StudyPlannerPage from './containers/StudyPlannerPage';
 import QuizPage from './containers/QuizPage';
 import DocumentsPage from './containers/DocumentsPage';
@@ -60,7 +59,7 @@ function AppRoutes() {
         <Route path="/" element={<Pomodoro />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/anki" element={<AnkiPage />} />
-        <Route path="/scheduler" element={<Scheduler />} />
+        <Route path="/scheduler" element={<Navigate to="/study-planner" replace />} />
         <Route path="/study-planner" element={<StudyPlannerPage />} />
         <Route path="/quiz" element={<QuizPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
