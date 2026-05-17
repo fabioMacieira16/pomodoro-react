@@ -54,3 +54,332 @@
   flex-direction: column;
   gap: 12px;
 }
+
+.dashboard__section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.dashboard__loading-text,
+.dashboard__error-text {
+  color: var(--pomo-text-muted, #666);
+  font-size: 0.9rem;
+}
+
+/* ── Plano Ativo ─────────────────────────────────────── */
+.dashboard__plano-ativo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  color: #fff;
+}
+
+.dashboard__plano-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard__plano-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.25);
+  border-radius: 20px;
+  padding: 2px 10px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.dashboard__plano-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.dashboard__plano-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85rem;
+  opacity: 0.9;
+  flex-wrap: wrap;
+}
+
+.dashboard__countdown {
+  text-align: center;
+  background: rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.dashboard__countdown.countdown--urgent {
+  background: rgba(239, 68, 68, 0.4);
+  animation: pulse-urgent 2s infinite;
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.countdown__number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.countdown__label {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+/* ── Agenda de Hoje ──────────────────────────────────── */
+.dashboard__today-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dashboard__subject-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.1));
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.subject-chip__name {
+  font-weight: 500;
+}
+
+.subject-chip__acc {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.acc--good { background: rgba(16,185,129,0.15); color: #059669; }
+.acc--mid  { background: rgba(245,158,11,0.15); color: #d97706; }
+.acc--bad  { background: rgba(239,68,68,0.15);  color: #dc2626; }
+
+/* ── Agenda Semanal ──────────────────────────────────── */
+.dashboard__weekly-agenda {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.agenda-day {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.agenda-day--today {
+  border-color: #667eea;
+  background: rgba(102,126,234,0.08);
+  box-shadow: 0 0 0 2px rgba(102,126,234,0.2);
+}
+
+.agenda-day__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pomo-text-muted, #888);
+  margin-bottom: 6px;
+}
+
+.agenda-day--today .agenda-day__label {
+  color: #667eea;
+}
+
+.agenda-day__subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.agenda-day__subject {
+  font-size: 0.78rem;
+  color: var(--pomo-text, #1a1a2e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-day__hours {
+  font-size: 0.72rem;
+  color: var(--pomo-text-muted, #999);
+}
+
+/* ── Revisões Pendentes ──────────────────────────────── */
+.dashboard__reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard__review-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.review-item__subject {
+  font-weight: 600;
+  color: #d97706;
+  min-width: 100px;
+}
+
+.review-item__topic {
+  color: var(--pomo-text-muted, #666);
+}
+
+.dashboard__view-all {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.15));
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--pomo-text, #1a1a2e);
+  margin-top: 4px;
+}
+
+.dashboard__view-all:hover {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
+}
+
+/* ── Disciplinas para Reforçar ───────────────────────── */
+.dashboard__weak-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard__weak-item {
+  padding: 10px 14px;
+  background: rgba(239,68,68,0.05);
+  border: 1px solid rgba(239,68,68,0.15);
+  border-radius: 10px;
+}
+
+.weak-item__name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.weak-item__stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--pomo-text-muted, #888);
+  margin-bottom: 6px;
+}
+
+.weak-item__bar {
+  height: 4px;
+  background: rgba(239,68,68,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.weak-item__bar-fill {
+  height: 100%;
+  background: #ef4444;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* ── Desempenho por Disciplina ───────────────────────── */
+.dashboard__performances {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard__perf-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.perf-row__name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perf-row__bar-wrap {
+  height: 6px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.08));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.perf-row__bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.bar--good { background: #10b981; }
+.bar--mid  { background: #f59e0b; }
+.bar--bad  { background: #ef4444; }
+
+.perf-row__pct {
+  text-align: right;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--pomo-text-muted, #888);
+}
+
+/* ── Sem plano ativo ─────────────────────────────────── */
+.dashboard__empty-plan {
+  text-align: center;
+  padding: 32px;
+  color: var(--pomo-text-muted, #888);
+}
+
+.dashboard__cta {
+  margin-top: 12px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.dashboard__cta:hover {
+  opacity: 0.9;
+}
+

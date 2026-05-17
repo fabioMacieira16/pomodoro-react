@@ -1,0 +1,182 @@
+/* ── Container ──────────────────────────────────────────────────────────── */
+.mm-container {
+  background: var(--pomo-surface, #fff);
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.1));
+  border-radius: 16px;
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.mm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.mm-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.mm-meta {
+  font-size: 0.75rem;
+  color: var(--pomo-text-muted, #999);
+}
+
+.mm-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted, #999);
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.mm-close:hover { color: var(--pomo-text, #333); }
+
+/* ── Tree ───────────────────────────────────────────────────────────────── */
+.mm-tree {
+  padding-left: 4px;
+}
+
+/* ── Node ───────────────────────────────────────────────────────────────── */
+.mm-node {
+  position: relative;
+}
+
+.mm-node + .mm-node {
+  margin-top: 4px;
+}
+
+.mm-node__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 2px solid var(--node-color, #667eea);
+  background: color-mix(in srgb, var(--node-color, #667eea) 10%, transparent);
+  font-size: 0.85rem;
+  color: var(--pomo-text, #1a1a2e);
+  cursor: default;
+  transition: all 0.15s ease;
+  user-select: none;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mm-node__label--clickable {
+  cursor: pointer;
+}
+
+.mm-node__label--clickable:hover {
+  filter: brightness(0.95);
+  transform: translateX(2px);
+}
+
+.mm-node--root > .mm-node__label {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 24px;
+  max-width: 100%;
+}
+
+.mm-node__importance {
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.mm-node__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mm-node__toggle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--node-color, #667eea);
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Children connector ──────────────────────────────────────────────────── */
+.mm-node__children {
+  padding-left: 28px;
+  margin-top: 4px;
+  border-left: 2px dashed var(--pomo-border, rgba(0,0,0,0.12));
+  padding-top: 4px;
+  padding-bottom: 2px;
+}
+
+.mm-node--level-0 > .mm-node__children {
+  border-left-color: #667eea40;
+}
+
+.mm-node--level-1 > .mm-node__children {
+  border-left-color: #764ba240;
+}
+
+.mm-node--level-2 > .mm-node__children {
+  border-left-color: #10b98140;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────────────── */
+.mm-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
+  flex-wrap: wrap;
+}
+
+.mm-legend__item {
+  font-size: 0.75rem;
+  color: var(--pomo-text-muted, #888);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Modal overlay ──────────────────────────────────────────────────────── */
+.mm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: mm-fade 0.2s ease;
+}
+
+@keyframes mm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.mm-overlay .mm-container {
+  max-width: 700px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: mm-slide 0.25s ease;
+}
+
+@keyframes mm-slide {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

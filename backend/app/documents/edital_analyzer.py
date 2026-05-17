@@ -154,9 +154,9 @@ class EditalAnalyzer:
     def _extract_data_prova(self, text: str) -> Optional[datetime]:
         """Detecta data da prova"""
         patterns = [
-            r"DATA\s+DA\s+PROVA[:\s]+(\d{1,2}[/\-\.])\d{1,2}[/\-\.]\d{2,4})",
+            r"DATA\s+DA\s+PROVA[:\s]+(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
             r"PROVA[:\s]+(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
-            r"APLICAÇÃO[:\s]+(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
+            r"APLICA(?:C|Ç)(?:A|Ã)O[:\s]+(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
         ]
         
         for pattern in patterns:

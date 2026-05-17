@@ -1,4 +1,6 @@
 """Quiz Service — adaptive quiz generation + auto error-card on wrong answers."""
+import asyncio
+import json
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -14,6 +16,8 @@ from app.quiz.schemas import (
     QuizAnswerRequest, QuizAnswerResult, PomodoroQuizMode,
     QuizGenerateRequest
 )
+from app.ai.factory import get_provider
+from app.core.study_context import StudyContextService
 
 
 class QuizService:
@@ -74,13 +78,19 @@ class QuizService:
                 .all()
             )
 
+        # AI fallback: generate questions when DB is empty
+        ai_generated = False
+        if len(exercises) == 0:
+            exercises = self._generate_ai_exercises(req.subject_id, req.num_questions, difficulty)
+            ai_generated = True
+
         session = QuizSession(
             user_id=self.user_id,
             pomodoro_session_id=pomodoro_session_id,
             subject_id=req.subject_id,
             total_questions=len(exercises),
             difficulty_level=difficulty,
-            session_mode="quiz",
+            session_mode="quiz_ai" if ai_generated else "quiz",
         )
         self.db.add(session)
         self.db.commit()
@@ -93,8 +103,95 @@ class QuizService:
             questions=questions,
             total_questions=len(exercises),
             difficulty_level=difficulty,
-            session_mode="quiz",
+            session_mode=session.session_mode,
         )
+
+    # ── AI question generation ───────────────────────────────────────────
+
+    def _generate_ai_exercises(self, subject_id: int, num_questions: int, difficulty: str) -> List[Exercise]:
+        """Generate questions via AI when no exercises exist in the DB."""
+        subject = self.db.query(Subject).filter_by(id=subject_id).first()
+        subject_name = subject.name if subject else "Conhecimentos Gerais"
+
+        # Enrich with study context
+        ctx = StudyContextService.get_context()
+        context_hint = ""
+        if ctx.concurso:
+            context_hint = f"para o concurso {ctx.concurso}"
+            if ctx.banca:
+                context_hint += f" (banca {ctx.banca})"
+
+        provider = get_provider()
+        if not provider.is_available():
+            return []
+
+        prompt = f"""
+Gere {num_questions} questões de múltipla escolha sobre {subject_name} {context_hint}.
+Dificuldade: {difficulty}.
+
+Retorne SOMENTE JSON válido no formato:
+[
+  {{
+    "question_text": "Texto da questão?",
+    "hint": "Dica opcional",
+    "explanation": "Explicação detalhada",
+    "difficulty": "{difficulty}",
+    "correct_answer": "B",
+    "options": [
+      {{"position": 0, "text": "Opção A"}},
+      {{"position": 1, "text": "Opção B (correta)"}},
+      {{"position": 2, "text": "Opção C"}},
+      {{"position": 3, "text": "Opção D"}}
+    ]
+  }}
+]
+
+Regras:
+- Exatamente 4 opções por questão (A, B, C, D)
+- correct_answer deve ser a letra (A, B, C ou D)
+- Questões objetivas, claras e relevantes para concursos públicos
+- Não use markdown, apenas JSON puro
+"""
+        try:
+            raw = asyncio.run(provider.complete_json(prompt))
+            if not isinstance(raw, list):
+                return []
+            return [self._ai_question_to_exercise(q, subject_id) for q in raw[:num_questions]]
+        except Exception as e:
+            print(f"[QuizService] AI generation error: {e}")
+            return []
+
+    def _ai_question_to_exercise(self, data: dict, subject_id: int) -> Exercise:
+        """Persist AI-generated question and return Exercise."""
+        letter_to_pos = {"A": 0, "B": 1, "C": 2, "D": 3}
+        correct_letter = str(data.get("correct_answer", "A")).upper().strip()
+        correct_pos = letter_to_pos.get(correct_letter, 0)
+
+        exercise = Exercise(
+            subject_id=subject_id,
+            question_text=data.get("question_text", ""),
+            hint=data.get("hint"),
+            explanation=data.get("explanation"),
+            difficulty=data.get("difficulty", "Medium"),
+            correct_answer=correct_letter,
+            source="ai_generated",
+        )
+        self.db.add(exercise)
+        self.db.flush()  # get ID without commit
+
+        for opt in data.get("options", []):
+            pos = opt.get("position", 0)
+            option = ExerciseOption(
+                exercise_id=exercise.id,
+                text=opt.get("text", ""),
+                is_correct=(pos == correct_pos),
+                position=pos,
+            )
+            self.db.add(option)
+
+        self.db.commit()
+        self.db.refresh(exercise)
+        return exercise
 
     # ── Submit answer ────────────────────────────────────────────────────
 

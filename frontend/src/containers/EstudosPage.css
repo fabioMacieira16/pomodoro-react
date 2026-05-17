@@ -249,10 +249,12 @@
 .subject-card {
   background: var(--pomo-surface, #fff);
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px 20px;
   border-left: 4px solid #cbd5e1;
   transition: all 0.2s;
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .subject-card:hover {
@@ -267,31 +269,44 @@
 .subject-card.priority-1 { border-left-color: #10b981; }
 
 .subject-name {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 12px;
   color: var(--pomo-text);
 }
 
 .subject-stats {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-.accuracy {
-  color: #10b981;
-  font-weight: 600;
+.accuracy { color: #10b981; font-weight: 600; }
+.hours    { color: #8b5cf6; font-weight: 600; }
+.difficulty { font-size: 1.1rem; }
+
+.subject-mindmap-btn {
+  align-self: flex-end;
+  margin-top: auto;
+  background: none;
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted, #888);
+  transition: all 0.15s;
 }
 
-.hours {
-  color: #8b5cf6;
-  font-weight: 600;
+.subject-mindmap-btn:hover:not(:disabled) {
+  background: rgba(102,126,234,0.08);
+  border-color: #667eea;
+  color: #667eea;
 }
 
-.difficulty {
-  font-size: 1.2rem;
+.subject-mindmap-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

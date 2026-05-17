@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDocumentStore } from '../store/documentStore';
 import { useStudyContext } from '../store/studyContextStore';
+import MindMap, { MindMapNodeData } from '../components/MindMap/MindMap';
+import api from '../api/client';
 import './EstudosPage.css';
+import '../components/MindMap/MindMap.css';
 
 type UploadMode = 'edital' | 'conteudo' | 'plano' | null;
 
@@ -12,6 +15,7 @@ const EstudosPage: React.FC = () => {
 
   const {
     context,
+    fetchContext,
     updateContext,
     isLoading: contextLoading,
   } = useStudyContext();
@@ -20,7 +24,29 @@ const EstudosPage: React.FC = () => {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [selectedCargo, setSelectedCargo] = useState<string | null>(null);
   const [showCargoSelection, setShowCargoSelection] = useState(false);
+  const [mindMapData, setMindMapData] = useState<{ root: MindMapNodeData; subject: string; totalNodes: number } | null>(null);
+  const [mindMapLoading, setMindMapLoading] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGenerateMindMap = async (subjectName: string) => {
+    setMindMapLoading(subjectName);
+    try {
+      const res = await api.post('/mindmap/generate', { subject_name: subjectName, depth: 3 });
+      setMindMapData({
+        root: res.data.root,
+        subject: res.data.subject,
+        totalNodes: res.data.total_nodes,
+      });
+    } catch (err) {
+      console.error('Erro ao gerar mapa mental:', err);
+    } finally {
+      setMindMapLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchContext();
+  }, [fetchContext]);
 
   useEffect(() => {
     // Mostra seleção de cargo se houver múltiplos cargos disponíveis
@@ -34,17 +60,17 @@ const EstudosPage: React.FC = () => {
     if (!file) return;
 
     try {
-      await uploadFile(file);
+      await uploadFile(file, undefined, undefined, uploadMode ?? undefined);
       setUploadSuccess(true);
-      setTimeout(() => setUploadSuccess(false), 3000);
 
-      // Se foi edital, aguardar detecção automática
+      // Se foi edital, aguardar IA processar e atualizar contexto
       if (uploadMode === 'edital') {
-        // A IA vai processar automaticamente e retornar os cargos detectados
-        setTimeout(() => {
-          // Simular detecção (em produção virá do backend)
-          // TODO: integrar com endpoint de análise de edital
-        }, 2000);
+        setTimeout(async () => {
+          await fetchContext();
+          setUploadSuccess(false);
+        }, 3000);
+      } else {
+        setTimeout(() => setUploadSuccess(false), 3000);
       }
     } catch (err) {
       console.error('Erro ao fazer upload:', err);
@@ -223,12 +249,34 @@ const EstudosPage: React.FC = () => {
                           </span>
                         </div>
                       )}
+                      <button
+                        className="subject-mindmap-btn"
+                        onClick={() => handleGenerateMindMap(subject)}
+                        disabled={mindMapLoading === subject}
+                        title="Gerar mapa mental"
+                      >
+                        {mindMapLoading === subject ? '⏳' : '🗺'}
+                      </button>
                     </div>
                   );
                 })}
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Modal Mapa Mental ── */}
+      {mindMapData && (
+        <div className="mm-overlay" onClick={() => setMindMapData(null)}>
+          <div onClick={e => e.stopPropagation()}>
+            <MindMap
+              root={mindMapData.root}
+              subject={mindMapData.subject}
+              totalNodes={mindMapData.totalNodes}
+              onClose={() => setMindMapData(null)}
+            />
+          </div>
         </div>
       )}
     </div>

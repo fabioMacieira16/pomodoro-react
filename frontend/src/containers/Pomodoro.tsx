@@ -11,9 +11,11 @@ import ProductivityModal from '../components/ProductivityModal';
 import SettingsPanel from '../components/SettingsPanel';
 import PomodoroStats from '../components/PomodoroStats';
 import PomodoroDots from '../components/PomodoroDots';
+import PomodoroQuiz from '../components/PomodoroQuiz/PomodoroQuiz';
 import { usePomodoroEngine, PHASE_LABELS } from '../hooks/usePomodoroEngine';
 import { usePomodoroSettings } from '../store/pomodoroSettingsStore';
 import { usePomodoroStore } from '../store/pomodoroStore';
+import { useStudyContext } from '../store/studyContextStore';
 import type { TimerPhase } from '../types';
 import './Pomodoro.css';
 
@@ -35,7 +37,11 @@ const Pomodoro: React.FC = () => {
   const settings = usePomodoroSettings();
   const pomodoroStore = usePomodoroStore();
 
+  const studyCtx = useStudyContext();
+
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showStudyModeModal, setShowStudyModeModal] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   const [taskOpen, setTaskOpen] = useState(() => {
     const saved = localStorage.getItem('pomodoro-react-taskStatus');
     return saved ? JSON.parse(saved) : false;
@@ -53,6 +59,17 @@ const Pomodoro: React.FC = () => {
       settings.update({ focusMode: false });
     }
   }, [engine.status, engine.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Show quiz when Pomodoro finishes in with_questions mode ────────────
+  useEffect(() => {
+    if (
+      engine.status === 'finished' &&
+      engine.phase === 'pomodoro' &&
+      studyCtx.context.current_pomodoro_mode === 'with_questions'
+    ) {
+      setShowQuiz(true);
+    }
+  }, [engine.status, engine.phase, studyCtx.context.current_pomodoro_mode]);
 
   // ── Track early interruption ──────────────────────────────────────────
   const prevStatus = useRef(engine.status);
@@ -135,6 +152,18 @@ const Pomodoro: React.FC = () => {
   const controlStatus = STATUS_MAP[engine.status] ?? null;
 
   const handleStart = () => {
+    // Mostrar modal de modo de estudo antes de iniciar Pomodoro (só na fase pomodoro)
+    if (engine.phase === 'pomodoro' && (engine.status === 'idle' || engine.status === 'finished')) {
+      setShowStudyModeModal(true);
+      return;
+    }
+    if (engine.status === 'finished') engine.changePhase(engine.phase);
+    engine.start();
+  };
+
+  const handleStudyModeSelect = (mode: 'normal' | 'with_questions' | 'review') => {
+    studyCtx.setPomodoroMode(mode);
+    setShowStudyModeModal(false);
     if (engine.status === 'finished') engine.changePhase(engine.phase);
     engine.start();
   };
@@ -196,17 +225,10 @@ const Pomodoro: React.FC = () => {
           </button>
           <button
             className="icon-btn"
-            onClick={() => navigate('/scheduler')}
-            title="Planejador de Estudos"
+            onClick={() => navigate('/estudos')}
+            title="Plano de Estudos"
           >
-            📅
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => navigate('/study-planner')}
-            title="Planejador IA"
-          >
-            📖
+            📚
           </button>
           <button
             className="icon-btn"
@@ -299,6 +321,65 @@ const Pomodoro: React.FC = () => {
         <ProductivityModal onSubmit={engine.submitProductivityRating} />
       )}
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+
+      {/* ── Quiz pós-Pomodoro ── */}
+      {showQuiz && (
+        <PomodoroQuiz
+          subjectName={studyCtx.context.current_subject}
+          pomodoroNumber={engine.pomodoroCount}
+          onClose={() => setShowQuiz(false)}
+        />
+      )}
+
+      {/* ── Modal: Como deseja estudar? ── */}
+      {showStudyModeModal && (
+        <div className="study-mode-overlay" onClick={() => setShowStudyModeModal(false)}>
+          <div className="study-mode-modal" onClick={e => e.stopPropagation()}>
+            <h2 className="study-mode-modal__title">Como deseja estudar?</h2>
+            {studyCtx.context.current_subject && (
+              <p className="study-mode-modal__subject">
+                📚 {studyCtx.context.current_subject}
+              </p>
+            )}
+            {studyCtx.context.concurso && (
+              <p className="study-mode-modal__concurso">{studyCtx.context.concurso}</p>
+            )}
+
+            <div className="study-mode-modal__options">
+              <button
+                className="study-mode-btn study-mode-btn--normal"
+                onClick={() => handleStudyModeSelect('normal')}
+              >
+                <span className="study-mode-btn__icon">🍅</span>
+                <span className="study-mode-btn__title">Pomodoro Normal</span>
+                <span className="study-mode-btn__desc">Timer focado sem interrupções</span>
+              </button>
+
+              <button
+                className="study-mode-btn study-mode-btn--questions"
+                onClick={() => handleStudyModeSelect('with_questions')}
+              >
+                <span className="study-mode-btn__icon">📝</span>
+                <span className="study-mode-btn__title">Pomodoro com Questões</span>
+                <span className="study-mode-btn__desc">Quiz durante a sessão para fixar conteúdo</span>
+              </button>
+
+              <button
+                className="study-mode-btn study-mode-btn--review"
+                onClick={() => handleStudyModeSelect('review')}
+              >
+                <span className="study-mode-btn__icon">🔁</span>
+                <span className="study-mode-btn__title">Modo Revisão</span>
+                <span className="study-mode-btn__desc">Revisar flashcards e conteúdos anteriores</span>
+              </button>
+            </div>
+
+            <button className="study-mode-modal__cancel" onClick={() => setShowStudyModeModal(false)}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

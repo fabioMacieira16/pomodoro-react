@@ -232,3 +232,110 @@ body {
   to   { opacity: 1; }
 }
 
+/* ── Modal: Como deseja estudar? ─────────────────────────────────────────── */
+.study-mode-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.study-mode-modal {
+  background: var(--pomo-surface, #fff);
+  border-radius: 20px;
+  padding: 32px;
+  width: min(460px, 92vw);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  animation: slideUp 0.25s ease;
+  text-align: center;
+}
+
+.study-mode-modal__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.study-mode-modal__subject {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0 0 2px;
+}
+
+.study-mode-modal__concurso {
+  font-size: 0.8rem;
+  color: var(--pomo-text-muted, #999);
+  margin: 0 0 24px;
+}
+
+.study-mode-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.study-mode-btn {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+}
+
+.study-mode-btn__icon {
+  grid-row: 1 / 3;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.study-mode-btn__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--pomo-text, #1a1a2e);
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.study-mode-btn__desc {
+  font-size: 0.78rem;
+  color: var(--pomo-text-muted, #999);
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.study-mode-btn--normal:hover  { border-color: #ef4444; background: rgba(239,68,68,0.06); }
+.study-mode-btn--questions:hover { border-color: #667eea; background: rgba(102,126,234,0.06); }
+.study-mode-btn--review:hover  { border-color: #10b981; background: rgba(16,185,129,0.06); }
+
+.study-mode-modal__cancel {
+  background: none;
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted, #888);
+  transition: background 0.15s;
+}
+
+.study-mode-modal__cancel:hover {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
+}
+
