@@ -90,11 +90,16 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1.3rem;
-  padding: 6px 8px;
+  font-size: 1.5rem;
+  padding: 8px 12px;
   border-radius: 8px;
   transition: background 0.15s, transform 0.1s;
   line-height: 1;
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .icon-btn:hover {

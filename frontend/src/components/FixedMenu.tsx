@@ -40,10 +40,6 @@ const FixedMenu: React.FC = () => {
           🧠
         </button>
       
-        <button className="icon-btn" onClick={() => navigate('/documents')} title="Documentos / Edital">
-          🎯
-        </button>
-      
         <button className="icon-btn" onClick={() => navigate('/')} title="Configurações">
           ⚙️
         </button>

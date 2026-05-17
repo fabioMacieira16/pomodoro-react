@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStudyPlannerStore, WizardAnswers } from '../store/studyPlannerStore';
-import api from '../api/client';
+import { useDocumentStore } from '../store/documentStore';
 import './StudyPlannerPage.css';
 
 const DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -23,18 +23,36 @@ const StudyPlannerPage: React.FC = () => {
     setWizardStep, updateWizardAnswers, submitWizard, fetchActivePlan, resetWizard,
   } = useStudyPlannerStore();
 
+  const { uploadFile, isIndexing } = useDocumentStore();
+
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4]);
   const [showWizard, setShowWizard] = useState(false);
   const [localValue, setLocalValue] = useState('');
-  const [briefPrompt, setBriefPrompt] = useState('');
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [quickLoading, setQuickLoading] = useState(false);
-  const [quickError, setQuickError] = useState<string | null>(null);
-  const [uploadInfo, setUploadInfo] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchActivePlan(); }, [fetchActivePlan]);
 
   const currentStep = WIZARD_STEPS[wizardStep];
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.pdf')) {
+      await uploadFile(file);
+      setUploadSuccess(true);
+      setTimeout(() => setShowWizard(true), 1000);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await uploadFile(file);
+      setUploadSuccess(true);
+      setTimeout(() => setShowWizard(true), 1000);
+    }
+  };
 
   const handleNext = () => {
     if (!currentStep) return;
@@ -64,35 +82,6 @@ const StudyPlannerPage: React.FC = () => {
     }
   };
 
-  const handleQuickPlan = async () => {
-    setQuickLoading(true);
-    setQuickError(null);
-    setUploadInfo(null);
-    try {
-      if (pdfFile) {
-        const form = new FormData();
-        form.append('file', pdfFile);
-        form.append('doc_type', 'edital');
-        await api.post('/docs/upload', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        setUploadInfo('Edital enviado e indexado com sucesso.');
-      }
-
-      await api.post('/planner/quick-plan', {
-        prompt: briefPrompt,
-        available_days: selectedDays,
-      });
-      await fetchActivePlan();
-    } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setQuickError(detail || 'Não foi possível gerar o plano rápido com IA.');
-    } finally {
-      setQuickLoading(false);
-    }
-  };
-
   if (planLoading) {
     return (
       <div className="planner-page">
@@ -104,47 +93,36 @@ const StudyPlannerPage: React.FC = () => {
   return (
     <div className="planner-page">
       {!activePlan && !showWizard && (
-        <div className="planner-empty">
-          <div className="empty-icon">🎯</div>
-          <h2>Crie seu plano inteligente</h2>
-          <p>A IA vai montar um cronograma personalizado baseado no seu edital, cargo e disponibilidade.</p>
-          <div className="planner-brief-card">
-            <label htmlFor="planner-brief" className="planner-brief-label">Descreva seu objetivo (prompt)</label>
-            <textarea
-              id="planner-brief"
-              className="planner-brief-input"
-              value={briefPrompt}
-              onChange={(e) => setBriefPrompt(e.target.value)}
-              placeholder="Ex: Concurso SEFAZ, 4h/dia, foco em Constitucional e Tributário, prova em novembro..."
-            />
-
-            <label className="planner-upload-label">
-              <span>Importar edital em PDF (opcional)</span>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-
-            {pdfFile && <div className="planner-upload-info">Arquivo selecionado: {pdfFile.name}</div>}
-            {uploadInfo && <div className="planner-upload-info">{uploadInfo}</div>}
-            {quickError && <div className="plan-error">{quickError}</div>}
-
-            <button
-              className="start-wizard-btn"
-              onClick={handleQuickPlan}
-              disabled={quickLoading || briefPrompt.trim().length < 8}
-            >
-              {quickLoading ? 'Gerando plano com IA...' : 'Gerar Plano com IA (Prompt + PDF)'}
-            </button>
+        <div className="planner-content">
+          <div className="planner-header">
+            <div className="empty-icon">📋</div>
+            <h2>Importe seu Edital</h2>
+            <p>Envie o PDF do edital para a IA analisar e criar um plano personalizado</p>
           </div>
 
-          <div className="planner-divider">ou</div>
+          <div
+            className={`drop-zone ${isIndexing ? 'indexing' : ''} ${uploadSuccess ? 'success' : ''}`}
+            onDragOver={e => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              type="file"
+              accept=".pdf"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileSelect}
+            />
+            {uploadSuccess ? (
+              '✅ Edital enviado! Aguarde...'
+            ) : isIndexing ? (
+              '⏳ Analisando edital com IA...'
+            ) : (
+              '📎 Arraste o PDF do edital ou clique para selecionar'
+            )}
+          </div>
+
           {planError && <div className="plan-error">{planError}</div>}
-          <button className="start-wizard-btn" onClick={() => setShowWizard(true)}>
-            Criar Plano de Estudos
-          </button>
         </div>
       )}
 
