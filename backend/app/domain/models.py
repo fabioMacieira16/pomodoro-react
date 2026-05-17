@@ -239,6 +239,7 @@ class ExerciseAttempt(Base):
     attempted_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User", back_populates="exercise_attempts")
     exercise = relationship("Exercise", back_populates="attempts")
+    quiz_session = relationship("QuizSession", back_populates="attempts", foreign_keys=[quiz_session_id])
     error_card = relationship("ErrorCard", back_populates="attempt", uselist=False)
 
 class AiHistory(Base):
@@ -267,7 +268,11 @@ class Exam(Base):
     user       = relationship("User",          back_populates="exams")
     topics     = relationship("ExamTopic",     back_populates="exam",  cascade="all, delete-orphan")
     plan_items = relationship("StudyPlanItem", back_populates="exam",  cascade="all, delete-orphan")
-    study_plan_configs = relationship("StudyPlanConfig", back_populates="exam")
+    study_plan_configs = relationship(
+        "StudyPlanConfig",
+        back_populates="exam",
+        foreign_keys="StudyPlanConfig.exam_id",
+    )
 
 class ExamTopic(Base):
     __tablename__ = "exam_topics"

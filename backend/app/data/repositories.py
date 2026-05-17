@@ -68,15 +68,16 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
 
     def get_stats(self, db: Session, user_id: int) -> dict:
         from datetime import date
-        from sqlalchemy import func, cast, Date
+        from sqlalchemy import func
         today = date.today()
+        start_date_expr = func.date(self.model.start_time)
         today_count = (
             db.query(func.count(self.model.id))
             .filter(
                 self.model.user_id == user_id,
                 self.model.session_type == "Pomodoro",
                 self.model.completed == True,
-                cast(self.model.start_time, Date) == today,
+                start_date_expr == today.isoformat(),
             )
             .scalar()
         ) or 0
@@ -102,12 +103,13 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
 
     def get_dashboard_data(self, db: Session, user_id: int) -> dict:
         from datetime import date, timedelta
-        from sqlalchemy import func, cast, Date
+        from sqlalchemy import func
 
         today = date.today()
         week_start = today - timedelta(days=today.weekday())
         cutoff_heatmap = today - timedelta(days=83)
         cutoff_30 = today - timedelta(days=29)
+        start_date_expr = func.date(self.model.start_time)
 
         today_minutes = (
             db.query(func.sum(self.model.duration_minutes))
@@ -115,7 +117,7 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
                 self.model.user_id == user_id,
                 self.model.session_type == "Pomodoro",
                 self.model.completed == True,
-                cast(self.model.start_time, Date) == today,
+                start_date_expr == today.isoformat(),
             )
             .scalar()
         ) or 0
@@ -126,7 +128,7 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
                 self.model.user_id == user_id,
                 self.model.session_type == "Pomodoro",
                 self.model.completed == True,
-                cast(self.model.start_time, Date) >= week_start,
+                start_date_expr >= week_start.isoformat(),
             )
             .scalar()
         ) or 0
@@ -143,17 +145,17 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
 
         heatmap_rows = (
             db.query(
-                cast(self.model.start_time, Date).label("day"),
+                start_date_expr.label("day"),
                 func.count(self.model.id).label("count"),
             )
             .filter(
                 self.model.user_id == user_id,
                 self.model.session_type == "Pomodoro",
                 self.model.completed == True,
-                cast(self.model.start_time, Date) >= cutoff_heatmap,
+                start_date_expr >= cutoff_heatmap.isoformat(),
             )
-            .group_by(cast(self.model.start_time, Date))
-            .order_by(cast(self.model.start_time, Date))
+            .group_by(start_date_expr)
+            .order_by(start_date_expr)
             .all()
         )
         heatmap = [{"date": str(row.day), "count": row.count} for row in heatmap_rows]
@@ -161,7 +163,7 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
         day_labels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
         weekly_rows = (
             db.query(
-                cast(self.model.start_time, Date).label("day"),
+                start_date_expr.label("day"),
                 func.count(self.model.id).label("pomodoros"),
                 func.sum(self.model.duration_minutes).label("focus_minutes"),
             )
@@ -169,10 +171,10 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
                 self.model.user_id == user_id,
                 self.model.session_type == "Pomodoro",
                 self.model.completed == True,
-                cast(self.model.start_time, Date) >= today - timedelta(days=6),
+                start_date_expr >= (today - timedelta(days=6)).isoformat(),
             )
-            .group_by(cast(self.model.start_time, Date))
-            .order_by(cast(self.model.start_time, Date))
+            .group_by(start_date_expr)
+            .order_by(start_date_expr)
             .all()
         )
         weekly_map = {str(row.day): row for row in weekly_rows}
@@ -189,33 +191,34 @@ class PomodoroSessionRepository(BaseRepository[PomodoroSession]):
             })
 
         all_days = (
-            db.query(cast(self.model.start_time, Date).label("day"))
+            db.query(start_date_expr.label("day"))
             .filter(
                 self.model.user_id == user_id,
                 self.model.session_type == "Pomodoro",
                 self.model.completed == True,
             )
-            .group_by(cast(self.model.start_time, Date))
-            .order_by(cast(self.model.start_time, Date).desc())
+            .group_by(start_date_expr)
+            .order_by(start_date_expr.desc())
             .all()
         )
         streak = 0
         if all_days:
             cursor = today
             for row in all_days:
-                if row.day == cursor or row.day == cursor - timedelta(days=1):
+                day = row.day if isinstance(row.day, date) else date.fromisoformat(str(row.day))
+                if day == cursor or day == cursor - timedelta(days=1):
                     streak += 1
-                    cursor = row.day - timedelta(days=1)
-                elif row.day < cursor:
+                    cursor = day - timedelta(days=1)
+                elif day < cursor:
                     break
 
         distinct_days_30 = (
-            db.query(func.count(func.distinct(cast(self.model.start_time, Date))))
+            db.query(func.count(func.distinct(start_date_expr)))
             .filter(
                 self.model.user_id == user_id,
                 self.model.session_type == "Pomodoro",
                 self.model.completed == True,
-                cast(self.model.start_time, Date) >= cutoff_30,
+                start_date_expr >= cutoff_30.isoformat(),
             )
             .scalar()
         ) or 0
