@@ -1,101 +1,122 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import { produce } from 'immer';
 import TaskContext from './context';
 import Task from '../Task';
-import TypeSelect from '../../TypeSelect';
 import { Task as TaskType } from '../../../types';
-
 import './styles.css';
-
-interface StatusType {
-  name: string;
-  value: boolean | number;
-}
 
 const TaskList: React.FC = () => {
   const [input, setInput] = useState('');
-  const taskStatus: StatusType[] = [
-    { name: 'All', value: -1 },
-    { name: 'Open', value: false },
-    { name: 'Closed', value: true }
-  ];
-
   const [tasks, setTasks] = useState<TaskType[]>(
     JSON.parse(window.localStorage.getItem('pomodoro-react-tasks') || '[]')
   );
-  const [selectedStatus, setSelectedStatus] = useState<StatusType>(taskStatus[0]);
+  const [listMenuOpen, setListMenuOpen] = useState(false);
+  const listMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     window.localStorage.setItem('pomodoro-react-tasks', JSON.stringify(tasks));
   }, [tasks]);
 
+  useEffect(() => {
+    if (!listMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (listMenuRef.current && !listMenuRef.current.contains(e.target as Node)) {
+        setListMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [listMenuOpen]);
+
   function move(from: number, to: number) {
-    setTasks(
-      produce(tasks, (draft) => {
-        const [taskMoved] = draft.splice(from, 1);
-        draft.splice(to, 0, taskMoved);
-      })
-    );
+    setTasks(produce(tasks, (draft) => {
+      const [moved] = draft.splice(from, 1);
+      draft.splice(to, 0, moved);
+    }));
   }
 
   function handleStatus(task: TaskType) {
-    setTasks(
-      produce(tasks, (draft) => {
-        const foundIndex = draft.findIndex((item) => item.id === task.id);
-        if (foundIndex !== -1) {
-          draft[foundIndex].completed = !draft[foundIndex].completed;
-        }
-      })
-    );
+    setTasks(produce(tasks, (draft) => {
+      const idx = draft.findIndex((t) => t.id === task.id);
+      if (idx !== -1) draft[idx].completed = !draft[idx].completed;
+    }));
+  }
+
+  function updateTask(updated: TaskType) {
+    setTasks(produce(tasks, (draft) => {
+      const idx = draft.findIndex((t) => t.id === updated.id);
+      if (idx !== -1) draft[idx] = updated;
+    }));
+  }
+
+  function deleteTask(id: number) {
+    setTasks(tasks.filter((t) => t.id !== id));
   }
 
   function addTask() {
     if (!input.trim()) return;
     const newTask: TaskType = {
-      id: Date.now(), // Temporary ID until backend integration
-      title: input,
+      id: Date.now(),
+      title: input.trim(),
       completed: false,
       priority: 'Medium',
       estimated_minutes: 25,
       actual_minutes: 0,
       position: tasks.length,
-      user_id: 1, // Placeholder
+      user_id: 1,
     };
     setTasks([...tasks, newTask]);
     setInput('');
   }
 
-  const filteredTasks = tasks.filter(
-    (task) =>
-      selectedStatus.value === -1 || task.completed === selectedStatus.value
-  );
-
   return (
-    <TaskContext.Provider value={{ move, handleStatus }}>
-      <TypeSelect
-        types={taskStatus as any} // StatusType matches the shape of TimerType enough for now
-        selected={selectedStatus as any}
-        changeType={setSelectedStatus as any}
-      />
-      <div className="Tasks">
-        <div className="Tasks-box">
-          {filteredTasks.length > 0 ? (
-            filteredTasks.map((task, index) => (
+    <TaskContext.Provider value={{ move, handleStatus, updateTask, deleteTask }}>
+      <div className="task-list">
+        <div className="task-list__header">
+          <span className="task-list__title">Tasks</span>
+          <div className="task-list__menu-wrap" ref={listMenuRef}>
+            <button
+              className="task-list__menu-btn"
+              onClick={() => setListMenuOpen(!listMenuOpen)}
+              title="Opcoes"
+            >
+              &#8942;
+            </button>
+            {listMenuOpen && (
+              <div className="task-list__dropdown">
+                <button onClick={() => { setTasks(tasks.filter(t => !t.completed)); setListMenuOpen(false); }}>
+                  Limpar concluidas
+                </button>
+                <button onClick={() => { setTasks([]); setListMenuOpen(false); }}>
+                  Limpar todas
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="task-list__items">
+          {tasks.length === 0 ? (
+            <div className="task-list__empty">Nenhuma tarefa</div>
+          ) : (
+            tasks.map((task, index) => (
               <Task key={task.id} index={index} task={task} />
             ))
-          ) : (
-            <div className="Task">No Tasks</div>
           )}
         </div>
-      </div>
-      <div className="Task">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="New Task"
-          onKeyPress={(e) => e.key === 'Enter' && addTask()}
-        />
-        <span onClick={addTask}>{'Add'}</span>
+
+        <div className="task-list__add">
+          <input
+            className="task-list__add-input"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="+ Adicionar tarefa"
+            onKeyDown={(e) => e.key === 'Enter' && addTask()}
+          />
+          {input.trim() && (
+            <button className="task-list__add-btn" onClick={addTask}>Add</button>
+          )}
+        </div>
       </div>
     </TaskContext.Provider>
   );

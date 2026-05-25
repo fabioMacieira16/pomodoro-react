@@ -1,6 +1,314 @@
-.Dragging {
-  opacity: 0.5;
-  border: 2px dashed rgba(0, 0, 0, 1);
-  cursor: grabbing;
-  background-color: rgba(0, 0, 0, 0.1);
+/* Task card */
+.pomo-task {
+  background: var(--pomo-surface, #fff);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: opacity 0.2s;
 }
+
+.pomo-task--dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/* Compact row */
+.pomo-task__row {
+  display: flex;
+  align-items: center;
+  padding: 13px 12px 13px 12px;
+  gap: 10px;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.pomo-task__row:hover {
+  background: rgba(0,0,0,0.025);
+}
+
+/* Checkbox */
+.pomo-task__check {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.28);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pomo-task__check--done {
+  background: rgba(0,0,0,0.28);
+  border-color: rgba(0,0,0,0.28);
+}
+
+.pomo-task__check:hover {
+  border-color: rgba(0,0,0,0.5);
+}
+
+.pomo-task__title {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--pomo-text, #1a1a2e);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.pomo-task--done .pomo-task__title {
+  text-decoration: line-through;
+  color: var(--pomo-text-muted, #aaa);
+}
+
+.pomo-task__count {
+  font-size: 0.82rem;
+  color: var(--pomo-text-muted, #999);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pomo-task__menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pomo-task__menu-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted, #bbb);
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.pomo-task__menu-btn:hover {
+  background: rgba(0,0,0,0.06);
+  color: var(--pomo-text, #333);
+}
+
+.pomo-task__dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--pomo-surface, #fff);
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.1));
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  min-width: 130px;
+  z-index: 300;
+  overflow: hidden;
+}
+
+.pomo-task__dropdown button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.pomo-task__dropdown button:hover {
+  background: var(--pomo-hover, rgba(0,0,0,0.05));
+}
+
+/* Edit form */
+.pomo-task__edit {
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pomo-task__edit-title {
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-bottom: 2px solid var(--pomo-border, rgba(0,0,0,0.12));
+  background: transparent;
+  color: var(--pomo-text, #1a1a2e);
+  padding: 4px 2px 8px;
+  outline: none;
+}
+
+.pomo-task__edit-title:focus {
+  border-bottom-color: #667eea;
+}
+
+.pomo-task__pomo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pomo-task__pomo-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--pomo-text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pomo-task__pomo-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pomo-task__pomo-sep {
+  color: var(--pomo-text-muted, #aaa);
+  font-size: 1rem;
+}
+
+.pomo-task__pomo-num {
+  width: 52px;
+  text-align: center;
+  border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 6px;
+  padding: 6px 4px;
+  font-size: 0.95rem;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  color: var(--pomo-text, #1a1a2e);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.pomo-task__pomo-num::-webkit-inner-spin-button,
+.pomo-task__pomo-num::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.pomo-task__pomo-num:read-only {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pomo-task__pomo-adj {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pomo-text-muted, #888);
+  padding: 0;
+}
+
+.pomo-task__pomo-adj:hover {
+  background: var(--pomo-hover, rgba(0,0,0,0.06));
+}
+
+.pomo-task__note {
+  width: 100%;
+  border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  color: var(--pomo-text, #1a1a2e);
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.pomo-task__note:focus {
+  border-color: #667eea;
+}
+
+.pomo-task__links-row {
+  display: flex;
+  gap: 12px;
+}
+
+.pomo-task__link {
+  background: none;
+  border: none;
+  font-size: 0.82rem;
+  color: var(--pomo-text-muted, #888);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.pomo-task__link:hover {
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.pomo-task__edit-footer {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
+  padding-top: 10px;
+}
+
+.pomo-task__delete-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.45;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.pomo-task__delete-btn:hover {
+  opacity: 1;
+  background: rgba(239,68,68,0.1);
+}
+
+.pomo-task__footer-right {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pomo-task__cancel-btn {
+  background: none;
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.15));
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted, #888);
+}
+
+.pomo-task__cancel-btn:hover {
+  background: var(--pomo-hover, rgba(0,0,0,0.04));
+}
+
+.pomo-task__save-btn {
+  background: var(--pomo-text, #1a1a2e);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pomo-task__save-btn:hover {
+  opacity: 0.85;
+}
+
+/* Legacy compat */
+.Task { display: none; }
+.Dragging { display: none; }

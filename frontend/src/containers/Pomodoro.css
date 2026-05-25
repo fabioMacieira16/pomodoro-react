@@ -109,6 +109,7 @@ body {
 
 .icon-btn.active {
   background: var(--pomo-surface-alt);
+  box-shadow: inset 0 -2px 0 var(--pomo-accent, #e74c3c);
 }
 
 /* ── Main area ───────────────────────────────────────────────────────────── */
@@ -339,3 +340,72 @@ body {
   background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
 }
 
+/* ── Subject picker (modal) ──────────────────────────────────────────────── */
+.subject-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 20px;
+  text-align: left;
+  width: 100%;
+}
+
+.subject-picker__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--pomo-text-muted, #888);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.subject-picker__input {
+  width: 100%;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  color: var(--pomo-text, #1a1a2e);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.subject-picker__input:focus {
+  border-color: #667eea;
+}
+
+/* ── Subject chip (idle screen) ──────────────────────────────────────────── */
+.subject-chip {
+  background: none;
+  border: 1.5px dashed var(--pomo-border, rgba(0,0,0,0.22));
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted, #888);
+  transition: all 0.15s ease;
+}
+
+.subject-chip:hover {
+  border-style: solid;
+  border-color: #667eea;
+  color: #667eea;
+  background: rgba(102,126,234,0.07);
+}
+
+/* ── Util row (ToggleTask + Settings) ────────────────────────────────────── */
+.pomo-util-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pomo-settings-btn {
+  opacity: 0.7;
+}
+
+.pomo-settings-btn:hover {
+  opacity: 1;
+}
