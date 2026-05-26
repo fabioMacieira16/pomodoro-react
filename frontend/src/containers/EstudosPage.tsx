@@ -54,33 +54,33 @@ const EstudosPage: React.FC = () => {
       const result = await uploadFile(file, undefined, undefined, uploadMode ?? undefined);
 
       if (uploadMode === 'edital') {
-        // Context is updated server-side during upload â€” fetch immediately
+        // Context is updated server-side during upload — fetch immediately
         await fetchContext();
         const edital = result?.edital_info;
         if (edital?.concurso) {
           showNotice({
             type: 'success',
-            message: `âœ… Edital importado: ${edital.concurso}`,
-            detail: `${edital.cargos?.length || 0} cargos Â· ${Object.keys(edital.disciplinas || {}).length} disciplinas detectadas`,
+            message: `✅ Edital importado: ${edital.concurso}`,
+            detail: `${edital.cargos?.length || 0} cargos · ${Object.keys(edital.disciplinas || {}).length} disciplinas detectadas`,
           }, 8000);
         } else {
-          showNotice({ type: 'success', message: 'âœ… Edital importado. Verifique os dados acima.' });
+          showNotice({ type: 'success', message: '✅ Edital importado. Verifique os dados acima.' });
         }
       } else if (uploadMode === 'conteudo') {
         const indexing = result?.indexing;
         const disciplina = indexing?.disciplina || indexing?.filename?.replace('.pdf', '');
         showNotice({
           type: 'success',
-          message: `âœ… ConteÃºdo indexado: ${disciplina || file.name}`,
+          message: `✅ Conteúdo indexado: ${disciplina || file.name}`,
           detail: indexing?.message || 'Arquivo processado com sucesso',
         });
         await fetchDocuments();
       } else if (uploadMode === 'plano') {
-        showNotice({ type: 'success', message: 'âœ… Plano de estudo importado!' });
+        showNotice({ type: 'success', message: '✅ Plano de estudo importado!' });
         await fetchContext();
       }
     } catch (err) {
-      showNotice({ type: 'error', message: 'âŒ Erro ao enviar o arquivo. Tente novamente.' });
+      showNotice({ type: 'error', message: '❌ Erro ao enviar o arquivo. Tente novamente.' });
     }
   };
 
@@ -111,7 +111,7 @@ const EstudosPage: React.FC = () => {
       const res = await api.post('/mindmap/generate', { subject_name: subjectName, depth: 3 });
       setMindMapData({ root: res.data.root, subject: res.data.subject, totalNodes: res.data.total_nodes });
     } catch (err) {
-      showNotice({ type: 'error', message: 'âŒ Erro ao gerar mapa mental.' });
+      showNotice({ type: 'error', message: '❌ Erro ao gerar mapa mental.' });
     } finally {
       setMindMapLoading(null);
     }
@@ -122,7 +122,7 @@ const EstudosPage: React.FC = () => {
     setGeneratedPlan(null);
     try {
       const res = await api.post('/planner/quick-plan', {
-        concurso: context.concurso || 'Concurso PÃºblico',
+        concurso: context.concurso || 'Concurso Público',
         cargo: context.cargo || 'Analista',
         banca: context.banca || 'CESPE',
         exam_date: context.exam_date
@@ -131,9 +131,9 @@ const EstudosPage: React.FC = () => {
       });
       setGeneratedPlan(res.data);
       await fetchContext();
-      showNotice({ type: 'success', message: 'âœ… Plano de estudos gerado com IA!' }, 5000);
+      showNotice({ type: 'success', message: '✅ Plano de estudos gerado com IA!' }, 5000);
     } catch (err) {
-      showNotice({ type: 'error', message: 'âŒ Erro ao gerar plano. Verifique o edital ativo.' });
+      showNotice({ type: 'error', message: '❌ Erro ao gerar plano. Verifique o edital ativo.' });
     } finally {
       setAiPlanLoading(false);
     }
@@ -144,7 +144,7 @@ const EstudosPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  // â”€â”€ Upload zone helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Upload zone helper ────────────────────────────────────────────────────
   const renderUploadZone = (mode: 'edital' | 'conteudo', title: string, description: string, icon: string) => {
     const active = isIndexing && uploadMode === mode;
     return (
@@ -158,19 +158,19 @@ const EstudosPage: React.FC = () => {
           onDrop={e => handleDrop(e, mode)}
           onClick={() => !active && triggerUpload(mode)}
         >
-          {active ? 'â³ Analisando com IA...' : 'ðŸ“Ž Arraste o PDF ou clique'}
+          {active ? '⏳ Analisando com IA...' : '📎 Arraste o PDF ou clique'}
         </div>
       </div>
     );
   };
 
-  // â”€â”€ SeleÃ§Ã£o de cargo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Seleção de cargo ──────────────────────────────────────────────────────
   if (showCargoSelection) {
     return (
       <div className="estudos-page">
         <div className="cargo-selection">
           <h2>Escolha seu Cargo</h2>
-          <p>O edital contÃ©m mÃºltiplos cargos. Selecione o cargo que vocÃª deseja estudar:</p>
+          <p>O edital contém múltiplos cargos. Selecione o cargo que você deseja estudar:</p>
           <div className="cargo-list">
             {context.available_cargos.map(cargo => (
               <button
@@ -187,7 +187,7 @@ const EstudosPage: React.FC = () => {
     );
   }
 
-  // â”€â”€ ConteÃºdos indexados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Conteúdos indexados ───────────────────────────────────────────────────
   const contentDocs = documents.filter(d => d.doc_type === 'conteudo' || d.doc_type === 'material');
 
   return (
@@ -199,7 +199,7 @@ const EstudosPage: React.FC = () => {
         <p>Central de importação e organização de conteúdos</p>
       </header>
 
-      {/* ── Notificação ── */}
+      {/*    Notificação    */}
       {notice && (
         <div className={`upload-notice upload-notice--${notice.type}`}>
           <strong>{notice.message}</strong>
@@ -208,54 +208,54 @@ const EstudosPage: React.FC = () => {
       )}
 
       {!context.edital_active ? (
-        /* â”€â”€ ONBOARDING â”€â”€ */
+        /* ── ONBOARDING ── */
         <div className="estudos-onboarding">
           <div className="onboarding-message">
             <h2>Comece importando um edital</h2>
             <p>A IA vai extrair automaticamente:</p>
             <ul>
-              <li>âœ“ Nome do concurso</li>
-              <li>âœ“ Banca organizadora</li>
-              <li>âœ“ Cargos disponÃ­veis</li>
-              <li>âœ“ Disciplinas e pesos</li>
-              <li>âœ“ Data da prova</li>
+              <li>✓ Nome do concurso</li>
+              <li>✓ Banca organizadora</li>
+              <li>✓ Cargos disponíveis</li>
+              <li>✓ Disciplinas e pesos</li>
+              <li>✓ Data da prova</li>
             </ul>
           </div>
-          {renderUploadZone('edital', 'Importar Edital', 'PDF do edital oficial do concurso', 'ðŸ“‹')}
+          {renderUploadZone('edital', 'Importar Edital', 'PDF do edital oficial do concurso', '📋')}
         </div>
       ) : (
-        /* â”€â”€ CONTEÃšDO PRINCIPAL â”€â”€ */
+        /* ── CONTEÚDO PRINCIPAL ── */
         <div className="estudos-content">
 
           {/* Edital ativo */}
           <div className="edital-info-card">
             <div className="edital-info-card__header">
-              <h3>ðŸ“‹ Edital Ativo</h3>
+              <h3>📋 Edital Ativo</h3>
               <button
                 className="btn-reupload"
                 onClick={() => triggerUpload('edital')}
                 disabled={isIndexing && uploadMode === 'edital'}
               >
-                {isIndexing && uploadMode === 'edital' ? 'â³' : 'â†© Substituir'}
+                {isIndexing && uploadMode === 'edital' ? '⏳' : '↩ Substituir'}
               </button>
             </div>
             <div className="edital-details">
               <div className="detail-item">
                 <span className="detail-label">Concurso</span>
-                <span className="detail-value">{context.concurso || <em>â€”</em>}</span>
+                <span className="detail-value">{context.concurso || <em>—</em>}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Cargo</span>
-                <span className="detail-value">{context.cargo || <em>â€”</em>}</span>
+                <span className="detail-value">{context.cargo || <em>—</em>}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Banca</span>
-                <span className="detail-value">{context.banca || <em>â€”</em>}</span>
+                <span className="detail-value">{context.banca || <em>—</em>}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Prova</span>
                 <span className="detail-value">
-                  {context.exam_date ? new Date(context.exam_date).toLocaleDateString('pt-BR') : 'â€”'}
+                  {context.exam_date ? new Date(context.exam_date).toLocaleDateString('pt-BR') : '—'}
                 </span>
               </div>
             </div>
@@ -263,17 +263,17 @@ const EstudosPage: React.FC = () => {
 
           {/* Upload grid */}
           <div className="upload-grid">
-            {/* Importar ConteÃºdo */}
+            {/* Importar Conteúdo */}
             {renderUploadZone(
               'conteudo',
-              'Importar ConteÃºdo',
-              'PDF de matÃ©ria/disciplina. A IA detecta automaticamente a disciplina e assunto.',
-              'ðŸ“–'
+              'Importar Conteúdo',
+              'PDF de matéria/disciplina. A IA detecta automaticamente a disciplina e assunto.',
+              '📖'
             )}
 
-            {/* Plano de Estudo â€” import ou gerar com IA */}
+            {/* Plano de Estudo — import ou gerar com IA */}
             <div className="upload-card upload-card--plan">
-              <div className="upload-icon">ðŸ“…</div>
+              <div className="upload-icon">📅</div>
               <h3>Plano de Estudo</h3>
               <p>Importe um PDF com cronograma ou deixe a IA gerar automaticamente com base no edital.</p>
 
@@ -282,7 +282,7 @@ const EstudosPage: React.FC = () => {
                 onClick={handleGenerateAIPlan}
                 disabled={aiPlanLoading}
               >
-                {aiPlanLoading ? 'â³ Gerando plano...' : 'âœ¨ Gerar com IA'}
+                {aiPlanLoading ? '⏳ Gerando plano...' : '✨ Gerar com IA'}
               </button>
 
               <div
@@ -291,7 +291,7 @@ const EstudosPage: React.FC = () => {
                 onDrop={e => handleDrop(e, 'plano')}
                 onClick={() => !(isIndexing && uploadMode === 'plano') && triggerUpload('plano')}
               >
-                {isIndexing && uploadMode === 'plano' ? 'â³ Importando...' : 'ðŸ“Ž Importar PDF de plano'}
+                {isIndexing && uploadMode === 'plano' ? '⏳ Importando...' : '📎 Importar PDF de plano'}
               </div>
             </div>
           </div>
@@ -299,11 +299,11 @@ const EstudosPage: React.FC = () => {
           {/* Plano gerado */}
           {generatedPlan && (
             <div className="generated-plan">
-              <h3>ðŸ“… Plano Gerado</h3>
+              <h3>📅 Plano Gerado</h3>
               <div className="plan-stats">
-                <span><strong>{generatedPlan.days_until_exam}</strong> dias atÃ© a prova</span>
+                <span><strong>{generatedPlan.days_until_exam}</strong> dias até a prova</span>
                 <span><strong>{generatedPlan.total_study_hours}h</strong> total de estudo</span>
-                <span><strong>{generatedPlan.topics?.length || 0}</strong> tÃ³picos</span>
+                <span><strong>{generatedPlan.topics?.length || 0}</strong> tópicos</span>
               </div>
               {generatedPlan.weekly_schedule && (
                 <div className="plan-week">
@@ -318,20 +318,20 @@ const EstudosPage: React.FC = () => {
             </div>
           )}
 
-          {/* ConteÃºdos indexados */}
+          {/* Conteúdos indexados */}
           {contentDocs.length > 0 && (
             <div className="indexed-docs">
-              <h3>ðŸ“ ConteÃºdos Indexados</h3>
+              <h3>📁 Conteúdos Indexados</h3>
               <div className="docs-list">
                 {contentDocs.map(doc => (
                   <div key={doc.id} className="doc-item">
-                    <span className="doc-icon">ðŸ“„</span>
+                    <span className="doc-icon">📄</span>
                     <div className="doc-info">
                       <span className="doc-name">{doc.filename}</span>
                       {doc.disciplina && <span className="doc-disciplina">{doc.disciplina}</span>}
                     </div>
                     {doc.disciplina && context.subjects.includes(doc.disciplina) && (
-                      <span className="doc-badge doc-badge--match">âœ“ Na grade</span>
+                      <span className="doc-badge doc-badge--match">✓ Na grade</span>
                     )}
                   </div>
                 ))}
@@ -342,7 +342,7 @@ const EstudosPage: React.FC = () => {
           {/* Disciplinas */}
           {context.subjects.length > 0 && (
             <div className="subjects-section">
-              <h3>ðŸ“š Disciplinas</h3>
+              <h3>📚 Disciplinas</h3>
               <div className="subjects-grid">
                 {context.subjects.map(subject => {
                   const perf = context.performances.find(p => p.subject === subject);
@@ -354,7 +354,7 @@ const EstudosPage: React.FC = () => {
                           <span className="accuracy">{perf.accuracy.toFixed(0)}%</span>
                           <span className="hours">{perf.study_hours}h</span>
                           <span className={`difficulty diff-${perf.difficulty_level}`}>
-                            {perf.difficulty_level === 'easy' ? 'ðŸ˜Š' : perf.difficulty_level === 'medium' ? 'ðŸ˜' : 'ðŸ˜°'}
+                            {perf.difficulty_level === 'easy' ? '😊' : perf.difficulty_level === 'medium' ? '😐' : '😰'}
                           </span>
                         </div>
                       )}
@@ -364,7 +364,7 @@ const EstudosPage: React.FC = () => {
                         disabled={mindMapLoading === subject}
                         title="Gerar mapa mental"
                       >
-                        {mindMapLoading === subject ? 'â³' : 'ðŸ—º'}
+                        {mindMapLoading === subject ? '⏳' : '🗺'}
                       </button>
                     </div>
                   );
@@ -375,7 +375,7 @@ const EstudosPage: React.FC = () => {
         </div>
       )}
 
-      {/* â”€â”€ Modal Mapa Mental â”€â”€ */}
+      {/* ── Modal Mapa Mental ── */}
       {mindMapData && (
         <div className="mm-overlay" onClick={() => setMindMapData(null)}>
           <div onClick={e => e.stopPropagation()}>
