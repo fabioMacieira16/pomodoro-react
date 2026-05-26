@@ -395,6 +395,19 @@ body {
   background: rgba(102,126,234,0.07);
 }
 
+/* ── Active task label ───────────────────────────────────────────────────── */
+.active-task-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pomo-accent, #ef4444);
+  max-width: 260px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 2px 0 0;
+}
+
 /* ── Util row (ToggleTask + Settings) ────────────────────────────────────── */
 .pomo-util-row {
   display: flex;

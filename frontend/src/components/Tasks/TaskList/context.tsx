@@ -6,6 +6,8 @@ interface TaskContextType {
   handleStatus: (task: Task) => void;
   updateTask: (task: Task) => void;
   deleteTask: (id: number) => void;
+  selectedTaskId: number | null;
+  selectTask: (task: Task) => void;
 }
 
 const TaskContext = createContext<TaskContextType>({
@@ -13,6 +15,8 @@ const TaskContext = createContext<TaskContextType>({
   handleStatus: () => {},
   updateTask: () => {},
   deleteTask: () => {},
+  selectedTaskId: null,
+  selectTask: () => {},
 });
 
 export default TaskContext;

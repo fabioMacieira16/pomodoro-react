@@ -195,11 +195,11 @@ const EstudosPage: React.FC = () => {
       <input type="file" accept=".pdf" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
 
       <header className="estudos-header">
-        <h1>ðŸ“š Estudos</h1>
-        <p>Central de importaÃ§Ã£o e organizaÃ§Ã£o de conteÃºdos</p>
+        <h1>📚 Estudos</h1>
+        <p>Central de importação e organização de conteúdos</p>
       </header>
 
-      {/* â”€â”€ NotificaÃ§Ã£o â”€â”€ */}
+      {/* ── Notificação ── */}
       {notice && (
         <div className={`upload-notice upload-notice--${notice.type}`}>
           <strong>{notice.message}</strong>

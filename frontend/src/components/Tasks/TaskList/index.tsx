@@ -3,6 +3,7 @@ import { produce } from 'immer';
 import TaskContext from './context';
 import Task from '../Task';
 import { Task as TaskType } from '../../../types';
+import { useSelectedTask } from '../../../store/selectedTaskStore';
 import './styles.css';
 
 const TaskList: React.FC = () => {
@@ -12,6 +13,8 @@ const TaskList: React.FC = () => {
   );
   const [listMenuOpen, setListMenuOpen] = useState(false);
   const listMenuRef = useRef<HTMLDivElement>(null);
+  const { selectedTask, select } = useSelectedTask();
+  const selectedTaskId = selectedTask?.id ?? null;
 
   useEffect(() => {
     window.localStorage.setItem('pomodoro-react-tasks', JSON.stringify(tasks));
@@ -47,10 +50,34 @@ const TaskList: React.FC = () => {
       const idx = draft.findIndex((t) => t.id === updated.id);
       if (idx !== -1) draft[idx] = updated;
     }));
+    // Keep store in sync if the updated task is the selected one
+    if (selectedTaskId === updated.id) {
+      select({
+        id: updated.id,
+        title: updated.title,
+        estPomo: Math.max(1, Math.round((updated.estimated_minutes || 25) / 25)),
+        actualPomo: Math.round((updated.actual_minutes || 0) / 25),
+      });
+    }
   }
 
   function deleteTask(id: number) {
     setTasks(tasks.filter((t) => t.id !== id));
+    if (selectedTaskId === id) select(null);
+  }
+
+  function selectTask(task: TaskType) {
+    // Toggle: clicking the already-selected task deselects it
+    if (selectedTaskId === task.id) {
+      select(null);
+    } else {
+      select({
+        id: task.id,
+        title: task.title,
+        estPomo: Math.max(1, Math.round((task.estimated_minutes || 25) / 25)),
+        actualPomo: Math.round((task.actual_minutes || 0) / 25),
+      });
+    }
   }
 
   function addTask() {
@@ -70,7 +97,7 @@ const TaskList: React.FC = () => {
   }
 
   return (
-    <TaskContext.Provider value={{ move, handleStatus, updateTask, deleteTask }}>
+    <TaskContext.Provider value={{ move, handleStatus, updateTask, deleteTask, selectedTaskId, selectTask }}>
       <div className="task-list">
         <div className="task-list__header">
           <span className="task-list__title">Tasks</span>
@@ -123,3 +150,4 @@ const TaskList: React.FC = () => {
 };
 
 export default memo(TaskList);
+

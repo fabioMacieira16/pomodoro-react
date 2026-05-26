@@ -17,7 +17,7 @@ interface DragItem {
 export default function Task({ task, index }: TaskProps) {
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { move, handleStatus, updateTask, deleteTask } = useContext(TaskContext);
+  const { move, handleStatus, updateTask, deleteTask, selectedTaskId, selectTask } = useContext(TaskContext);
 
   const [editing, setEditing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -89,10 +89,10 @@ export default function Task({ task, index }: TaskProps) {
   return (
     <div
       ref={ref}
-      className={`pomo-task${isDragging ? ' pomo-task--dragging' : ''}${task.completed ? ' pomo-task--done' : ''}`}
+      className={`pomo-task${isDragging ? ' pomo-task--dragging' : ''}${task.completed ? ' pomo-task--done' : ''}${selectedTaskId === task.id ? ' pomo-task--selected' : ''}`}
     >
       {!editing ? (
-        <div className="pomo-task__row" onClick={openEdit}>
+        <div className="pomo-task__row" onClick={() => selectTask(task)}>
           <button
             className={`pomo-task__check${task.completed ? ' pomo-task__check--done' : ''}`}
             onClick={(e) => { e.stopPropagation(); handleStatus(task); }}

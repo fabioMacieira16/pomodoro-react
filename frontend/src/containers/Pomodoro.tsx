@@ -17,6 +17,7 @@ import { usePomodoroSettings } from '../store/pomodoroSettingsStore';
 import { usePomodoroStore } from '../store/pomodoroStore';
 import { useStudyContext } from '../store/studyContextStore';
 import { useSubjectStore } from '../store/subjectStore';
+import { useSelectedTask } from '../store/selectedTaskStore';
 import type { TimerPhase } from '../types';
 import './Pomodoro.css';
 
@@ -40,6 +41,7 @@ const Pomodoro: React.FC = () => {
 
   const studyCtx = useStudyContext();
   const { subjects: subjectList, fetchSubjects } = useSubjectStore();
+  const { selectedTask, incrementActual } = useSelectedTask();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showStudyModeModal, setShowStudyModeModal] = useState(false);
@@ -52,6 +54,26 @@ const Pomodoro: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const headerRevealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [headerVisible, setHeaderVisible] = useState(true);
+  const prevPomoCount = useRef(engine.pomodoroCount);
+
+  // ── Increment selected task actual pomodoros when engine completes one ──
+  useEffect(() => {
+    if (engine.pomodoroCount > prevPomoCount.current && selectedTask) {
+      incrementActual();
+      // Also update actual_minutes in localStorage tasks
+      const raw = localStorage.getItem('pomodoro-react-tasks');
+      if (raw) {
+        try {
+          const stored = JSON.parse(raw) as Array<{ id: number; actual_minutes: number }>;
+          const updated = stored.map((t) =>
+            t.id === selectedTask.id ? { ...t, actual_minutes: (t.actual_minutes || 0) + 25 } : t
+          );
+          localStorage.setItem('pomodoro-react-tasks', JSON.stringify(updated));
+        } catch { /* ignore */ }
+      }
+    }
+    prevPomoCount.current = engine.pomodoroCount;
+  }, [engine.pomodoroCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-enable focus mode when timer starts ───────────────────────────
   useEffect(() => {
@@ -185,8 +207,16 @@ const Pomodoro: React.FC = () => {
   };
 
   const handlePause = () => {
-    if (engine.status === 'running') engine.pause();
-    else if (engine.status === 'paused') engine.resume();
+    if (engine.status === 'running') {
+      engine.pause();
+      // Auto-open task panel so user can track/select tasks
+      setTaskOpen((prev: boolean) => {
+        if (!prev) localStorage.setItem('pomodoro-react-taskStatus', 'true');
+        return true;
+      });
+    } else if (engine.status === 'paused') {
+      engine.resume();
+    }
   };
 
   const handleToggleTask = () => {
@@ -198,6 +228,7 @@ const Pomodoro: React.FC = () => {
   };
 
   const isTimerActive = engine.status === 'running' || engine.status === 'paused';
+  const isRunning = engine.status === 'running';
 
   const allSubjectOptions = Array.from(new Set([
     ...studyCtx.context.subjects,
@@ -271,7 +302,7 @@ const Pomodoro: React.FC = () => {
           {!isTimerActive && (
             <TypeSelect
               types={PHASE_ITEMS}
-              selected={{ name: PHASE_LABELS[engine.phase], time: engine.timeRemaining }}
+              selected={PHASE_ITEMS.find((p) => p.phase === engine.phase) ?? PHASE_ITEMS[0]}
               changeType={(t) => {
                 const item = PHASE_ITEMS.find((p) => p.name === t.name);
                 if (item) engine.changePhase(item.phase);
@@ -286,11 +317,21 @@ const Pomodoro: React.FC = () => {
             phaseColor={engine.phaseColor}
           />
 
-          {!isTimerActive && (
+          {/* Dots: always show when task selected; only show without task when not running */}
+          {(!isRunning || selectedTask) && (
             <PomodoroDots
               pomodoroCount={engine.pomodoroCount}
               longBreakInterval={settings.longBreakInterval}
+              totalDots={selectedTask ? selectedTask.estPomo : undefined}
+              filledDots={selectedTask ? selectedTask.actualPomo : undefined}
             />
+          )}
+
+          {/* Active task name: always visible when a task is selected */}
+          {selectedTask && (
+            <div className="active-task-label" title={selectedTask.title}>
+              {selectedTask.title}
+            </div>
           )}
 
           {!isTimerActive && (
@@ -312,7 +353,7 @@ const Pomodoro: React.FC = () => {
             status={controlStatus}
           />
 
-          {!isTimerActive && (engine.status === 'running' || engine.status === 'paused') && (
+          {isTimerActive && (
             <button className="skip-btn" onClick={engine.skip}>
               Pular →
             </button>
@@ -330,23 +371,27 @@ const Pomodoro: React.FC = () => {
             </div>
           )}
 
-          {!isTimerActive && (
+          {/* Util row: show when not actively running (idle, paused, finished) */}
+          {!isRunning && (
             <div className="pomo-util-row">
               <ToggleTask task={taskOpen} toggleTask={handleToggleTask} />
-              <button
-                className="icon-btn pomo-settings-btn"
-                onClick={() => setSettingsOpen(true)}
-                title="Configurações"
-              >
-                ⚙️
-              </button>
+              {!isTimerActive && (
+                <button
+                  className="icon-btn pomo-settings-btn"
+                  onClick={() => setSettingsOpen(true)}
+                  title="Configurações"
+                >
+                  ⚙️
+                </button>
+              )}
             </div>
           )}
 
           {!isTimerActive && !settings.focusMode && <Shortcuts />}
         </div>
 
-        {!isTimerActive && taskOpen && (
+        {/* Task panel: visible when paused or idle/finished */}
+        {!isRunning && taskOpen && (
           <div className="TaskPainel">
             <TaskList />
           </div>

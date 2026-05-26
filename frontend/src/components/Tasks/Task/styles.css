@@ -4,7 +4,15 @@
   border-radius: 10px;
   margin-bottom: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, box-shadow 0.2s;
+}
+
+.pomo-task--selected {
+  box-shadow: 0 0 0 2px var(--pomo-accent, #ef4444), 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.pomo-task--selected .pomo-task__row {
+  background: rgba(var(--pomo-accent-rgb, 239, 68, 68), 0.06);
 }
 
 .pomo-task--dragging {
