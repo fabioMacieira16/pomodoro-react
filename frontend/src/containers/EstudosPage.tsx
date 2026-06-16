@@ -26,6 +26,7 @@ const EstudosPage: React.FC = () => {
   const [mindMapLoading, setMindMapLoading] = useState<string | null>(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
+  const [autoGeneratePlan, setAutoGeneratePlan] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -38,6 +39,14 @@ const EstudosPage: React.FC = () => {
       setShowCargoSelection(true);
     }
   }, [context.available_cargos, context.cargo]);
+
+  // Trigger plan generation after cargo selection (when context is already updated)
+  useEffect(() => {
+    if (autoGeneratePlan && context.cargo) {
+      setAutoGeneratePlan(false);
+      void handleGenerateAIPlan();
+    }
+  }, [autoGeneratePlan, context.cargo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showNotice = (n: UploadNotice, durationMs = 6000) => {
     setNotice(n);
@@ -102,7 +111,11 @@ const EstudosPage: React.FC = () => {
   const handleSelectCargo = async (cargo: string) => {
     setSelectedCargo(cargo);
     await updateContext({ cargo });
+    await fetchContext();
     setShowCargoSelection(false);
+    showNotice({ type: 'success', message: `✅ Cargo selecionado: ${cargo}. Gerando plano de estudos...` }, 3000);
+    // Use a small delay so React re-renders with the updated context before plan generation
+    setTimeout(() => setAutoGeneratePlan(true), 300);
   };
 
   const handleGenerateMindMap = async (subjectName: string) => {

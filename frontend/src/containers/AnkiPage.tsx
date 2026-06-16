@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAnkiStore } from '../store/ankiStore';
+import { useStudyContext } from '../store/studyContextStore';
+import { useSubjectStore } from '../store/subjectStore';
 import { DeckList } from '../components/Anki/DeckList';
 import { FlashcardList } from '../components/Anki/FlashcardList';
 import { AnkiDashboard } from '../components/Anki/AnkiDashboard';
@@ -9,10 +11,38 @@ import type { Deck } from '../types';
 type AnkiView = 'decks' | 'flashcards' | 'dashboard';
 
 const AnkiPage: React.FC = () => {
-  const { startReview, isReviewing } = useAnkiStore();
+  const { startReview, isReviewing, decks } = useAnkiStore();
+  const { context } = useStudyContext();
+  const { subjects: subjectList } = useSubjectStore();
+
   const [view, setView] = useState<AnkiView>('decks');
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
+  const [disciplineFilter, setDisciplineFilter] = useState<string>('');
+
   const canOpenCards = selectedDeck !== null;
+
+  // All available discipline names for filter dropdown
+  const allDisciplines = Array.from(
+    new Set([
+      ...context.subjects,
+      ...subjectList.map(s => s.name),
+      ...decks.map(d => d.name),
+    ])
+  ).filter(Boolean).sort();
+
+  // Filter decks by selected discipline
+  const filteredDecks = disciplineFilter
+    ? decks.filter(d => {
+        const subjectMatch = subjectList.find(s => s.id === d.subject_id);
+        const nameMatch = d.name.toLowerCase().includes(disciplineFilter.toLowerCase()) ||
+          (subjectMatch && subjectMatch.name.toLowerCase().includes(disciplineFilter.toLowerCase())) ||
+          context.subjects.some(cs =>
+            cs.toLowerCase() === disciplineFilter.toLowerCase() &&
+            d.name.toLowerCase().includes(cs.toLowerCase())
+          );
+        return nameMatch;
+      })
+    : decks;
 
   const handleSelectDeck = (deck: Deck) => {
     setSelectedDeck(deck);
@@ -32,10 +62,38 @@ const AnkiPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-6">
             <h1 className="text-lg font-bold text-gray-900 dark:text-white">🧠 Anki</h1>
           </div>
+
+          {/* Discipline filter — only show on decks view */}
+          {view === 'decks' && (
+            <div className="flex items-center gap-2 flex-1 max-w-sm">
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                Disciplina:
+              </label>
+              <select
+                value={disciplineFilter}
+                onChange={e => setDisciplineFilter(e.target.value)}
+                className="flex-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todas as disciplinas</option>
+                {allDisciplines.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              {disciplineFilter && (
+                <button
+                  onClick={() => setDisciplineFilter('')}
+                  className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 px-2 py-1 border border-gray-200 dark:border-gray-600 rounded"
+                  title="Limpar filtro"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
 
           <nav className="flex gap-1">
             <button
@@ -49,11 +107,7 @@ const AnkiPage: React.FC = () => {
               Decks
             </button>
             <button
-              onClick={() => {
-                if (selectedDeck) {
-                  setView('flashcards');
-                }
-              }}
+              onClick={() => { if (selectedDeck) setView('flashcards'); }}
               disabled={!canOpenCards}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 view === 'flashcards'
@@ -76,18 +130,31 @@ const AnkiPage: React.FC = () => {
             </button>
           </nav>
         </div>
+
+        {/* Discipline filter summary bar */}
+        {view === 'decks' && disciplineFilter && (
+          <div className="max-w-6xl mx-auto px-6 pb-2">
+            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              Exibindo {filteredDecks.length} deck{filteredDecks.length !== 1 ? 's' : ''} de "{disciplineFilter}"
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
         {view === 'decks' && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
-              Selecione um deck para abrir os cartões, editar flashcards ou iniciar uma revisão.
-            </div>
+            {!disciplineFilter && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
+                Selecione um deck para abrir os cartões, editar flashcards ou iniciar uma revisão.
+                Use o filtro de disciplina acima para encontrar decks específicos.
+              </div>
+            )}
             <DeckList
               onSelectDeck={handleSelectDeck}
               onStartReview={handleStartReview}
+              filteredDecks={filteredDecks}
             />
           </div>
         )}

@@ -8,9 +8,11 @@ import type { Deck } from '../../types';
 interface DeckListProps {
   onSelectDeck: (deck: Deck) => void;
   onStartReview: (deck: Deck) => void;
+  /** Pre-filtered deck list from parent (when discipline filter is active) */
+  filteredDecks?: Deck[];
 }
 
-export function DeckList({ onSelectDeck, onStartReview }: DeckListProps) {
+export function DeckList({ onSelectDeck, onStartReview, filteredDecks }: DeckListProps) {
   const { decks, fetchDecks, deleteDeck, isLoadingDecks } = useAnkiStore();
   const [showForm, setShowForm] = useState(false);
   const [editingDeck, setEditingDeck] = useState<Deck | null>(null);
@@ -25,10 +27,19 @@ export function DeckList({ onSelectDeck, onStartReview }: DeckListProps) {
     }
   };
 
+  const displayedDecks = filteredDecks ?? decks;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Meus Decks</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          Meus Decks
+          {filteredDecks && filteredDecks.length !== decks.length && (
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              ({filteredDecks.length} de {decks.length})
+            </span>
+          )}
+        </h2>
         <button
           onClick={() => { setEditingDeck(null); setShowForm(true); }}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -42,15 +53,23 @@ export function DeckList({ onSelectDeck, onStartReview }: DeckListProps) {
         <div className="flex items-center justify-center h-40">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
-      ) : decks.length === 0 ? (
+      ) : displayedDecks.length === 0 ? (
         <div className="text-center py-16 text-gray-500 dark:text-gray-400">
           <p className="text-5xl mb-4">🗂️</p>
-          <p className="font-medium">Nenhum deck ainda</p>
-          <p className="text-sm mt-1">Crie seu primeiro deck para começar</p>
+          <p className="font-medium">
+            {filteredDecks && filteredDecks.length === 0 && decks.length > 0
+              ? 'Nenhum deck encontrado para esta disciplina'
+              : 'Nenhum deck ainda'}
+          </p>
+          <p className="text-sm mt-1">
+            {filteredDecks && filteredDecks.length === 0 && decks.length > 0
+              ? 'Crie um deck com o nome desta disciplina ou remova o filtro'
+              : 'Crie seu primeiro deck para começar'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {decks.map((deck) => (
+          {displayedDecks.map((deck) => (
             <DeckCard
               key={deck.id}
               deck={deck}

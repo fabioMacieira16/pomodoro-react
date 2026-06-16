@@ -22,6 +22,61 @@
   color: rgba(255,255,255,0.7);
 }
 
+.task-list__count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.6;
+  margin-left: 6px;
+}
+
+.task-list__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-list__mark-done-btn {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.task-list__mark-done-btn:hover {
+  background: rgba(16, 185, 129, 0.35);
+}
+
+.task-list__day-done {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6ee7b7;
+}
+
+/* Progress bar */
+.task-list__progress {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 2px 0 4px;
+}
+
+.task-list__progress-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.task-list__progress-fill--done {
+  background: rgba(16, 185, 129, 0.8);
+}
+
 .task-list__menu-wrap {
   position: relative;
 }

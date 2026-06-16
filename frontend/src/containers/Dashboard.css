@@ -4,6 +4,8 @@
   background: var(--pomo-bg, #f8f8fc);
   color: var(--pomo-text, #1a1a2e);
   box-sizing: border-box;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .dashboard--loading {
@@ -48,17 +50,25 @@
   margin-bottom: 24px;
 }
 
+.dashboard__stats-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+
 .dashboard__section {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+.dashboard__metrics-extended {
+  margin-bottom: 28px;
+}
+
 .dashboard__section-title {
   font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 4px;
+  font-weight: 700;
+  margin: 0 0 8px;
   color: var(--pomo-text, #1a1a2e);
 }
 
@@ -141,6 +151,129 @@
   margin-top: 2px;
 }
 
+/* ── Task progress bar ───────────────────────────────── */
+.dashboard__task-progress {
+  height: 6px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.08));
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.dashboard__task-progress-fill {
+  height: 100%;
+  background: #667eea;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.dashboard__task-progress-fill--done {
+  background: #10b981;
+}
+
+/* ── Calendário de Estudos ───────────────────────────── */
+.dashboard__study-calendar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.calendar-day {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  border: 2px solid var(--pomo-border, rgba(0,0,0,0.08));
+  border-radius: 14px;
+  padding: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.calendar-day--today {
+  border-color: #667eea;
+  background: rgba(102,126,234,0.07);
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+}
+
+.calendar-day--done {
+  border-color: #10b981;
+  background: rgba(16,185,129,0.06);
+}
+
+.calendar-day__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.calendar-day__name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pomo-text-muted, #888);
+  flex: 1;
+}
+
+.calendar-day--today .calendar-day__name {
+  color: #667eea;
+}
+
+.calendar-day--done .calendar-day__name {
+  color: #059669;
+}
+
+.calendar-day__today-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: #667eea;
+  color: #fff;
+  border-radius: 6px;
+  padding: 1px 5px;
+  letter-spacing: 0.05em;
+}
+
+.calendar-day__done-icon {
+  font-size: 0.85rem;
+  color: #10b981;
+  font-weight: 700;
+}
+
+.calendar-day__subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.calendar-subject {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.calendar-subject__name {
+  font-size: 0.8rem;
+  color: var(--pomo-text, #1a1a2e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.calendar-subject__acc {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.calendar-day__hours {
+  font-size: 0.72rem;
+  color: var(--pomo-text-muted, #999);
+  font-weight: 500;
+}
+
 /* ── Agenda de Hoje ──────────────────────────────────── */
 .dashboard__today-subjects {
   display: flex;
@@ -174,57 +307,93 @@
 .acc--mid  { background: rgba(245,158,11,0.15); color: #d97706; }
 .acc--bad  { background: rgba(239,68,68,0.15);  color: #dc2626; }
 
-/* ── Agenda Semanal ──────────────────────────────────── */
-.dashboard__weekly-agenda {
+/* ── Ranking de Disciplinas ──────────────────────────── */
+.dashboard__ranking {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-.agenda-day {
-  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+@media (max-width: 600px) {
+  .dashboard__ranking {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ranking-col {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.03));
   border: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 14px;
+  padding: 14px;
 }
 
-.agenda-day--today {
-  border-color: #667eea;
-  background: rgba(102,126,234,0.08);
-  box-shadow: 0 0 0 2px rgba(102,126,234,0.2);
-}
-
-.agenda-day__label {
+.ranking-col__title {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--pomo-text-muted, #888);
-  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
 }
 
-.agenda-day--today .agenda-day__label {
-  color: #667eea;
-}
+.ranking-col__title--top { color: #059669; }
+.ranking-col__title--low { color: #d97706; }
 
-.agenda-day__subjects {
+.ranking-item {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-bottom: 6px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--pomo-border, rgba(0,0,0,0.06));
+  font-size: 0.85rem;
 }
 
-.agenda-day__subject {
-  font-size: 0.78rem;
-  color: var(--pomo-text, #1a1a2e);
+.ranking-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ranking-item__pos {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--pomo-text-muted, #bbb);
+  min-width: 16px;
+}
+
+.ranking-item--top .ranking-item__pos { color: #059669; }
+.ranking-item--low .ranking-item__pos { color: #d97706; }
+
+.ranking-item__name {
+  flex: 1;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.agenda-day__hours {
+.ranking-item__info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ranking-item__hours {
+  font-size: 0.78rem;
+  color: var(--pomo-text-muted, #888);
+  font-weight: 600;
+}
+
+.ranking-item__acc {
   font-size: 0.72rem;
-  color: var(--pomo-text-muted, #999);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.ranking-item__warn {
+  font-size: 0.7rem;
+  color: #d97706;
+  font-weight: 600;
 }
 
 /* ── Revisões Pendentes ──────────────────────────────── */
@@ -322,7 +491,7 @@
 
 .dashboard__perf-row {
   display: grid;
-  grid-template-columns: 160px 1fr 44px;
+  grid-template-columns: 160px 1fr 44px 40px;
   align-items: center;
   gap: 10px;
   font-size: 0.85rem;
@@ -359,15 +528,32 @@
   color: var(--pomo-text-muted, #888);
 }
 
+.perf-row__hours {
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--pomo-text-muted, #aaa);
+}
+
 /* ── Sem plano ativo ─────────────────────────────────── */
 .dashboard__empty-plan {
   text-align: center;
-  padding: 32px;
+  padding: 48px 32px;
   color: var(--pomo-text-muted, #888);
 }
 
+.dashboard__empty-icon {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.dashboard__empty-sub {
+  font-size: 0.88rem;
+  margin-top: 4px;
+  margin-bottom: 16px;
+}
+
 .dashboard__cta {
-  margin-top: 12px;
+  margin-top: 4px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: #fff;
   border: none;
@@ -382,4 +568,3 @@
 .dashboard__cta:hover {
   opacity: 0.9;
 }
-

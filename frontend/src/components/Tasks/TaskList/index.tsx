@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useRef } from 'react';
+import React, { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { produce } from 'immer';
 import TaskContext from './context';
 import Task from '../Task';
@@ -6,19 +6,60 @@ import { Task as TaskType } from '../../../types';
 import { useSelectedTask } from '../../../store/selectedTaskStore';
 import './styles.css';
 
+const TASK_STATS_KEY = 'pomodoro-task-stats';
+const TODAY_KEY = () => new Date().toISOString().split('T')[0];
+
+interface DailyStats {
+  date: string;
+  total: number;
+  completed: number;
+}
+
+function loadDailyStats(): DailyStats[] {
+  try {
+    return JSON.parse(localStorage.getItem(TASK_STATS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveDailyStats(total: number, completed: number) {
+  const stats = loadDailyStats();
+  const today = TODAY_KEY();
+  const existing = stats.findIndex(s => s.date === today);
+  const entry: DailyStats = { date: today, total, completed };
+  if (existing >= 0) {
+    stats[existing] = entry;
+  } else {
+    stats.push(entry);
+  }
+  // Keep last 90 days
+  const trimmed = stats.slice(-90);
+  localStorage.setItem(TASK_STATS_KEY, JSON.stringify(trimmed));
+}
+
 const TaskList: React.FC = () => {
   const [input, setInput] = useState('');
   const [tasks, setTasks] = useState<TaskType[]>(
     JSON.parse(window.localStorage.getItem('pomodoro-react-tasks') || '[]')
   );
   const [listMenuOpen, setListMenuOpen] = useState(false);
+  const [dayMarked, setDayMarked] = useState(false);
   const listMenuRef = useRef<HTMLDivElement>(null);
   const { selectedTask, select } = useSelectedTask();
   const selectedTaskId = selectedTask?.id ?? null;
 
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.completed).length;
+  const allDone = total > 0 && completed === total;
+  const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
   useEffect(() => {
     window.localStorage.setItem('pomodoro-react-tasks', JSON.stringify(tasks));
-  }, [tasks]);
+    if (total > 0) {
+      saveDailyStats(total, completed);
+    }
+  }, [tasks, total, completed]);
 
   useEffect(() => {
     if (!listMenuOpen) return;
@@ -30,6 +71,13 @@ const TaskList: React.FC = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [listMenuOpen]);
+
+  // Auto-mark day when all tasks are done
+  useEffect(() => {
+    if (allDone && !dayMarked) {
+      setDayMarked(true);
+    }
+  }, [allDone, dayMarked]);
 
   function move(from: number, to: number) {
     setTasks(produce(tasks, (draft) => {
@@ -50,7 +98,6 @@ const TaskList: React.FC = () => {
       const idx = draft.findIndex((t) => t.id === updated.id);
       if (idx !== -1) draft[idx] = updated;
     }));
-    // Keep store in sync if the updated task is the selected one
     if (selectedTaskId === updated.id) {
       select({
         id: updated.id,
@@ -67,7 +114,6 @@ const TaskList: React.FC = () => {
   }
 
   function selectTask(task: TaskType) {
-    // Toggle: clicking the already-selected task deselects it
     if (selectedTaskId === task.id) {
       select(null);
     } else {
@@ -79,6 +125,13 @@ const TaskList: React.FC = () => {
       });
     }
   }
+
+  const markAllDone = useCallback(() => {
+    setTasks(produce(tasks, (draft) => {
+      draft.forEach(t => { t.completed = true; });
+    }));
+    setDayMarked(true);
+  }, [tasks]);
 
   function addTask() {
     if (!input.trim()) return;
@@ -100,27 +153,58 @@ const TaskList: React.FC = () => {
     <TaskContext.Provider value={{ move, handleStatus, updateTask, deleteTask, selectedTaskId, selectTask }}>
       <div className="task-list">
         <div className="task-list__header">
-          <span className="task-list__title">Tasks</span>
-          <div className="task-list__menu-wrap" ref={listMenuRef}>
-            <button
-              className="task-list__menu-btn"
-              onClick={() => setListMenuOpen(!listMenuOpen)}
-              title="Opcoes"
-            >
-              &#8942;
-            </button>
-            {listMenuOpen && (
-              <div className="task-list__dropdown">
-                <button onClick={() => { setTasks(tasks.filter(t => !t.completed)); setListMenuOpen(false); }}>
-                  Limpar concluidas
-                </button>
-                <button onClick={() => { setTasks([]); setListMenuOpen(false); }}>
-                  Limpar todas
-                </button>
-              </div>
+          <span className="task-list__title">
+            Tasks
+            {total > 0 && (
+              <span className="task-list__count">
+                {completed}/{total}
+              </span>
             )}
+          </span>
+          <div className="task-list__header-actions">
+            {total > 0 && !allDone && (
+              <button
+                className="task-list__mark-done-btn"
+                onClick={markAllDone}
+                title="Marcar todas como concluídas"
+              >
+                ✓ Concluir dia
+              </button>
+            )}
+            {allDone && total > 0 && (
+              <span className="task-list__day-done">🎉 Dia concluído!</span>
+            )}
+            <div className="task-list__menu-wrap" ref={listMenuRef}>
+              <button
+                className="task-list__menu-btn"
+                onClick={() => setListMenuOpen(!listMenuOpen)}
+                title="Opcoes"
+              >
+                &#8942;
+              </button>
+              {listMenuOpen && (
+                <div className="task-list__dropdown">
+                  <button onClick={() => { setTasks(tasks.filter(t => !t.completed)); setListMenuOpen(false); }}>
+                    Limpar concluidas
+                  </button>
+                  <button onClick={() => { setTasks([]); setListMenuOpen(false); setDayMarked(false); }}>
+                    Limpar todas
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Progress bar */}
+        {total > 0 && (
+          <div className="task-list__progress">
+            <div
+              className={`task-list__progress-fill ${allDone ? 'task-list__progress-fill--done' : ''}`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        )}
 
         <div className="task-list__items">
           {tasks.length === 0 ? (
@@ -150,4 +234,3 @@ const TaskList: React.FC = () => {
 };
 
 export default memo(TaskList);
-

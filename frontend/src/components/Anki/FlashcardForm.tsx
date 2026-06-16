@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
+import { useStudyContext } from '../../store/studyContextStore';
+import { useSubjectStore } from '../../store/subjectStore';
 import type { Deck, Flashcard, FlashcardOption, CardType } from '../../types';
 
 const CARD_TYPES: { value: CardType; label: string; desc: string }[] = [
@@ -18,17 +20,51 @@ interface FlashcardFormProps {
 
 export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
   const { createFlashcard, updateFlashcard } = useAnkiStore();
+  const { context } = useStudyContext();
+  const { subjects: subjectList } = useSubjectStore();
+
   const [cardType, setCardType] = useState<CardType>(card?.card_type ?? 'qa');
   const [front, setFront] = useState(card?.front ?? '');
   const [back, setBack] = useState(card?.back ?? '');
   const [hint, setHint] = useState(card?.hint ?? '');
   const [difficulty, setDifficulty] = useState(card?.difficulty ?? 'Medium');
+  const [assunto, setAssunto] = useState<string>(() => {
+    // Recover assunto from tags (format: "assunto:XXX")
+    const tag = card?.tags?.find(t => t.startsWith('assunto:'));
+    return tag ? tag.replace('assunto:', '') : '';
+  });
   const [options, setOptions] = useState<Partial<FlashcardOption>[]>(
     card?.options?.length
       ? card.options
-      : [{ text: '', is_correct: true, position: 0 }, { text: '', is_correct: false, position: 1 }, { text: '', is_correct: false, position: 2 }, { text: '', is_correct: false, position: 3 }]
+      : [
+          { text: '', is_correct: true, position: 0 },
+          { text: '', is_correct: false, position: 1 },
+          { text: '', is_correct: false, position: 2 },
+          { text: '', is_correct: false, position: 3 },
+        ]
   );
   const [saving, setSaving] = useState(false);
+
+  // Determine discipline from deck.subject_id or deck.name
+  const deckDiscipline = (() => {
+    if (deck.subject_id) {
+      const subject = subjectList.find(s => s.id === deck.subject_id);
+      if (subject) return subject.name;
+    }
+    // Fallback: check if deck name matches a context subject
+    const contextMatch = context.subjects.find(
+      s => deck.name.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(deck.name.toLowerCase())
+    );
+    return contextMatch ?? deck.name;
+  })();
+
+  // All discipline options for the assunto datalist
+  const allSubjectNames = Array.from(
+    new Set([
+      ...context.subjects,
+      ...subjectList.map(s => s.name),
+    ])
+  ).filter(Boolean);
 
   useEffect(() => {
     if (card) {
@@ -37,7 +73,18 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
       setBack(card.back);
       setHint(card.hint ?? '');
       setDifficulty(card.difficulty);
-      setOptions(card.options?.length ? card.options : [{ text: '', is_correct: true, position: 0 }, { text: '', is_correct: false, position: 1 }, { text: '', is_correct: false, position: 2 }, { text: '', is_correct: false, position: 3 }]);
+      const assuntoTag = card.tags?.find(t => t.startsWith('assunto:'));
+      setAssunto(assuntoTag ? assuntoTag.replace('assunto:', '') : '');
+      setOptions(
+        card.options?.length
+          ? card.options
+          : [
+              { text: '', is_correct: true, position: 0 },
+              { text: '', is_correct: false, position: 1 },
+              { text: '', is_correct: false, position: 2 },
+              { text: '', is_correct: false, position: 3 },
+            ]
+      );
     }
   }, [card]);
 
@@ -53,6 +100,13 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
     );
   };
 
+  const buildTags = (): string[] => {
+    const tags: string[] = [];
+    if (deckDiscipline) tags.push(`disciplina:${deckDiscipline}`);
+    if (assunto.trim()) tags.push(`assunto:${assunto.trim()}`);
+    return tags;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!front.trim() || !back.trim()) return;
@@ -65,7 +119,11 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         back: back.trim(),
         hint: hint.trim() || undefined,
         difficulty,
-        options: cardType === 'multiple_choice' ? options.map((o, i) => ({ ...o, position: i } as FlashcardOption)) : [],
+        tags: buildTags(),
+        options:
+          cardType === 'multiple_choice'
+            ? options.map((o, i) => ({ ...o, position: i } as FlashcardOption))
+            : [],
       };
       if (card) {
         await updateFlashcard(card.id, payload);
@@ -85,10 +143,41 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {card ? 'Editar Cartão' : 'Novo Cartão'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X size={20} /></button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <X size={20} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
+          {/* Disciplina (read-only, from deck) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Disciplina <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{deckDiscipline}</span>
+              <span className="text-xs text-gray-400 ml-auto">via deck "{deck.name}"</span>
+            </div>
+          </div>
+
+          {/* Assunto (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Assunto <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              list="assunto-suggestions"
+              value={assunto}
+              onChange={(e) => setAssunto(e.target.value)}
+              placeholder="Ex: SCRUM, Banco de Dados Relacional, Ponteiros..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <datalist id="assunto-suggestions">
+              {allSubjectNames.map(s => <option key={s} value={s} />)}
+            </datalist>
+          </div>
+
           {/* Card Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Cartão</label>
@@ -128,7 +217,11 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
           {/* Back */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {cardType === 'cloze' ? 'Resposta da lacuna' : cardType === 'true_false' ? 'Resposta (Verdadeiro / Falso)' : 'Verso / Resposta'}
+              {cardType === 'cloze'
+                ? 'Resposta da lacuna'
+                : cardType === 'true_false'
+                ? 'Resposta (Verdadeiro / Falso)'
+                : 'Verso / Resposta'}
             </label>
             {cardType === 'true_false' ? (
               <div className="flex gap-3">
@@ -211,10 +304,18 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
               Cancelar
             </button>
-            <button type="submit" disabled={saving} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            >
               {saving ? 'Salvando...' : card ? 'Salvar' : 'Criar'}
             </button>
           </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
+import { useStudyContext } from '../../store/studyContextStore';
+import { useSubjectStore } from '../../store/subjectStore';
 import type { Deck } from '../../types';
 
 const COLORS = [
@@ -15,11 +17,19 @@ interface DeckFormProps {
 
 export function DeckForm({ deck, onClose }: DeckFormProps) {
   const { decks, createDeck, updateDeck } = useAnkiStore();
+  const { context } = useStudyContext();
+  const { subjects: subjectList, fetchSubjects } = useSubjectStore();
+
   const [name, setName] = useState(deck?.name ?? '');
   const [description, setDescription] = useState(deck?.description ?? '');
   const [color, setColor] = useState(deck?.color ?? COLORS[0]);
   const [parentDeckId, setParentDeckId] = useState<number | ''>(deck?.parent_deck_id ?? '');
+  const [subjectId, setSubjectId] = useState<number | ''>(deck?.subject_id ?? '');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    void fetchSubjects();
+  }, [fetchSubjects]);
 
   useEffect(() => {
     if (deck) {
@@ -27,19 +37,24 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
       setDescription(deck.description ?? '');
       setColor(deck.color);
       setParentDeckId(deck.parent_deck_id ?? '');
+      setSubjectId(deck.subject_id ?? '');
     }
   }, [deck]);
+
+  // Only use backend subjects (have real IDs) for the dropdown
+  const allSubjects = subjectList;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const payload = {
+      const payload: Partial<Deck> = {
         name: name.trim(),
         description: description.trim() || undefined,
         color,
         parent_deck_id: parentDeckId || undefined,
+        subject_id: subjectId || undefined,
       };
       if (deck) {
         await updateDeck(deck.id, payload);
@@ -71,10 +86,32 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Anatomia, Matemática..."
+              placeholder="Ex: Engenharia de Software, Banco de Dados..."
               required
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          {/* Disciplina */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Disciplina <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <select
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value ? Number(e.target.value) : '')}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sem disciplina</option>
+              {allSubjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            {context.subjects.length > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                Ou associe ao nome do deck usando o nome exato da disciplina do edital.
+              </p>
+            )}
           </div>
 
           <div>
