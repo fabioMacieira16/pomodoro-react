@@ -305,6 +305,57 @@
   margin-bottom: 16px;
 }
 
+/* ── No content state ───────────────────────────────────────────────────── */
+.pq-modal--no-content {
+  text-align: center;
+  padding: 40px 32px;
+}
+
+.pq-no-content-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.pq-no-content-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--pomo-text, #1a1a2e);
+  margin: 0 0 12px;
+}
+
+.pq-no-content-msg {
+  font-size: 0.92rem;
+  color: var(--pomo-text, #333);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.pq-no-content-hint {
+  font-size: 0.82rem;
+  color: var(--pomo-text-muted, #888);
+  background: rgba(102,126,234,0.06);
+  border: 1px solid rgba(102,126,234,0.15);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* ── Loading subject label ──────────────────────────────────────────────── */
+.pq-loading-subject {
+  font-size: 0.85rem;
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* ── Result subject tag ─────────────────────────────────────────────────── */
+.pq-result-subject {
+  font-size: 0.82rem;
+  color: #667eea;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
 /* ── Result ─────────────────────────────────────────────────────────────── */
 .pq-modal--result {
   text-align: center;

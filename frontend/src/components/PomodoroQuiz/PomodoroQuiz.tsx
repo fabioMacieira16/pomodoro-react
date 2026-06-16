@@ -2,8 +2,8 @@
  * PomodoroQuiz - Quiz durante sessão Pomodoro
  *
  * Aparece quando o modo é "with_questions".
- * Busca 5 questões da IA sobre a matéria atual,
- * registra performance no StudyContext e cria flashcards automáticos em erros.
+ * Busca questões da IA sobre a matéria atual baseadas nos materiais importados.
+ * Se não houver conteúdo indexado para a disciplina, exibe mensagem clara.
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../api/client';
@@ -52,7 +52,20 @@ interface PomodoroQuizProps {
   onClose: () => void;
 }
 
-type QuizState = 'loading' | 'error' | 'question' | 'answered' | 'finished';
+type QuizState = 'loading' | 'error' | 'no_content' | 'question' | 'answered' | 'finished';
+
+const NO_CONTENT_MESSAGES = [
+  'no content',
+  'sem conteúdo',
+  'no material',
+  'not found',
+  'nenhum material',
+  'insufficient',
+  'insuficiente',
+];
+
+const isNoContentError = (detail: string): boolean =>
+  NO_CONTENT_MESSAGES.some((m) => detail.toLowerCase().includes(m));
 
 const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   subjectId,
@@ -60,7 +73,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   pomodoroNumber = 1,
   onClose,
 }) => {
-  const { addPerformance, addReview, context } = useStudyContext();
+  const { addPerformance, addReview } = useStudyContext();
 
   const [session, setSession] = useState<QuizSession | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -72,41 +85,45 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
 
-  // Buscar questões da IA
   const loadQuiz = useCallback(async () => {
     setState('loading');
     setErrorMsg(null);
 
-    // Precisamos de um subject_id válido
-    const sid = subjectId ?? context.performances[0]?.subject
-      ? null  // tenta sem subject_id (backend usa contexto global)
-      : null;
-
-    if (!sid && !subjectName) {
-      setErrorMsg('Nenhuma matéria selecionada. Escolha uma matéria na tela Estudos.');
+    // Requer matéria selecionada para gerar questões contextualizadas
+    if (!subjectId && !subjectName) {
       setState('error');
+      setErrorMsg('Nenhuma matéria selecionada. Escolha uma matéria antes de iniciar o Pomodoro com Questões.');
       return;
     }
 
     try {
-      // Se não tem subject_id, usa generate com nome da matéria via AI context
       const payload: Record<string, unknown> = {
         num_questions: 5,
         pomodoro_number: pomodoroNumber,
       };
-      if (sid) payload.subject_id = sid;
-      else payload.subject_id = 1; // fallback — backend deve adaptar
+
+      if (subjectId) {
+        payload.subject_id = subjectId;
+      }
+      if (subjectName) {
+        payload.subject_name = subjectName;
+      }
 
       const res = await api.post('/quiz/generate', payload);
       setSession(res.data);
       setCurrentIdx(0);
       setState('question');
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setErrorMsg(detail ?? 'Erro ao gerar questões. Verifique se há matérias cadastradas.');
-      setState('error');
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
+
+      if (isNoContentError(detail)) {
+        setState('no_content');
+      } else {
+        setState('error');
+        setErrorMsg(detail || 'Erro ao gerar questões. Verifique se há conteúdos cadastrados para esta disciplina.');
+      }
     }
-  }, [subjectId, subjectName, context.performances, pomodoroNumber]);
+  }, [subjectId, subjectName, pomodoroNumber]);
 
   useEffect(() => {
     loadQuiz();
@@ -139,11 +156,9 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
       }
       setTotalAnswered(t => t + 1);
 
-      // Registrar performance no contexto global
-      const subject = subjectName ?? context.current_subject ?? 'Geral';
+      const subject = subjectName ?? 'Geral';
       await addPerformance(subject, answerResult.is_correct, 0);
 
-      // Se errou, adicionar revisão automática
       if (!answerResult.is_correct && subject) {
         await addReview(subject, currentQuestion.question_text.slice(0, 80), 1);
       }
@@ -174,6 +189,30 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         <div className="pq-modal pq-modal--loading">
           <div className="pq-spinner" />
           <p>Gerando questões com IA...</p>
+          {subjectName && <p className="pq-loading-subject">📚 {subjectName}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (state === 'no_content') {
+    return (
+      <div className="pq-overlay">
+        <div className="pq-modal pq-modal--no-content">
+          <div className="pq-no-content-icon">📂</div>
+          <h3 className="pq-no-content-title">Conteúdo não encontrado</h3>
+          <p className="pq-no-content-msg">
+            Não encontrei material indexado para gerar questões de{' '}
+            <strong>{subjectName ?? 'esta disciplina'}</strong>.
+          </p>
+          <p className="pq-no-content-hint">
+            Importe PDFs de conteúdo na tela <strong>Estudos</strong> e volte para usar o Pomodoro com Questões.
+          </p>
+          <div className="pq-actions">
+            <button className="pq-btn pq-btn--ghost" onClick={onClose}>
+              Continuar sem questões
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -200,6 +239,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         <div className="pq-modal pq-modal--result">
           <div className="pq-result-grade">{grade}</div>
           <h2 className="pq-result-title">Sessão concluída!</h2>
+          {subjectName && <div className="pq-result-subject">{subjectName}</div>}
           <div className="pq-result-score">
             <span className="pq-result-number">{score}</span>
             <span className="pq-result-total">/{totalAnswered}</span>
