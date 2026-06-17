@@ -126,6 +126,12 @@
   background: var(--pomo-hover, rgba(0,0,0,0.05));
 }
 
+.task-list__dropdown-sep {
+  height: 1px;
+  background: var(--pomo-border, rgba(0,0,0,0.1));
+  margin: 4px 0;
+}
+
 .task-list__items {
   max-height: 360px;
   overflow-y: auto;

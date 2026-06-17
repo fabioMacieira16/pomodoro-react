@@ -50,6 +50,25 @@ function clearDayComplete() {
   localStorage.removeItem(DAY_COMPLETED_KEY);
 }
 
+// ── Templates ────────────────────────────────────────────────────────────────
+const TEMPLATES_KEY = 'pomodoro-task-templates';
+
+interface TaskTemplate {
+  id: string;
+  name: string;
+  tasks: string[];
+}
+
+function loadTemplates(): TaskTemplate[] {
+  try {
+    return JSON.parse(localStorage.getItem(TEMPLATES_KEY) || '[]');
+  } catch { return []; }
+}
+
+function persistTemplates(templates: TaskTemplate[]) {
+  localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+}
+
 const TaskList: React.FC = () => {
   const [input, setInput] = useState('');
   const [tasks, setTasks] = useState<TaskType[]>(
@@ -58,6 +77,12 @@ const TaskList: React.FC = () => {
   const [listMenuOpen, setListMenuOpen] = useState(false);
   const [dayCompleted, setDayCompleted] = useState(isDayComplete);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
+  const [showLoadTemplate, setShowLoadTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateItems, setTemplateItems] = useState<string[]>(['']);
+  const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(loadTemplates);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const listMenuRef = useRef<HTMLDivElement>(null);
   const { selectedTask, select } = useSelectedTask();
   const selectedTaskId = selectedTask?.id ?? null;
@@ -175,6 +200,82 @@ const TaskList: React.FC = () => {
     setInput('');
   }
 
+  // ── Template handlers ────────────────────────────────────────────────────
+  function openCreateTemplate() {
+    setEditingTemplateId(null);
+    setTemplateName('');
+    setTemplateItems(tasks.length > 0 ? tasks.map(t => t.title) : ['']);
+    setListMenuOpen(false);
+    setShowCreateTemplate(true);
+  }
+
+  function openEditTemplate(tpl: TaskTemplate) {
+    setEditingTemplateId(tpl.id);
+    setTemplateName(tpl.name);
+    setTemplateItems([...tpl.tasks]);
+    setShowLoadTemplate(false);
+    setShowCreateTemplate(true);
+  }
+
+  function closeTemplateModal() {
+    setShowCreateTemplate(false);
+    setEditingTemplateId(null);
+  }
+
+  function handleSaveTemplate() {
+    const name = templateName.trim();
+    const taskTitles = templateItems.filter(t => t.trim());
+    if (!name || taskTitles.length === 0) return;
+    let updated: TaskTemplate[];
+    if (editingTemplateId) {
+      updated = savedTemplates.map(t =>
+        t.id === editingTemplateId ? { ...t, name, tasks: taskTitles } : t
+      );
+    } else {
+      const newTpl: TaskTemplate = { id: Date.now().toString(), name, tasks: taskTitles };
+      updated = [...savedTemplates, newTpl];
+    }
+    setSavedTemplates(updated);
+    persistTemplates(updated);
+    closeTemplateModal();
+  }
+
+  function handleDeleteTemplate(id: string) {
+    const updated = savedTemplates.filter(t => t.id !== id);
+    setSavedTemplates(updated);
+    persistTemplates(updated);
+  }
+
+  function handleApplyTemplate(tpl: TaskTemplate) {
+    const newTasks: TaskType[] = tpl.tasks.map((title, i) => ({
+      id: Date.now() + i,
+      title,
+      completed: false,
+      priority: 'Medium',
+      estimated_minutes: 25,
+      actual_minutes: 0,
+      position: i,
+      user_id: 1,
+    }));
+    setTasks(newTasks);
+    setDayCompleted(false);
+    clearDayComplete();
+    select(null);
+    setShowLoadTemplate(false);
+  }
+
+  function addTemplateItem() {
+    setTemplateItems(prev => [...prev, '']);
+  }
+
+  function removeTemplateItem(index: number) {
+    setTemplateItems(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function updateTemplateItem(index: number, value: string) {
+    setTemplateItems(prev => prev.map((t, i) => i === index ? value : t));
+  }
+
   return (
     <TaskContext.Provider value={{ move, handleStatus, updateTask, deleteTask, selectedTaskId, selectTask }}>
       <div className="task-list">
@@ -223,6 +324,15 @@ const TaskList: React.FC = () => {
                   }}>
                     Limpar todas
                   </button>
+                  <div className="task-list__dropdown-sep" />
+                  <button onClick={openCreateTemplate}>
+                    📋 Criar template
+                  </button>
+                  {savedTemplates.length > 0 && (
+                    <button onClick={() => { setShowLoadTemplate(true); setListMenuOpen(false); }}>
+                      📂 Carregar template
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -276,6 +386,148 @@ const TaskList: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* ── Modal: Criar / Editar template ───────────────────────────── */}
+      {showCreateTemplate && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <h2 className="text-white font-semibold text-sm">
+                {editingTemplateId ? 'Editar Template' : 'Criar Template'}
+              </h2>
+              <button onClick={closeTemplateModal} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-gray-300 text-xs font-medium mb-1">Nome do template</label>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={e => setTemplateName(e.target.value)}
+                  placeholder="Ex: Segunda-feira, Revisão semanal..."
+                  autoFocus
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 text-xs font-medium mb-2">Tarefas do template</label>
+                <div className="space-y-2">
+                  {templateItems.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={item}
+                        onChange={e => updateTemplateItem(i, e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && addTemplateItem()}
+                        placeholder={`Tarefa ${i + 1}`}
+                        className="flex-1 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      {templateItems.length > 1 && (
+                        <button
+                          onClick={() => removeTemplateItem(i)}
+                          className="text-gray-500 hover:text-red-400 w-5 h-5 flex items-center justify-center shrink-0"
+                          title="Remover tarefa"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={addTemplateItem}
+                  className="mt-2 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  + Adicionar tarefa
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3 px-5 py-4 border-t border-white/10">
+              <button
+                onClick={closeTemplateModal}
+                className="flex-1 py-2 border border-white/20 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                disabled={!templateName.trim() || templateItems.every(t => !t.trim())}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
+              >
+                {editingTemplateId ? 'Salvar alterações' : 'Salvar template'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Carregar template ──────────────────────────────────── */}
+      {showLoadTemplate && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <h2 className="text-white font-semibold text-sm">Carregar Template</h2>
+              <button onClick={() => setShowLoadTemplate(false)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+              {savedTemplates.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-6">Nenhum template salvo</p>
+              ) : (
+                savedTemplates.map(tpl => (
+                  <div key={tpl.id} className="border border-white/10 rounded-xl p-4 bg-white/5">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-white font-semibold text-sm">{tpl.name}</span>
+                      <div className="flex items-center gap-2 ml-2 shrink-0">
+                        <button
+                          onClick={() => openEditTemplate(tpl)}
+                          className="text-gray-400 hover:text-blue-400 text-xs"
+                          title="Editar template"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTemplate(tpl.id)}
+                          className="text-gray-600 hover:text-red-400 text-xs"
+                          title="Excluir template"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <ul className="space-y-0.5 mb-3">
+                      {tpl.tasks.slice(0, 5).map((t, i) => (
+                        <li key={i} className="text-gray-400 text-xs">• {t}</li>
+                      ))}
+                      {tpl.tasks.length > 5 && (
+                        <li className="text-gray-600 text-xs">+{tpl.tasks.length - 5} mais...</li>
+                      )}
+                    </ul>
+                    <button
+                      onClick={() => handleApplyTemplate(tpl)}
+                      className="w-full py-1.5 bg-blue-600/80 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      Carregar
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t border-white/10">
+              <button
+                onClick={() => setShowLoadTemplate(false)}
+                className="w-full py-2 border border-white/20 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </TaskContext.Provider>
   );
 };

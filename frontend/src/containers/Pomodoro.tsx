@@ -334,7 +334,7 @@ const Pomodoro: React.FC = () => {
             </div>
           )}
 
-          {!isTimerActive && (
+          {/* {!isTimerActive && (
             <button
               className="subject-chip"
               onClick={() => setShowStudyModeModal(true)}
@@ -344,7 +344,7 @@ const Pomodoro: React.FC = () => {
                 ? `📚 ${studyCtx.context.current_subject}`
                 : '📚 Selecionar matéria…'}
             </button>
-          )}
+          )} */}
 
           <Controls
             start={handleStart}

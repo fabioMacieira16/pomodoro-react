@@ -28,7 +28,7 @@ const Controls: React.FC<ControlsProps> = ({ start, pause, status }) => (
           onClick={pause}
           className={status === 'Paused' ? 'resume' : 'pause'}
         >
-          {status === 'Paused' ? 'Resume' : 'Pause'}
+          {status === 'Paused' ? 'Retornar' : 'Pause'}
         </button>
       </div>
     )}
