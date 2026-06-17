@@ -198,5 +198,51 @@
   background: rgba(255,255,255,0.35);
 }
 
+/* Celebration overlay */
+.task-list__celebration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 16px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  animation: celebrate-in 0.35s ease;
+}
+
+.task-list__celebration-content {
+  text-align: center;
+}
+
+.task-list__celebration-emoji {
+  display: block;
+  font-size: 2.4rem;
+  margin-bottom: 10px;
+  animation: bounce 0.6s ease infinite alternate;
+}
+
+.task-list__celebration-text {
+  color: #6ee7b7;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.task-list__celebration-sub {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+@keyframes celebrate-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-6px); }
+}
+
 /* Hide legacy classes */
 .Tasks, .Task { display: none !important; }

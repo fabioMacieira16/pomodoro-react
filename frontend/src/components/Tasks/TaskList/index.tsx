@@ -7,6 +7,7 @@ import { useSelectedTask } from '../../../store/selectedTaskStore';
 import './styles.css';
 
 const TASK_STATS_KEY = 'pomodoro-task-stats';
+const DAY_COMPLETED_KEY = 'pomodoro-day-completed';
 const TODAY_KEY = () => new Date().toISOString().split('T')[0];
 
 interface DailyStats {
@@ -33,9 +34,20 @@ function saveDailyStats(total: number, completed: number) {
   } else {
     stats.push(entry);
   }
-  // Keep last 90 days
   const trimmed = stats.slice(-90);
   localStorage.setItem(TASK_STATS_KEY, JSON.stringify(trimmed));
+}
+
+function isDayComplete() {
+  return localStorage.getItem(DAY_COMPLETED_KEY) === TODAY_KEY();
+}
+
+function markDayAsComplete() {
+  localStorage.setItem(DAY_COMPLETED_KEY, TODAY_KEY());
+}
+
+function clearDayComplete() {
+  localStorage.removeItem(DAY_COMPLETED_KEY);
 }
 
 const TaskList: React.FC = () => {
@@ -44,7 +56,8 @@ const TaskList: React.FC = () => {
     JSON.parse(window.localStorage.getItem('pomodoro-react-tasks') || '[]')
   );
   const [listMenuOpen, setListMenuOpen] = useState(false);
-  const [dayMarked, setDayMarked] = useState(false);
+  const [dayCompleted, setDayCompleted] = useState(isDayComplete);
+  const [showCelebration, setShowCelebration] = useState(false);
   const listMenuRef = useRef<HTMLDivElement>(null);
   const { selectedTask, select } = useSelectedTask();
   const selectedTaskId = selectedTask?.id ?? null;
@@ -72,12 +85,26 @@ const TaskList: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [listMenuOpen]);
 
-  // Auto-mark day when all tasks are done
+  // Quando todas as tasks são concluídas: celebra, marca o dia e limpa a lista
   useEffect(() => {
-    if (allDone && !dayMarked) {
-      setDayMarked(true);
+    if (!allDone) {
+      if (showCelebration) setShowCelebration(false);
+      return;
     }
-  }, [allDone, dayMarked]);
+    if (showCelebration) return;
+
+    markDayAsComplete();
+    setDayCompleted(true);
+    setShowCelebration(true);
+
+    const timer = setTimeout(() => {
+      setShowCelebration(false);
+      setTasks([]);
+      select(null);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [allDone, showCelebration]);
 
   function move(from: number, to: number) {
     setTasks(produce(tasks, (draft) => {
@@ -130,7 +157,6 @@ const TaskList: React.FC = () => {
     setTasks(produce(tasks, (draft) => {
       draft.forEach(t => { t.completed = true; });
     }));
-    setDayMarked(true);
   }, [tasks]);
 
   function addTask() {
@@ -162,7 +188,7 @@ const TaskList: React.FC = () => {
             )}
           </span>
           <div className="task-list__header-actions">
-            {total > 0 && !allDone && (
+            {total > 0 && !allDone && !showCelebration && (
               <button
                 className="task-list__mark-done-btn"
                 onClick={markAllDone}
@@ -171,8 +197,8 @@ const TaskList: React.FC = () => {
                 ✓ Concluir dia
               </button>
             )}
-            {allDone && total > 0 && (
-              <span className="task-list__day-done">🎉 Dia concluído!</span>
+            {dayCompleted && total === 0 && !showCelebration && (
+              <span className="task-list__day-done">✓ Dia concluído</span>
             )}
             <div className="task-list__menu-wrap" ref={listMenuRef}>
               <button
@@ -187,7 +213,14 @@ const TaskList: React.FC = () => {
                   <button onClick={() => { setTasks(tasks.filter(t => !t.completed)); setListMenuOpen(false); }}>
                     Limpar concluidas
                   </button>
-                  <button onClick={() => { setTasks([]); setListMenuOpen(false); setDayMarked(false); }}>
+                  <button onClick={() => {
+                    setTasks([]);
+                    setListMenuOpen(false);
+                    setDayCompleted(false);
+                    setShowCelebration(false);
+                    clearDayComplete();
+                    select(null);
+                  }}>
                     Limpar todas
                   </button>
                 </div>
@@ -197,7 +230,7 @@ const TaskList: React.FC = () => {
         </div>
 
         {/* Progress bar */}
-        {total > 0 && (
+        {total > 0 && !showCelebration && (
           <div className="task-list__progress">
             <div
               className={`task-list__progress-fill ${allDone ? 'task-list__progress-fill--done' : ''}`}
@@ -206,28 +239,42 @@ const TaskList: React.FC = () => {
           </div>
         )}
 
-        <div className="task-list__items">
-          {tasks.length === 0 ? (
-            <div className="task-list__empty">Nenhuma tarefa</div>
-          ) : (
-            tasks.map((task, index) => (
-              <Task key={task.id} index={index} task={task} />
-            ))
-          )}
-        </div>
+        {showCelebration ? (
+          <div className="task-list__celebration">
+            <div className="task-list__celebration-content">
+              <span className="task-list__celebration-emoji">🎉</span>
+              <p className="task-list__celebration-text">Dia concluído!</p>
+              <p className="task-list__celebration-sub">Todas as tarefas foram concluídas</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="task-list__items">
+              {tasks.length === 0 ? (
+                <div className="task-list__empty">
+                  {dayCompleted ? 'Dia concluído — adicione novas tarefas' : 'Nenhuma tarefa'}
+                </div>
+              ) : (
+                tasks.map((task, index) => (
+                  <Task key={task.id} index={index} task={task} />
+                ))
+              )}
+            </div>
 
-        <div className="task-list__add">
-          <input
-            className="task-list__add-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="+ Adicionar tarefa"
-            onKeyDown={(e) => e.key === 'Enter' && addTask()}
-          />
-          {input.trim() && (
-            <button className="task-list__add-btn" onClick={addTask}>Add</button>
-          )}
-        </div>
+            <div className="task-list__add">
+              <input
+                className="task-list__add-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="+ Adicionar tarefa"
+                onKeyDown={(e) => e.key === 'Enter' && addTask()}
+              />
+              {input.trim() && (
+                <button className="task-list__add-btn" onClick={addTask}>Add</button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </TaskContext.Provider>
   );
