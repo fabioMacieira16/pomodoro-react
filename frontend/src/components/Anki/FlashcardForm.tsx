@@ -109,14 +109,18 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!front.trim() || !back.trim()) return;
+    const effectiveBack =
+      cardType === 'multiple_choice'
+        ? (options.find((o) => o.is_correct)?.text?.trim() ?? '')
+        : back.trim();
+    if (!front.trim() || !effectiveBack) return;
     setSaving(true);
     try {
       const payload: Partial<Flashcard> = {
         deck_id: deck.id,
         card_type: cardType,
         front: front.trim(),
-        back: back.trim(),
+        back: effectiveBack,
         hint: hint.trim() || undefined,
         difficulty,
         tags: buildTags(),
@@ -214,42 +218,44 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
             />
           </div>
 
-          {/* Back */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {cardType === 'cloze'
-                ? 'Resposta da lacuna'
-                : cardType === 'true_false'
-                ? 'Resposta (Verdadeiro / Falso)'
-                : 'Verso / Resposta'}
-            </label>
-            {cardType === 'true_false' ? (
-              <div className="flex gap-3">
-                {['Verdadeiro', 'Falso'].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setBack(v)}
-                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      back === v
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                        : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <textarea
-                value={back}
-                onChange={(e) => setBack(e.target.value)}
-                rows={2}
-                required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            )}
-          </div>
+          {/* Back — hidden for multiple_choice (resposta é derivada das opções) */}
+          {cardType !== 'multiple_choice' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {cardType === 'cloze'
+                  ? 'Resposta da lacuna'
+                  : cardType === 'true_false'
+                  ? 'Resposta (Verdadeiro / Falso)'
+                  : 'Verso / Resposta'}
+              </label>
+              {cardType === 'true_false' ? (
+                <div className="flex gap-3">
+                  {['Verdadeiro', 'Falso'].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setBack(v)}
+                      className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        back === v
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <textarea
+                  value={back}
+                  onChange={(e) => setBack(e.target.value)}
+                  rows={2}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              )}
+            </div>
+          )}
 
           {/* Multiple Choice Options */}
           {cardType === 'multiple_choice' && (

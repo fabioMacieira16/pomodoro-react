@@ -24,6 +24,7 @@ export function ReviewSession() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedOptionPos, setSelectedOptionPos] = useState<number | null>(null);
 
   const card: Flashcard | undefined = reviewQueue[currentCardIndex];
   const isFinished = currentCardIndex >= reviewQueue.length;
@@ -31,6 +32,7 @@ export function ReviewSession() {
   useEffect(() => {
     setIsFlipped(false);
     setShowHint(false);
+    setSelectedOptionPos(null);
   }, [currentCardIndex]);
 
   if (!isReviewing) return null;
@@ -105,11 +107,61 @@ export function ReviewSession() {
         <div className="w-full max-w-2xl">
           {/* Card */}
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 min-h-56 flex flex-col cursor-pointer select-none"
-            onClick={() => !isFlipped && setIsFlipped(true)}
+            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 min-h-56 flex flex-col ${card.card_type !== 'multiple_choice' ? 'cursor-pointer select-none' : ''}`}
+            onClick={() => card.card_type !== 'multiple_choice' && !isFlipped && setIsFlipped(true)}
           >
             <div className="flex-1 p-8 flex items-center justify-center">
-              {!isFlipped ? (
+              {card.card_type === 'multiple_choice' ? (
+                /* Múltipla escolha: mostra pergunta + opções clicáveis */
+                <div className="w-full">
+                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-3 text-center">Pergunta</p>
+                  <p className="text-xl font-medium text-gray-900 dark:text-white whitespace-pre-wrap mb-6 text-center">{card.front}</p>
+                  {card.hint && (
+                    <div className="text-center mb-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowHint(!showHint); }}
+                        className="flex items-center gap-1 text-sm text-yellow-600 hover:text-yellow-700 mx-auto"
+                      >
+                        <Lightbulb size={14} />
+                        {showHint ? 'Ocultar dica' : 'Ver dica'}
+                        {showHint ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      </button>
+                      {showHint && (
+                        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">{card.hint}</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="space-y-2 max-w-md mx-auto">
+                    {(card.options ?? []).map((opt, idx) => {
+                      const isSelected = selectedOptionPos === opt.position;
+                      const answered = isFlipped;
+                      let cls = 'border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10';
+                      if (answered) {
+                        if (opt.is_correct) cls = 'border border-green-400 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 font-semibold';
+                        else if (isSelected) cls = 'border border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 line-through opacity-70';
+                        else cls = 'border border-gray-200 dark:border-gray-600 text-gray-400 opacity-40';
+                      }
+                      return (
+                        <button
+                          key={opt.position}
+                          type="button"
+                          disabled={answered}
+                          onClick={(e) => { e.stopPropagation(); setSelectedOptionPos(opt.position); setIsFlipped(true); }}
+                          className={`w-full flex items-center gap-3 p-3 rounded-lg text-sm text-left transition-colors ${cls} ${!answered ? 'cursor-pointer' : 'cursor-default'}`}
+                        >
+                          <span className="shrink-0 w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-bold">
+                            {String.fromCharCode(65 + idx)}
+                          </span>
+                          <span className="flex-1">{opt.text}</span>
+                          {answered && opt.is_correct && <CheckCircle2 size={14} className="text-green-600 shrink-0" />}
+                          {answered && isSelected && !opt.is_correct && <span className="text-red-500 font-bold shrink-0">✗</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : !isFlipped ? (
+                /* Frente — cartões normais */
                 <div className="text-center">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-4">Pergunta</p>
                   <p className="text-xl font-medium text-gray-900 dark:text-white whitespace-pre-wrap">{card.front}</p>
@@ -129,33 +181,16 @@ export function ReviewSession() {
                   <p className="mt-6 text-sm text-gray-400">Clique para revelar</p>
                 </div>
               ) : (
+                /* Verso — cartões normais */
                 <div className="text-center w-full">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-4">Resposta</p>
                   <p className="text-xl font-medium text-gray-900 dark:text-white whitespace-pre-wrap">{card.back}</p>
-
-                  {/* Multiple choice options */}
-                  {card.card_type === 'multiple_choice' && card.options?.length > 0 && (
-                    <div className="mt-4 space-y-2 text-left max-w-md mx-auto">
-                      {card.options.map((opt) => (
-                        <div
-                          key={opt.id}
-                          className={`flex items-center gap-2 p-2.5 rounded-lg text-sm ${
-                            opt.is_correct
-                              ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 font-medium'
-                              : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 line-through opacity-60'
-                          }`}
-                        >
-                          {opt.is_correct && <CheckCircle2 size={14} className="text-green-600 shrink-0" />}
-                          {opt.text}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
 
-            {!isFlipped && (
+            {/* "Mostrar resposta" apenas para cartões não-múltipla-escolha */}
+            {!isFlipped && card.card_type !== 'multiple_choice' && (
               <div className="p-4 border-t border-gray-100 dark:border-gray-700 text-center">
                 <button
                   onClick={() => setIsFlipped(true)}
