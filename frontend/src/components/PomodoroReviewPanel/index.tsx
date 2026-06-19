@@ -37,6 +37,8 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedOptionPos, setSelectedOptionPos] = useState<number | null>(null);
+  const [selectedTrueFalse, setSelectedTrueFalse] = useState<string | null>(null);
 
   useEffect(() => {
     if (decks.length === 0) void fetchDecks();
@@ -56,6 +58,8 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
 
   useEffect(() => {
     setIsFlipped(false);
+    setSelectedOptionPos(null);
+    setSelectedTrueFalse(null);
   }, [currentCardIndex]);
 
   const handlePickDeck = (deckId: number) => {
@@ -119,8 +123,72 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
         <button className="rp-switch-link" onClick={handleSwitchDeck}>Trocar baralho</button>
       </div>
 
-      <div className="rp-card" onClick={() => !isFlipped && setIsFlipped(true)}>
-        {!isFlipped ? (
+      <div
+        className="rp-card"
+        onClick={() =>
+          card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' && !isFlipped && setIsFlipped(true)
+        }
+      >
+        {card.card_type === 'multiple_choice' ? (
+          <>
+            <p className="rp-card-label">Pergunta</p>
+            <p className="rp-card-text">{card.front}</p>
+            <div className="rp-options">
+              {(card.options ?? []).map((opt, idx) => {
+                const isSelected = selectedOptionPos === opt.position;
+                let cls = 'rp-option';
+                if (isFlipped) {
+                  if (opt.is_correct) cls += ' rp-option--correct';
+                  else if (isSelected) cls += ' rp-option--wrong';
+                  else cls += ' rp-option--dim';
+                }
+                return (
+                  <button
+                    key={opt.position}
+                    type="button"
+                    disabled={isFlipped}
+                    className={cls}
+                    onClick={(e) => { e.stopPropagation(); setSelectedOptionPos(opt.position); setIsFlipped(true); }}
+                  >
+                    <span className="rp-option-letter">{String.fromCharCode(65 + idx)}</span>
+                    <span className="rp-option-text">{opt.text}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : card.card_type === 'true_false' ? (
+          <>
+            <p className="rp-card-label">Afirmação</p>
+            <p className="rp-card-text">{card.front}</p>
+            <div className="rp-options rp-options--row">
+              {['Verdadeiro', 'Falso'].map((v) => {
+                const isSelected = selectedTrueFalse === v;
+                const isCorrectAnswer = v === card.back;
+                let cls = 'rp-option';
+                if (isFlipped) {
+                  if (isCorrectAnswer) cls += ' rp-option--correct';
+                  else if (isSelected) cls += ' rp-option--wrong';
+                  else cls += ' rp-option--dim';
+                }
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    disabled={isFlipped}
+                    className={cls}
+                    onClick={(e) => { e.stopPropagation(); setSelectedTrueFalse(v); setIsFlipped(true); }}
+                  >
+                    <span className="rp-option-text">{v}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {isFlipped && card.explanation && (
+              <p className="rp-card-explanation">{card.explanation}</p>
+            )}
+          </>
+        ) : !isFlipped ? (
           <>
             <p className="rp-card-label">Pergunta</p>
             <p className="rp-card-text">{card.front}</p>
@@ -130,9 +198,6 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
           <>
             <p className="rp-card-label">Resposta</p>
             <p className="rp-card-text">{card.back}</p>
-            {card.card_type === 'true_false' && card.explanation && (
-              <p className="rp-card-explanation">{card.explanation}</p>
-            )}
           </>
         )}
       </div>

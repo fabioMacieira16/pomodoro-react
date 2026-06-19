@@ -130,6 +130,83 @@
   color: var(--pomo-text-muted);
 }
 
+.rp-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.rp-options--row {
+  flex-direction: row;
+}
+
+.rp-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--pomo-border);
+  border-radius: 8px;
+  background: var(--pomo-surface);
+  color: var(--pomo-text);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.rp-options--row .rp-option {
+  justify-content: center;
+  text-align: center;
+}
+
+.rp-option:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.rp-option:disabled {
+  cursor: default;
+}
+
+.rp-option-letter {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.rp-option-text {
+  flex: 1;
+}
+
+.rp-option--correct {
+  border-color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.rp-option--wrong {
+  border-color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  text-decoration: line-through;
+}
+
+.rp-option--dim {
+  opacity: 0.4;
+}
+
 .rp-quality-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
