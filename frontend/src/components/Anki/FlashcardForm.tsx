@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { X, CheckCircle2 } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { useStudyContext } from '../../store/studyContextStore';
 import { useSubjectStore } from '../../store/subjectStore';
@@ -18,8 +18,15 @@ interface FlashcardFormProps {
   onClose: () => void;
 }
 
+const emptyOptions = (): Partial<FlashcardOption>[] => [
+  { text: '', is_correct: true, position: 0 },
+  { text: '', is_correct: false, position: 1 },
+  { text: '', is_correct: false, position: 2 },
+  { text: '', is_correct: false, position: 3 },
+];
+
 export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
-  const { createFlashcard, updateFlashcard } = useAnkiStore();
+  const { createFlashcard, updateFlashcard, flashcards } = useAnkiStore();
   const { context } = useStudyContext();
   const { subjects: subjectList } = useSubjectStore();
 
@@ -27,6 +34,7 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
   const [front, setFront] = useState(card?.front ?? '');
   const [back, setBack] = useState(card?.back ?? '');
   const [hint, setHint] = useState(card?.hint ?? '');
+  const [explanation, setExplanation] = useState(card?.explanation ?? '');
   const [difficulty, setDifficulty] = useState(card?.difficulty ?? 'Medium');
   const [assunto, setAssunto] = useState<string>(() => {
     // Recover assunto from tags (format: "assunto:XXX")
@@ -34,16 +42,10 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
     return tag ? tag.replace('assunto:', '') : '';
   });
   const [options, setOptions] = useState<Partial<FlashcardOption>[]>(
-    card?.options?.length
-      ? card.options
-      : [
-          { text: '', is_correct: true, position: 0 },
-          { text: '', is_correct: false, position: 1 },
-          { text: '', is_correct: false, position: 2 },
-          { text: '', is_correct: false, position: 3 },
-        ]
+    card?.options?.length ? card.options : emptyOptions()
   );
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
 
   // Determine discipline from deck.subject_id or deck.name
   const deckDiscipline = (() => {
@@ -58,9 +60,12 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
     return contextMatch ?? deck.name;
   })();
 
-  // All discipline options for the assunto datalist
+  // Assunto suggestions: subjects already used on cards in this deck, plus disciplina names
   const allSubjectNames = Array.from(
     new Set([
+      ...flashcards
+        .map(c => c.tags?.find(t => t.startsWith('assunto:'))?.replace('assunto:', ''))
+        .filter((v): v is string => !!v),
       ...context.subjects,
       ...subjectList.map(s => s.name),
     ])
@@ -72,19 +77,11 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
       setFront(card.front);
       setBack(card.back);
       setHint(card.hint ?? '');
+      setExplanation(card.explanation ?? '');
       setDifficulty(card.difficulty);
       const assuntoTag = card.tags?.find(t => t.startsWith('assunto:'));
       setAssunto(assuntoTag ? assuntoTag.replace('assunto:', '') : '');
-      setOptions(
-        card.options?.length
-          ? card.options
-          : [
-              { text: '', is_correct: true, position: 0 },
-              { text: '', is_correct: false, position: 1 },
-              { text: '', is_correct: false, position: 2 },
-              { text: '', is_correct: false, position: 3 },
-            ]
-      );
+      setOptions(card.options?.length ? card.options : emptyOptions());
     }
   }, [card]);
 
@@ -122,6 +119,7 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         front: front.trim(),
         back: effectiveBack,
         hint: hint.trim() || undefined,
+        explanation: cardType === 'true_false' ? (explanation.trim() || undefined) : undefined,
         difficulty,
         tags: buildTags(),
         options:
@@ -131,10 +129,18 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
       };
       if (card) {
         await updateFlashcard(card.id, payload);
+        onClose();
       } else {
         await createFlashcard(payload);
+        // Stay on screen so the user can immediately register the next card
+        setFront('');
+        setBack('');
+        setHint('');
+        setExplanation('');
+        setOptions(emptyOptions());
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 2000);
       }
-      onClose();
     } finally {
       setSaving(false);
     }
@@ -257,6 +263,22 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
             </div>
           )}
 
+          {/* Explicação (apenas para Verdadeiro/Falso) */}
+          {cardType === 'true_false' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Por que é {back === 'Falso' ? 'falso' : 'verdadeiro'}? <span className="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <textarea
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                rows={2}
+                placeholder="Explique o motivo da afirmação ser verdadeira ou falsa..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+            </div>
+          )}
+
           {/* Multiple Choice Options */}
           {cardType === 'multiple_choice' && (
             <div>
@@ -309,20 +331,27 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
             </div>
           </div>
 
+          {justSaved && (
+            <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2">
+              <CheckCircle2 size={16} />
+              Cartão criado! Continue cadastrando ou feche quando terminar.
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
               className="flex-1 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Cancelar
+              {card ? 'Cancelar' : 'Concluir'}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? 'Salvando...' : card ? 'Salvar' : 'Criar'}
+              {saving ? 'Salvando...' : card ? 'Salvar' : 'Criar e continuar'}
             </button>
           </div>
         </form>

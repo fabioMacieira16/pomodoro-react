@@ -12,6 +12,7 @@ import SettingsPanel from '../components/SettingsPanel';
 import PomodoroStats from '../components/PomodoroStats';
 import PomodoroDots from '../components/PomodoroDots';
 import PomodoroQuiz from '../components/PomodoroQuiz/PomodoroQuiz';
+import { PomodoroReviewPanel } from '../components/PomodoroReviewPanel';
 import { usePomodoroEngine, PHASE_LABELS } from '../hooks/usePomodoroEngine';
 import { usePomodoroSettings } from '../store/pomodoroSettingsStore';
 import { usePomodoroStore } from '../store/pomodoroStore';
@@ -229,6 +230,7 @@ const Pomodoro: React.FC = () => {
 
   const isTimerActive = engine.status === 'running' || engine.status === 'paused';
   const isRunning = engine.status === 'running';
+  const isReviewMode = studyCtx.context.current_pomodoro_mode === 'review' && isTimerActive;
 
   const allSubjectOptions = Array.from(new Set([
     ...studyCtx.context.subjects,
@@ -390,8 +392,15 @@ const Pomodoro: React.FC = () => {
           {!isTimerActive && !settings.focusMode && <Shortcuts />}
         </div>
 
-        {/* Task panel: visible when paused or idle/finished */}
-        {!isRunning && taskOpen && (
+        {/* Review panel: visible during the whole timer when "Modo Revisão" is active */}
+        {isReviewMode && (
+          <div className="TaskPainel">
+            <PomodoroReviewPanel subjectName={studyCtx.context.current_subject ?? null} />
+          </div>
+        )}
+
+        {/* Task panel: visible when paused or idle/finished (not in review mode) */}
+        {!isReviewMode && !isRunning && taskOpen && (
           <div className="TaskPainel">
             <TaskList />
           </div>

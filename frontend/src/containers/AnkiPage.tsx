@@ -49,8 +49,8 @@ const AnkiPage: React.FC = () => {
     setView('flashcards');
   };
 
-  const handleStartReview = async (deck: Deck) => {
-    await startReview(deck.id);
+  const handleStartReview = async (deck: Deck, assunto?: string | null) => {
+    await startReview(deck.id, assunto);
   };
 
   const handleBack = () => {

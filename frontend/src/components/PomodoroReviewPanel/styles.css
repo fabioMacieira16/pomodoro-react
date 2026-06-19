@@ -1,0 +1,173 @@
+.rp-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 420px;
+  gap: 12px;
+  padding: 24px;
+  margin: 48px auto 0;
+  background: var(--pomo-surface);
+  border: 1px solid var(--pomo-border);
+  border-radius: 16px;
+}
+
+.rp-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--pomo-text);
+}
+
+.rp-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--pomo-text-muted);
+}
+
+.rp-deck-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rp-deck-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--pomo-border);
+  border-radius: 10px;
+  background: var(--pomo-surface-alt);
+  cursor: pointer;
+  color: var(--pomo-text);
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.rp-deck-item:hover {
+  background: var(--pomo-hover);
+}
+
+.rp-deck-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rp-deck-name {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+.rp-deck-count {
+  font-size: 0.75rem;
+  color: var(--pomo-text-muted);
+}
+
+.rp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--pomo-text-muted);
+}
+
+.rp-switch-link {
+  background: none;
+  border: none;
+  color: var(--pomo-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+}
+
+.rp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 20px;
+  border: 1px solid var(--pomo-border);
+  border-radius: 12px;
+  background: var(--pomo-surface-alt);
+  cursor: pointer;
+  text-align: center;
+}
+
+.rp-card-label {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pomo-text-muted);
+}
+
+.rp-card-text {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--pomo-text);
+  white-space: pre-wrap;
+}
+
+.rp-card-explanation {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--pomo-text-muted);
+  background: var(--pomo-surface);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.rp-card-cta {
+  margin: 14px 0 0;
+  font-size: 0.78rem;
+  color: var(--pomo-text-muted);
+}
+
+.rp-quality-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.rp-q {
+  padding: 8px 4px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.rp-q:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.rp-q--again { background: #dc2626; }
+.rp-q--hard  { background: #f97316; }
+.rp-q--good  { background: #2563eb; }
+.rp-q--easy  { background: #16a34a; }
+
+.rp-switch-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--pomo-border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  color: var(--pomo-text);
+  cursor: pointer;
+}
+
+.rp-switch-btn:hover {
+  background: var(--pomo-hover);
+}
