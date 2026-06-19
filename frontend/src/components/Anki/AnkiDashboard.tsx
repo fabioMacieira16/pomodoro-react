@@ -36,7 +36,7 @@ export function AnkiDashboard() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard Anki</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard de Flashcards</h2>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">

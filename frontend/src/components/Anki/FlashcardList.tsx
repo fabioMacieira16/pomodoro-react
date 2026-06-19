@@ -65,7 +65,7 @@ export function FlashcardList({ deck, onBack, onStartReview }: FlashcardListProp
     }
   };
 
-  // Group cards into "baralhos" (sub-decks) by assunto, Anki-style
+  // Group cards into "baralhos" (sub-decks) by assunto, Flashcards-style
   const groups = new Map<string, Flashcard[]>();
   for (const card of flashcards) {
     const key = getAssunto(card) ?? '__none__';
@@ -131,7 +131,7 @@ export function FlashcardList({ deck, onBack, onStartReview }: FlashcardListProp
           <p className="text-sm mt-1">Crie manualmente ou use a IA para gerar cartões</p>
         </div>
       ) : !currentBaralho ? (
-        /* ── Lista de baralhos por assunto (estilo Anki) ──────────────────── */
+        /* ── Lista de baralhos por assunto ──────────────────── */
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="grid grid-cols-[1fr_70px_70px_60px] items-center px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 border-b border-gray-100 dark:border-gray-700">
             <span>Assunto</span>
@@ -167,7 +167,7 @@ export function FlashcardList({ deck, onBack, onStartReview }: FlashcardListProp
           })}
         </div>
       ) : (
-        /* ── Cartões do baralho selecionado (estilo "Browse" do Anki) ─────── */
+        /* ── Cartões do baralho selecionado ─────── */
         <div>
           <button
             onClick={() => setSelectedAssunto(null)}

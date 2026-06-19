@@ -162,7 +162,7 @@ const Dashboard: React.FC = () => {
               />
               <StatCard label="Flashcards criados" value={ankiStats?.total_cards ?? '—'} />
               <StatCard label="Revisões realizadas" value={ankiStats?.total_reviews ?? '—'} />
-              <StatCard label="Retenção Anki" value={ankiStats ? `${Math.round(ankiStats.retention_rate)}%` : '—'} />
+              <StatCard label="Retenção Flashcards" value={ankiStats ? `${Math.round(ankiStats.retention_rate)}%` : '—'} />
               <StatCard label="Dias de revisão" value={ankiStats?.streak_days ?? '—'} unit="dias" />
             </div>
           </section>
