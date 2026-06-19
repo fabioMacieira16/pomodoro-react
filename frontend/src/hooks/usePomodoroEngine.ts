@@ -166,16 +166,24 @@ export function usePomodoroEngine() {
   }, [phase, timeRemaining, pomodoroCount, status]);
 
   // ── Sound ───────────────────────────────────────────────────────────────────
+  const REPEAT_COUNT = 3;
+  const REPEAT_INTERVAL_MS = 1800;
+
   const playSound = useCallback(() => {
     const { soundEnabled, soundType } = settingsRef.current;
     if (!soundEnabled || soundType === 'none') return;
-    if (soundType === 'bell') {
-      if (bellRef.current) {
-        bellRef.current.currentTime = 0;
-        bellRef.current.play().catch(() => {});
-      }
-    } else {
-      playWebAudio(soundType);
+
+    for (let i = 0; i < REPEAT_COUNT; i++) {
+      setTimeout(() => {
+        if (soundType === 'bell') {
+          if (bellRef.current) {
+            bellRef.current.currentTime = 0;
+            bellRef.current.play().catch(() => {});
+          }
+        } else {
+          playWebAudio(soundType);
+        }
+      }, i * REPEAT_INTERVAL_MS);
     }
   }, []);
 
