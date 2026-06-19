@@ -165,6 +165,7 @@ class Flashcard(Base):
     front = Column(Text)
     back = Column(Text)
     hint = Column(Text, nullable=True)
+    explanation = Column(Text, nullable=True)
     tags = Column(JSON, default=list)
     difficulty = Column(String, default="Medium")
     repetitions = Column(Integer, default=0)

@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *])",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(PowerShell *)",
+      "Bash(xargs grep -l \"FlashcardList\\\\|DeckList\")",
+      "Bash(python -c ' *)"
     ]
   }
 }
