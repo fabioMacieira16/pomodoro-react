@@ -7,13 +7,45 @@ interface DeckCardProps {
   onEdit: (deck: Deck) => void;
   onDelete: (deck: Deck) => void;
   onClick: (deck: Deck) => void;
+  draggable?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLDivElement>) => void;
 }
 
-export function DeckCard({ deck, onStudy, onEdit, onDelete, onClick }: DeckCardProps) {
+export function DeckCard({
+  deck,
+  onStudy,
+  onEdit,
+  onDelete,
+  onClick,
+  draggable,
+  isDragging,
+  isDragOver,
+  onDragStart,
+  onDragEnter,
+  onDragOver,
+  onDragEnd,
+  onDrop,
+}: DeckCardProps) {
   return (
     <div
-      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      className={`bg-white dark:bg-gray-800 rounded-xl border shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
+        isDragOver
+          ? 'border-blue-500 ring-2 ring-blue-400'
+          : 'border-gray-200 dark:border-gray-700'
+      } ${isDragging ? 'opacity-40' : ''}`}
       onClick={() => onClick(deck)}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      onDrop={onDrop}
     >
       {/* Color bar */}
       <div className="h-2 rounded-t-xl" style={{ backgroundColor: deck.color }} />

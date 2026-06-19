@@ -1,9 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { DeckCard } from './DeckCard';
 import { DeckForm } from './DeckForm';
 import type { Deck } from '../../types';
+
+const DECK_ORDER_KEY = 'anki:deckOrder';
+
+function loadDeckOrder(): number[] {
+  try {
+    const raw = localStorage.getItem(DECK_ORDER_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDeckOrder(order: number[]) {
+  localStorage.setItem(DECK_ORDER_KEY, JSON.stringify(order));
+}
+
+function sortByOrder(decks: Deck[], order: number[]): Deck[] {
+  const indexOf = (id: number) => {
+    const idx = order.indexOf(id);
+    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+  };
+  return [...decks].sort((a, b) => indexOf(a.id) - indexOf(b.id));
+}
 
 interface DeckListProps {
   onSelectDeck: (deck: Deck) => void;
@@ -16,6 +39,9 @@ export function DeckList({ onSelectDeck, onStartReview, filteredDecks }: DeckLis
   const { decks, fetchDecks, deleteDeck, isLoadingDecks } = useAnkiStore();
   const [showForm, setShowForm] = useState(false);
   const [editingDeck, setEditingDeck] = useState<Deck | null>(null);
+  const [deckOrder, setDeckOrder] = useState<number[]>(loadDeckOrder);
+  const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchDecks();
@@ -27,7 +53,45 @@ export function DeckList({ onSelectDeck, onStartReview, filteredDecks }: DeckLis
     }
   };
 
-  const displayedDecks = filteredDecks ?? decks;
+  const baseDecks = filteredDecks ?? decks;
+  const displayedDecks = useMemo(() => sortByOrder(baseDecks, deckOrder), [baseDecks, deckOrder]);
+
+  const handleDragStart = (deck: Deck) => () => {
+    setDraggedId(deck.id);
+  };
+
+  const handleDragEnter = (deck: Deck) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (deck.id !== draggedId) setDragOverId(deck.id);
+  };
+
+  const handleDragOver = () => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetDeck: Deck) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (draggedId === null || draggedId === targetDeck.id) return;
+
+    const reordered = [...displayedDecks];
+    const fromIndex = reordered.findIndex((d) => d.id === draggedId);
+    const toIndex = reordered.findIndex((d) => d.id === targetDeck.id);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+
+    const newOrder = reordered.map((d) => d.id);
+    setDeckOrder(newOrder);
+    saveDeckOrder(newOrder);
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+  };
 
   return (
     <div>
@@ -77,6 +141,14 @@ export function DeckList({ onSelectDeck, onStartReview, filteredDecks }: DeckLis
               onEdit={(d) => { setEditingDeck(d); setShowForm(true); }}
               onDelete={handleDelete}
               onClick={onSelectDeck}
+              draggable
+              isDragging={draggedId === deck.id}
+              isDragOver={dragOverId === deck.id}
+              onDragStart={handleDragStart(deck)}
+              onDragEnter={handleDragEnter(deck)}
+              onDragOver={handleDragOver()}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDrop(deck)}
             />
           ))}
         </div>
