@@ -4,7 +4,7 @@ import { useStudyContext } from '../store/studyContextStore';
 import { useSubjectStore } from '../store/subjectStore';
 import { DeckList } from '../components/Anki/DeckList';
 import { FlashcardList } from '../components/Anki/FlashcardList';
-import { AnkiDashboard } from '../components/Anki/AnkiDashboard';
+import { FlashcardsDashboard } from '../components/Anki/FlashcardsDashboard';
 import { ReviewSession } from '../components/Anki/ReviewSession';
 import type { Deck } from '../types';
 
@@ -167,7 +167,7 @@ const AnkiPage: React.FC = () => {
           />
         )}
 
-        {view === 'dashboard' && <AnkiDashboard />}
+        {view === 'dashboard' && <FlashcardsDashboard />}
       </main>
 
       {/* Review overlay */}

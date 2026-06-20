@@ -8,7 +8,7 @@ import { useAnkiStore } from '../../store/ankiStore';
 
 const MATURITY_COLORS = ['#94a3b8', '#f97316', '#3b82f6', '#22c55e'];
 
-export function AnkiDashboard() {
+export function FlashcardsDashboard() {
   const { stats, fetchStats, isLoadingStats } = useAnkiStore();
 
   useEffect(() => {

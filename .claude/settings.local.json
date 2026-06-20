@@ -5,7 +5,11 @@
       "Bash(npx tsc *)",
       "Bash(PowerShell *)",
       "Bash(xargs grep -l \"FlashcardList\\\\|DeckList\")",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python -m alembic current)",
+      "Bash(python -m alembic heads)",
+      "Bash(python -m alembic upgrade head)",
+      "Bash(git mv *)"
     ]
   }
 }

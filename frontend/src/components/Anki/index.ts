@@ -5,5 +5,5 @@ export { DeckForm } from './DeckForm';
 export { FlashcardList } from './FlashcardList';
 export { FlashcardForm } from './FlashcardForm';
 export { ReviewSession } from './ReviewSession';
-export { AnkiDashboard } from './AnkiDashboard';
+export { FlashcardsDashboard } from './FlashcardsDashboard';
 export { AIGenerator } from './AIGenerator';

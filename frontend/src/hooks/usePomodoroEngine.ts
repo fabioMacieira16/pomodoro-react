@@ -125,10 +125,12 @@ export function usePomodoroEngine() {
 
   const [timeRemaining, setTimeRemaining] = useState<number>(() => {
     const saved = loadPersisted();
-    if (!saved) return 25 * 60;
+    if (!saved) return getDuration('pomodoro');
     if (saved.startedAtMs !== null) {
+      // saved.timeRemaining already reflects elapsed time up to the last save,
+      // so resuming must subtract elapsed from the phase's total duration, not from it again.
       const elapsed = Math.floor((Date.now() - saved.startedAtMs) / 1000);
-      return Math.max(0, saved.timeRemaining - elapsed);
+      return Math.max(0, getDuration(saved.phase) - elapsed);
     }
     return saved.timeRemaining;
   });
@@ -137,7 +139,7 @@ export function usePomodoroEngine() {
     const saved = loadPersisted();
     if (!saved || saved.startedAtMs === null) return 'idle';
     const elapsed = Math.floor((Date.now() - saved.startedAtMs) / 1000);
-    return elapsed < saved.timeRemaining ? 'running' : 'finished';
+    return elapsed < getDuration(saved.phase) ? 'running' : 'finished';
   });
 
   const [autoCountdown, setAutoCountdown] = useState(5);
@@ -147,6 +149,16 @@ export function usePomodoroEngine() {
   useEffect(() => { statusRef.current = status; }, [status]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { pomodoroCountRef.current = pomodoroCount; }, [pomodoroCount]);
+
+  // ── Re-sync timeRemaining when the user edits durations while idle ──────────
+  const pomodoroMinutes = usePomodoroSettings((s) => s.pomodoroMinutes);
+  const shortBreakMinutes = usePomodoroSettings((s) => s.shortBreakMinutes);
+  const longBreakMinutes = usePomodoroSettings((s) => s.longBreakMinutes);
+  useEffect(() => {
+    if (statusRef.current === 'idle' || statusRef.current === 'finished') {
+      setTimeRemaining(getDuration(phaseRef.current));
+    }
+  }, [pomodoroMinutes, shortBreakMinutes, longBreakMinutes, getDuration]);
 
   // ── Init audio ──────────────────────────────────────────────────────────────
   useEffect(() => {
