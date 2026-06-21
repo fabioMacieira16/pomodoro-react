@@ -9,7 +9,10 @@
       "Bash(python -m alembic current)",
       "Bash(python -m alembic heads)",
       "Bash(python -m alembic upgrade head)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(xargs grep -ln \"correct_answers\")",
+      "Bash(python -c \"import app.quiz.service; import app.api.routers.anki_review\")",
+      "Bash(.venv/Scripts/python -c \"import app.quiz.service; import app.api.routers.anki_review; print\\('OK'\\)\")"
     ]
   }
 }

@@ -5,6 +5,7 @@ from app.data.database import get_db
 from app.data.repositories import anki_deck_repo, flashcard_repo
 from app.api.dependencies import get_current_user
 from app.domain.models import User
+from app.core.study_context import StudyContextService
 
 router = APIRouter(prefix="/anki/review", tags=["anki-review"])
 
@@ -35,6 +36,13 @@ def submit_review(review_in: dtos.ReviewSubmit, db: Session = Depends(get_db), c
         response_time_ms=review_in.response_time_ms,
         user_id=current_user.id,
     )
+
+    if deck.subject:
+        StudyContextService.add_performance(
+            subject=deck.subject.name,
+            correct=review_in.quality >= 3,
+        )
+
     return dtos.ReviewResult(
         flashcard_id=updated_card.id,
         next_review=updated_card.next_review,

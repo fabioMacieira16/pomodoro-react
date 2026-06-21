@@ -24,8 +24,8 @@ const WeeklyChart: React.FC<WeeklyChartProps> = ({ data }) => (
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Bar dataKey="pomodoros" name="Pomodoros" fill="rgba(99, 102, 241, 0.85)" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="focus_minutes" name="Minutos focados" fill="rgba(99, 102, 241, 0.35)" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="pomodoros" name="Pomodoros" fill="rgba(49, 51, 212, 0.85)" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="focus_minutes" name="Minutos focados" fill="rgba(10, 233, 81, 0.85)" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   </div>

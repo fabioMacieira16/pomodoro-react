@@ -217,6 +217,10 @@ Regras:
         if not is_correct:
             flashcard_id = self._create_error_card(attempt, exercise)
 
+        subject = self.db.query(Subject).filter_by(id=exercise.subject_id).first()
+        if subject:
+            StudyContextService.add_performance(subject=subject.name, correct=is_correct)
+
         # Update quiz session score
         self._update_session_score(req.session_id)
         score = self._get_session_score(req.session_id)
