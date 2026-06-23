@@ -23,6 +23,7 @@ interface FlashcardListProps {
   deck: Deck;
   onBack: () => void;
   onStartReview: (deck: Deck, assunto?: string | null) => void;
+  onSwitchDeck?: (deckId: number) => void;
 }
 
 function getAssunto(card: Flashcard): string | null {
@@ -44,7 +45,7 @@ interface Baralho {
   cards: Flashcard[];
 }
 
-export function FlashcardList({ deck, onBack, onStartReview }: FlashcardListProps) {
+export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: FlashcardListProps) {
   const { flashcards, fetchFlashcards, deleteFlashcard, isLoadingCards } = useAnkiStore();
   const [showForm, setShowForm] = useState(false);
   const [showAI, setShowAI] = useState(false);
@@ -244,7 +245,10 @@ export function FlashcardList({ deck, onBack, onStartReview }: FlashcardListProp
       {showAI && (
         <AIGenerator
           deck={deck}
-          onClose={() => setShowAI(false)}
+          onClose={(resultDeckId) => {
+            setShowAI(false);
+            if (resultDeckId && resultDeckId !== deck.id) onSwitchDeck?.(resultDeckId);
+          }}
         />
       )}
     </div>

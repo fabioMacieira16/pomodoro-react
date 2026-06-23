@@ -4,13 +4,16 @@ Uses OpenAI if OPENAI_API_KEY is configured, otherwise returns a mock.
 """
 import os
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
+from app.ai.factory import get_provider
+from app.ai.services.pdf_service import PDFService
 from app.api import dtos
 from app.data.database import get_db
 from app.data.repositories import anki_deck_repo, flashcard_repo, flashcard_option_repo
 from app.api.dependencies import get_current_user
-from app.domain.models import User
+from app.domain.models import AnkiDeck, User
 
 router = APIRouter(prefix="/anki/ai", tags=["anki-ai"])
 
@@ -142,12 +145,7 @@ async def _call_openai(req: dtos.AIGenerateRequest) -> list[dict]:
         raise HTTPException(status_code=502, detail=f"Erro ao chamar OpenAI: {str(e)}")
 
 
-@router.post("/generate", response_model=dtos.AIGenerateResponse)
-async def generate_flashcards(req: dtos.AIGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    deck = anki_deck_repo.get(db, req.deck_id)
-    if not deck or deck.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Deck not found")
-
+async def _generate_and_save(req: dtos.AIGenerateRequest, db: Session) -> list:
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if api_key:
         raw_cards = await _call_openai(req)
@@ -164,5 +162,106 @@ async def generate_flashcards(req: dtos.AIGenerateRequest, db: Session = Depends
             flashcard_option_repo.replace_options(db, card.id, options)
             db.refresh(card)
         created.append(card)
+    return created
 
+
+async def _detect_discipline(content: str, api_key: str) -> str:
+    """Identifica a disciplina/matéria principal do conteúdo via IA. 'Geral' como fallback."""
+    if not api_key:
+        return "Geral"
+    try:
+        import httpx
+        prompt = (
+            "Identifique a disciplina/matéria principal abordada no texto abaixo "
+            "(ex: 'Arquitetura de Software', 'Metodologias Ágeis', 'Direito Tributário'). "
+            "Responda APENAS com o nome curto da disciplina, sem explicações nem aspas.\n\n"
+            f"Texto:\n---\n{content[:3000]}\n---"
+        )
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "gpt-3.5-turbo",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.2,
+                },
+            )
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+            return text.strip('"').strip("'")[:60] or "Geral"
+    except Exception:
+        return "Geral"
+
+
+def _find_matching_deck(decks: list[AnkiDeck], discipline: str) -> AnkiDeck | None:
+    """Casa a disciplina detectada com um deck já cadastrado (nome igual ou contido)."""
+    target = discipline.lower().strip()
+    for deck in decks:
+        name = deck.name.lower().strip()
+        if name == target or name in target or target in name:
+            return deck
+    return None
+
+
+@router.post("/generate", response_model=dtos.AIGenerateResponse)
+async def generate_flashcards(req: dtos.AIGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    deck = anki_deck_repo.get(db, req.deck_id)
+    if not deck or deck.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Deck not found")
+
+    created = await _generate_and_save(req, db)
     return dtos.AIGenerateResponse(created_count=len(created), flashcards=created)
+
+
+@router.post("/generate-from-pdf", response_model=dtos.AIGenerateFromPDFResponse)
+async def generate_flashcards_from_pdf(
+    file: UploadFile = File(...),
+    deck_id: Optional[int] = Form(None),
+    card_count: int = Form(10),
+    card_types: str = Form("qa"),
+    language: str = Form("pt"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Importa um PDF, extrai o texto, identifica a disciplina e gera flashcards.
+    Se deck_id não for informado, busca um deck existente com nome compatível
+    com a disciplina detectada; caso não exista, cria um novo automaticamente.
+    """
+    raw_bytes = await file.read()
+    text = PDFService(get_provider())._extract_text(raw_bytes)
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Não foi possível extrair texto do PDF")
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    deck_created = False
+
+    if deck_id is not None:
+        deck = anki_deck_repo.get(db, deck_id)
+        if not deck or deck.user_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Deck not found")
+    else:
+        discipline = await _detect_discipline(text, api_key)
+        existing_decks = anki_deck_repo.get_by_user(db, current_user.id)
+        deck = _find_matching_deck(existing_decks, discipline)
+        if not deck:
+            deck = anki_deck_repo.create(db, {"name": discipline, "color": "#3b82f6", "user_id": current_user.id})
+            deck_created = True
+
+    types_list = [t.strip() for t in card_types.split(",") if t.strip()] or ["qa"]
+    req = dtos.AIGenerateRequest(
+        deck_id=deck.id,
+        source_type="pdf",
+        content=text,
+        card_count=card_count,
+        card_types=types_list,
+        language=language,
+    )
+    created = await _generate_and_save(req, db)
+    return dtos.AIGenerateFromPDFResponse(
+        created_count=len(created),
+        flashcards=created,
+        deck_id=deck.id,
+        deck_name=deck.name,
+        deck_created=deck_created,
+    )

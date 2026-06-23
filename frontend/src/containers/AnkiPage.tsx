@@ -58,6 +58,11 @@ const AnkiPage: React.FC = () => {
     setView('decks');
   };
 
+  const handleSwitchDeck = (deckId: number) => {
+    const target = decks.find((d) => d.id === deckId);
+    if (target) setSelectedDeck(target);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -164,6 +169,7 @@ const AnkiPage: React.FC = () => {
             deck={selectedDeck}
             onBack={handleBack}
             onStartReview={handleStartReview}
+            onSwitchDeck={handleSwitchDeck}
           />
         )}
 

@@ -16,7 +16,9 @@
       "Bash(grep -n \"\\\\.env\" .gitignore backend/.gitignore)",
       "Bash(ls -la backend/.env)",
       "Bash(git check-ignore *)",
-      "Bash(curl -s http://127.0.0.1:8000/api/ai/health)"
+      "Bash(curl -s http://127.0.0.1:8000/api/ai/health)",
+      "Bash(curl -s http://127.0.0.1:8000/openapi.json)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

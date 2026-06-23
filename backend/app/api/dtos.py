@@ -363,3 +363,10 @@ class AIGenerateRequest(BaseModel):
 class AIGenerateResponse(BaseModel):
     created_count: int
     flashcards: List[FlashcardResponse]
+
+class AIGenerateFromPDFResponse(BaseModel):
+    created_count: int
+    flashcards: List[FlashcardResponse]
+    deck_id: int
+    deck_name: str
+    deck_created: bool

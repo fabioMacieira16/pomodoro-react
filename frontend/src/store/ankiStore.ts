@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Deck, Flashcard, AnkiStats, AIGenerateRequest } from '../types';
 import * as ankiApi from '../api/anki';
+import type { AIGenerateFromPDFResult } from '../api/anki';
 
 interface AnkiState {
   // Decks
@@ -51,6 +52,13 @@ interface AnkiState {
 
   // AI actions
   generateWithAI: (req: AIGenerateRequest) => Promise<number>;
+  generateFromPDF: (params: {
+    file: File;
+    deckId?: number | null;
+    cardCount: number;
+    cardTypes: string[];
+    language?: string;
+  }) => Promise<AIGenerateFromPDFResult>;
 }
 
 export const useAnkiStore = create<AnkiState>((set, get) => ({
@@ -206,6 +214,22 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
       return result.created_count;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao gerar flashcards';
+      set({ generateError: msg });
+      throw err;
+    } finally {
+      set({ isGenerating: false });
+    }
+  },
+
+  generateFromPDF: async (params) => {
+    set({ isGenerating: true, generateError: null });
+    try {
+      const result = await ankiApi.generateFlashcardsFromPDF(params);
+      await get().fetchFlashcards(result.deck_id);
+      await get().fetchDecks();
+      return result;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao gerar flashcards a partir do PDF';
       set({ generateError: msg });
       throw err;
     } finally {

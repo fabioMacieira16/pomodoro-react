@@ -58,3 +58,31 @@ export const fetchAnkiStats = () =>
 
 export const generateFlashcardsAI = (req: AIGenerateRequest) =>
   api.post<{ created_count: number; flashcards: Flashcard[] }>('/anki/ai/generate', req).then((r) => r.data);
+
+export interface AIGenerateFromPDFResult {
+  created_count: number;
+  flashcards: Flashcard[];
+  deck_id: number;
+  deck_name: string;
+  deck_created: boolean;
+}
+
+export const generateFlashcardsFromPDF = (params: {
+  file: File;
+  deckId?: number | null;
+  cardCount: number;
+  cardTypes: string[];
+  language?: string;
+}) => {
+  const form = new FormData();
+  form.append('file', params.file);
+  if (params.deckId != null) form.append('deck_id', String(params.deckId));
+  form.append('card_count', String(params.cardCount));
+  form.append('card_types', params.cardTypes.join(','));
+  form.append('language', params.language ?? 'pt');
+  return api
+    .post<AIGenerateFromPDFResult>('/anki/ai/generate-from-pdf', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((r) => r.data);
+};
