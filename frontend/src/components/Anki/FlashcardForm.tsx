@@ -39,7 +39,14 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
   const [assunto, setAssunto] = useState<string>(() => {
     // Recover assunto from tags (format: "assunto:XXX")
     const tag = card?.tags?.find(t => t.startsWith('assunto:'));
-    return tag ? tag.replace('assunto:', '') : '';
+    if (tag) return tag.replace('assunto:', '');
+    if (card) return '';
+    // Cartão novo: sugere o último assunto usado neste deck, para não precisar redigitar
+    const lastTag = [...flashcards]
+      .reverse()
+      .map(c => c.tags?.find(t => t.startsWith('assunto:')))
+      .find((t): t is string => !!t);
+    return lastTag ? lastTag.replace('assunto:', '') : '';
   });
   const [options, setOptions] = useState<Partial<FlashcardOption>[]>(
     card?.options?.length ? card.options : emptyOptions()
