@@ -99,6 +99,22 @@ const TaskList: React.FC = () => {
     }
   }, [tasks, total, completed]);
 
+  // Recebe a conclusão de um ciclo de pomodoro vinda do timer e aplica no estado
+  // (em vez do timer escrever direto no localStorage, o que era sobrescrito por edições)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const taskId = (e as CustomEvent<{ taskId: number }>).detail.taskId;
+      setTasks((prev) =>
+        produce(prev, (draft) => {
+          const t = draft.find((t) => t.id === taskId);
+          if (t) t.actual_minutes = (t.actual_minutes || 0) + 25;
+        })
+      );
+    };
+    window.addEventListener('pomodoro:cycle-completed', handler);
+    return () => window.removeEventListener('pomodoro:cycle-completed', handler);
+  }, []);
+
   useEffect(() => {
     if (!listMenuOpen) return;
     const handler = (e: MouseEvent) => {

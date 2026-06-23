@@ -62,17 +62,11 @@ const Pomodoro: React.FC = () => {
   useEffect(() => {
     if (engine.pomodoroCount > prevPomoCount.current && selectedTask) {
       incrementActual();
-      // Also update actual_minutes in localStorage tasks
-      const raw = localStorage.getItem('pomodoro-react-tasks');
-      if (raw) {
-        try {
-          const stored = JSON.parse(raw) as Array<{ id: number; actual_minutes: number }>;
-          const updated = stored.map((t) =>
-            t.id === selectedTask.id ? { ...t, actual_minutes: (t.actual_minutes || 0) + 25 } : t
-          );
-          localStorage.setItem('pomodoro-react-tasks', JSON.stringify(updated));
-        } catch { /* ignore */ }
-      }
+      // Notifica o TaskList (fonte da verdade do localStorage) em vez de escrever direto,
+      // evitando que uma edição de task sobrescreva o ciclo recém-concluído
+      window.dispatchEvent(
+        new CustomEvent('pomodoro:cycle-completed', { detail: { taskId: selectedTask.id } })
+      );
     }
     prevPomoCount.current = engine.pomodoroCount;
   }, [engine.pomodoroCount]); // eslint-disable-line react-hooks/exhaustive-deps
