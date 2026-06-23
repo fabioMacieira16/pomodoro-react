@@ -123,7 +123,7 @@ body {
 .Pomodoro {
   display: flex;
   flex-direction: column;
-  flex: 0 1 420px;
+  flex: 1 1 auto;
   width: 100%;
   height: 100%;
   min-height: calc(100vh - 62px);
@@ -131,6 +131,11 @@ body {
   align-items: center;
   gap: 8px;
   padding: 48px 0 60px;
+}
+
+/* Quando há um painel ao lado (revisão/tarefas), o relógio cede espaço para ele */
+.app-main:has(.TaskPainel) .Pomodoro {
+  flex: 0 1 420px;
 }
 
 /* ── Task panel ──────────────────────────────────────────────────────────── */
