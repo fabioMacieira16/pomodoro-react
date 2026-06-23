@@ -151,8 +151,8 @@ export default function Task({ task, index }: TaskProps) {
                 min={1}
                 onChange={(e) => setEstPomo(Math.max(1, parseInt(e.target.value) || 1))}
               />
-              <button className="pomo-task__pomo-adj" onClick={() => setEstPomo(p => Math.max(1, p - 1))}>&#9660;</button>
               <button className="pomo-task__pomo-adj" onClick={() => setEstPomo(p => p + 1)}>&#9650;</button>
+              <button className="pomo-task__pomo-adj" onClick={() => setEstPomo(p => Math.max(1, p - 1))}>&#9660;</button>
             </div>
           </div>
 

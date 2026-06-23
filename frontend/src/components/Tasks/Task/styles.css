@@ -303,7 +303,7 @@
 }
 
 .pomo-task__save-btn {
-  background: var(--pomo-text, #1a1a2e);
+  background: #22c55e;
   color: #fff;
   border: none;
   border-radius: 6px;
