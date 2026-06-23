@@ -12,7 +12,11 @@
       "Bash(git mv *)",
       "Bash(xargs grep -ln \"correct_answers\")",
       "Bash(python -c \"import app.quiz.service; import app.api.routers.anki_review\")",
-      "Bash(.venv/Scripts/python -c \"import app.quiz.service; import app.api.routers.anki_review; print\\('OK'\\)\")"
+      "Bash(.venv/Scripts/python -c \"import app.quiz.service; import app.api.routers.anki_review; print\\('OK'\\)\")",
+      "Bash(grep -n \"\\\\.env\" .gitignore backend/.gitignore)",
+      "Bash(ls -la backend/.env)",
+      "Bash(git check-ignore *)",
+      "Bash(curl -s http://127.0.0.1:8000/api/ai/health)"
     ]
   }
 }

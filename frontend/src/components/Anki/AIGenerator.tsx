@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Zap, Loader2 } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
+import api from '../../api/client';
 import type { Deck, CardType } from '../../types';
 
 const SOURCE_TYPES = [
@@ -29,6 +30,13 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
   const [cardCount, setCardCount] = useState(10);
   const [cardTypes, setCardTypes] = useState<CardType[]>(['qa']);
   const [success, setSuccess] = useState<number | null>(null);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    api.get('/ai/health')
+      .then((r) => setAiAvailable(Boolean(r.data?.provider?.is_available)))
+      .catch(() => setAiAvailable(null));
+  }, []);
 
   const toggleCardType = (type: CardType) => {
     setCardTypes((prev) =>
@@ -159,9 +167,9 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
                 <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{generateError}</p>
               )}
 
-              {!import.meta.env.VITE_OPENAI_API_KEY && (
+              {aiAvailable === false && (
                 <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
-                  ⚠️ <strong>OPENAI_API_KEY</strong> não configurada &mdash; serão gerados cartões de demonstração.
+                  ⚠️ <strong>OPENAI_API_KEY</strong> não configurada no backend &mdash; serão gerados cartões de demonstração.
                 </p>
               )}
             </>
