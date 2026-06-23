@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 420px;
+  max-width: 720px;
   gap: 12px;
   padding: 24px;
   margin: 48px auto 0;
@@ -90,8 +90,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 160px;
-  padding: 20px;
+  min-height: 260px;
+  padding: 32px;
   border: 1px solid var(--pomo-border);
   border-radius: 12px;
   background: var(--pomo-surface-alt);

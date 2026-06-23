@@ -17,6 +17,7 @@ import { usePomodoroEngine, PHASE_LABELS } from '../hooks/usePomodoroEngine';
 import { usePomodoroSettings } from '../store/pomodoroSettingsStore';
 import { usePomodoroStore } from '../store/pomodoroStore';
 import { useStudyContext } from '../store/studyContextStore';
+import { useAnkiStore } from '../store/ankiStore';
 import { useSubjectStore } from '../store/subjectStore';
 import { useSelectedTask } from '../store/selectedTaskStore';
 import type { TimerPhase } from '../types';
@@ -168,6 +169,10 @@ const Pomodoro: React.FC = () => {
           else if (engine.status === 'paused') engine.resume();
           break;
         case 'Escape':
+          // Encerra a sessão de revisão (contabilizando no dashboard) antes de zerar o timer
+          if (useAnkiStore.getState().isReviewing) {
+            useAnkiStore.getState().endReview();
+          }
           engine.reset();
           setSettingsOpen(false);
           break;

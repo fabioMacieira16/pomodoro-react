@@ -167,6 +167,8 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
 
     const isCorrect = quality >= 3;
     set((s) => ({
+      // "De Novo" (quality 0): card volta para o fim da fila para ser revisado de novo na mesma sessão
+      reviewQueue: quality === 0 ? [...s.reviewQueue, card] : s.reviewQueue,
       sessionCorrect: s.sessionCorrect + (isCorrect ? 1 : 0),
       sessionTotal: s.sessionTotal + 1,
       currentCardIndex: s.currentCardIndex + 1,

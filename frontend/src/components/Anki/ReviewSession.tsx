@@ -105,14 +105,14 @@ export function ReviewSession() {
       </div>
 
       {/* Card area */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-2xl">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="w-full max-w-4xl h-full flex flex-col">
           {/* Card */}
           <div
-            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 min-h-56 flex flex-col ${card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' ? 'cursor-pointer select-none' : ''}`}
+            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 flex-1 min-h-[26rem] flex flex-col ${card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' ? 'cursor-pointer select-none' : ''}`}
             onClick={() => card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' && !isFlipped && setIsFlipped(true)}
           >
-            <div className="flex-1 p-8 flex items-center justify-center">
+            <div className="flex-1 p-10 flex items-center justify-center overflow-y-auto">
               {card.card_type === 'multiple_choice' ? (
                 /* Múltipla escolha: mostra pergunta + opções clicáveis */
                 <div className="w-full">
@@ -265,7 +265,7 @@ export function ReviewSession() {
 
           {/* Rating buttons */}
           {isFlipped && (
-            <div className="mt-6 grid grid-cols-4 gap-3">
+            <div className="mt-6 grid grid-cols-4 gap-3 shrink-0">
               {QUALITY_BUTTONS.map(({ quality, label, color, desc }) => (
                 <button
                   key={quality}
