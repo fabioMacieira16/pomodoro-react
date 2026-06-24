@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Brain, Zap, ChevronRight, Layers } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, Brain, Zap, ChevronRight, Layers, Upload } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { FlashcardForm } from './FlashcardForm';
 import { AIGenerator } from './AIGenerator';
@@ -46,11 +46,13 @@ interface Baralho {
 }
 
 export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: FlashcardListProps) {
-  const { flashcards, fetchFlashcards, deleteFlashcard, isLoadingCards } = useAnkiStore();
+  const { flashcards, fetchFlashcards, deleteFlashcard, isLoadingCards, importCSV } = useAnkiStore();
   const [showForm, setShowForm] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [selectedAssunto, setSelectedAssunto] = useState<string | null>(null);
+  const [importingCSV, setImportingCSV] = useState(false);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchFlashcards(deck.id);
@@ -59,6 +61,28 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
   useEffect(() => {
     setSelectedAssunto(null);
   }, [deck.id]);
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const assunto = window.prompt(
+      'Nome do assunto/sub-tópico para estes cartões (deixe em branco para nenhum):',
+      selectedAssunto ?? ''
+    );
+    if (assunto === null) return; // usuário cancelou
+
+    setImportingCSV(true);
+    try {
+      const created = await importCSV({ file, deckId: deck.id, assunto: assunto.trim() || null });
+      window.alert(`${created.length} flashcard(s) importado(s) com sucesso!`);
+    } catch {
+      window.alert('Erro ao importar CSV. Verifique se o arquivo tem 2 colunas: frente,verso.');
+    } finally {
+      setImportingCSV(false);
+    }
+  };
 
   const handleDelete = async (card: Flashcard) => {
     if (window.confirm('Excluir este flashcard?')) {
@@ -102,6 +126,21 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
             <Zap size={14} />
             Gerar com IA
           </button>
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            disabled={importingCSV}
+            className="flex items-center gap-2 px-3 py-2 border border-green-300 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-sm font-medium disabled:opacity-50"
+          >
+            <Upload size={14} />
+            {importingCSV ? 'Importando...' : 'Importar CSV'}
+          </button>
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            onChange={handleImportCSV}
+          />
           <button
             onClick={() => { setEditingCard(null); setShowForm(true); }}
             className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"

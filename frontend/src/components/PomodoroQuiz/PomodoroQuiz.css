@@ -1,30 +1,15 @@
-/* ── Quiz overlay ───────────────────────────────────────────────────────── */
-.pq-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
+/* ── Quiz panel (inline, ao lado do relógio) ───────────────────────────────── */
+.pq-panel {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  animation: pq-fade 0.2s ease;
-}
-
-@keyframes pq-fade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* ── Modal ──────────────────────────────────────────────────────────────── */
-.pq-modal {
-  background: var(--pomo-surface, #fff);
-  border-radius: 20px;
+  flex-direction: column;
+  width: 100%;
+  max-width: 520px;
+  gap: 4px;
   padding: 24px;
-  width: min(520px, 95vw);
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.3);
+  margin: 48px auto 0;
+  background: var(--pomo-surface, #fff);
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
+  border-radius: 16px;
   animation: pq-slide 0.25s ease;
 }
 
@@ -33,7 +18,7 @@
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-.pq-modal--loading {
+.pq-panel--loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -263,6 +248,10 @@
   justify-content: flex-end;
 }
 
+.pq-actions--center {
+  justify-content: center;
+}
+
 .pq-btn {
   border: none;
   border-radius: 10px;
@@ -306,7 +295,7 @@
 }
 
 /* ── No content state ───────────────────────────────────────────────────── */
-.pq-modal--no-content {
+.pq-panel--no-content {
   text-align: center;
   padding: 40px 32px;
 }
@@ -357,7 +346,7 @@
 }
 
 /* ── Result ─────────────────────────────────────────────────────────────── */
-.pq-modal--result {
+.pq-panel--result {
   text-align: center;
   padding: 40px 32px;
 }

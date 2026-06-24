@@ -1,11 +1,13 @@
 /**
- * PomodoroQuiz - Quiz durante sessão Pomodoro
+ * PomodoroQuiz - Quiz inline durante a sessão Pomodoro
  *
- * Aparece quando o modo é "with_questions".
+ * Aparece quando o modo é "with_questions", lado a lado com o relógio
+ * (mesmo padrão visual do Modo Revisão).
  * Busca questões da IA sobre a matéria atual baseadas nos materiais importados.
- * Se não houver conteúdo indexado para a disciplina, exibe mensagem clara.
+ * Se não houver conteúdo indexado para a disciplina, oferece importar um PDF
+ * (ex: uma prova) para gerar as questões diretamente a partir dele.
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../../api/client';
 import { useStudyContext } from '../../store/studyContextStore';
 import './PomodoroQuiz.css';
@@ -49,7 +51,6 @@ interface PomodoroQuizProps {
   subjectId?: number | null;
   subjectName?: string | null;
   pomodoroNumber?: number;
-  pdfFile?: File | null;
   onClose: () => void;
 }
 
@@ -72,10 +73,10 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   subjectId,
   subjectName,
   pomodoroNumber = 1,
-  pdfFile = null,
   onClose,
 }) => {
   const { addPerformance, addReview } = useStudyContext();
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const [session, setSession] = useState<QuizSession | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -86,36 +87,18 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   const [totalAnswered, setTotalAnswered] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
 
+  // Tenta gerar questões a partir da matéria/tarefa atual sendo estudada.
+  // Se não houver conteúdo suficiente, cai no estado "no_content", que oferece
+  // importar um PDF (ex: uma prova) para gerar as questões a partir dele.
   const loadQuiz = useCallback(async () => {
     setState('loading');
     setErrorMsg(null);
+    setPdfFileName(null);
 
-    if (pdfFile) {
-      try {
-        const form = new FormData();
-        form.append('file', pdfFile);
-        form.append('num_questions', '10');
-        if (subjectId) form.append('subject_id', String(subjectId));
-
-        const res = await api.post('/quiz/generate-from-pdf', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        setSession(res.data);
-        setCurrentIdx(0);
-        setState('question');
-      } catch (err: unknown) {
-        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
-        setState('error');
-        setErrorMsg(detail || 'Erro ao gerar questões a partir do PDF.');
-      }
-      return;
-    }
-
-    // Requer matéria selecionada para gerar questões contextualizadas
     if (!subjectId && !subjectName) {
-      setState('error');
-      setErrorMsg('Nenhuma matéria selecionada. Escolha uma matéria antes de iniciar o Pomodoro com Questões.');
+      setState('no_content');
       return;
     }
 
@@ -124,13 +107,8 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         num_questions: 5,
         pomodoro_number: pomodoroNumber,
       };
-
-      if (subjectId) {
-        payload.subject_id = subjectId;
-      }
-      if (subjectName) {
-        payload.subject_name = subjectName;
-      }
+      if (subjectId) payload.subject_id = subjectId;
+      if (subjectName) payload.subject_name = subjectName;
 
       const res = await api.post('/quiz/generate', payload);
       setSession(res.data);
@@ -146,7 +124,39 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         setErrorMsg(detail || 'Erro ao gerar questões. Verifique se há conteúdos cadastrados para esta disciplina.');
       }
     }
-  }, [pdfFile, subjectId, subjectName, pomodoroNumber]);
+  }, [subjectId, subjectName, pomodoroNumber]);
+
+  // Gera questões a partir de um PDF importado (ex: uma prova anterior),
+  // usado como alternativa quando não há conteúdo indexado para a matéria.
+  const loadQuizFromPdf = useCallback(async (file: File) => {
+    setState('loading');
+    setErrorMsg(null);
+    setPdfFileName(file.name);
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('num_questions', '10');
+      if (subjectId) form.append('subject_id', String(subjectId));
+
+      const res = await api.post('/quiz/generate-from-pdf', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setSession(res.data);
+      setCurrentIdx(0);
+      setState('question');
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
+      setState('error');
+      setErrorMsg(detail || 'Erro ao gerar questões a partir do PDF.');
+    }
+  }, [subjectId]);
+
+  const handlePickPdf = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) loadQuizFromPdf(file);
+  };
 
   useEffect(() => {
     loadQuiz();
@@ -208,52 +218,57 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
 
   if (state === 'loading') {
     return (
-      <div className="pq-overlay">
-        <div className="pq-modal pq-modal--loading">
-          <div className="pq-spinner" />
-          <p>{pdfFile ? 'Gerando questões a partir do PDF...' : 'Gerando questões com IA...'}</p>
-          {pdfFile ? (
-            <p className="pq-loading-subject">📎 {pdfFile.name}</p>
-          ) : (
-            subjectName && <p className="pq-loading-subject">📚 {subjectName}</p>
-          )}
-        </div>
+      <div className="pq-panel pq-panel--loading">
+        <div className="pq-spinner" />
+        <p>{pdfFileName ? 'Gerando questões a partir do PDF...' : 'Gerando questões com IA...'}</p>
+        {pdfFileName ? (
+          <p className="pq-loading-subject">📎 {pdfFileName}</p>
+        ) : (
+          subjectName && <p className="pq-loading-subject">📚 {subjectName}</p>
+        )}
       </div>
     );
   }
 
   if (state === 'no_content') {
     return (
-      <div className="pq-overlay">
-        <div className="pq-modal pq-modal--no-content">
-          <div className="pq-no-content-icon">📂</div>
-          <h3 className="pq-no-content-title">Conteúdo não encontrado</h3>
-          <p className="pq-no-content-msg">
-            Não encontrei material indexado para gerar questões de{' '}
-            <strong>{subjectName ?? 'esta disciplina'}</strong>.
-          </p>
-          <p className="pq-no-content-hint">
-            Importe PDFs de conteúdo na tela <strong>Estudos</strong> e volte para usar o Pomodoro com Questões.
-          </p>
-          <div className="pq-actions">
-            <button className="pq-btn pq-btn--ghost" onClick={onClose}>
-              Continuar sem questões
-            </button>
-          </div>
+      <div className="pq-panel pq-panel--no-content">
+        <div className="pq-no-content-icon">📂</div>
+        <h3 className="pq-no-content-title">Nenhuma questão encontrada</h3>
+        <p className="pq-no-content-msg">
+          Não encontrei material indexado para gerar questões de{' '}
+          <strong>{subjectName ?? 'esta disciplina'}</strong>.
+        </p>
+        <p className="pq-no-content-hint">
+          Importe o PDF da matéria (ex: uma prova anterior) para gerar 10 questões de
+          múltipla escolha diretamente a partir dele.
+        </p>
+        <div className="pq-actions pq-actions--center">
+          <button className="pq-btn pq-btn--primary" onClick={() => pdfInputRef.current?.click()}>
+            📎 Importar PDF
+          </button>
+          <button className="pq-btn pq-btn--ghost" onClick={onClose}>
+            Continuar sem questões
+          </button>
         </div>
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          hidden
+          onChange={handlePickPdf}
+        />
       </div>
     );
   }
 
   if (state === 'error') {
     return (
-      <div className="pq-overlay">
-        <div className="pq-modal">
-          <p className="pq-error">{errorMsg}</p>
-          <div className="pq-actions">
-            <button className="pq-btn pq-btn--secondary" onClick={loadQuiz}>Tentar novamente</button>
-            <button className="pq-btn pq-btn--ghost" onClick={onClose}>Fechar</button>
-          </div>
+      <div className="pq-panel">
+        <p className="pq-error">{errorMsg}</p>
+        <div className="pq-actions">
+          <button className="pq-btn pq-btn--secondary" onClick={loadQuiz}>Tentar novamente</button>
+          <button className="pq-btn pq-btn--ghost" onClick={onClose}>Fechar</button>
         </div>
       </div>
     );
@@ -262,27 +277,25 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   if (state === 'finished') {
     const grade = accuracy >= 80 ? '🎉' : accuracy >= 60 ? '👍' : '📚';
     return (
-      <div className="pq-overlay">
-        <div className="pq-modal pq-modal--result">
-          <div className="pq-result-grade">{grade}</div>
-          <h2 className="pq-result-title">Sessão concluída!</h2>
-          {subjectName && <div className="pq-result-subject">{subjectName}</div>}
-          <div className="pq-result-score">
-            <span className="pq-result-number">{score}</span>
-            <span className="pq-result-total">/{totalAnswered}</span>
-          </div>
-          <div className={`pq-result-pct ${accuracy >= 70 ? 'pct--good' : 'pct--bad'}`}>
-            {accuracy}% de acerto
-          </div>
-          {accuracy < 70 && (
-            <p className="pq-result-tip">
-              💡 Revisões automáticas foram agendadas para os erros.
-            </p>
-          )}
-          <button className="pq-btn pq-btn--primary" onClick={onClose}>
-            Continuar estudando
-          </button>
+      <div className="pq-panel pq-panel--result">
+        <div className="pq-result-grade">{grade}</div>
+        <h2 className="pq-result-title">Sessão concluída!</h2>
+        {subjectName && <div className="pq-result-subject">{subjectName}</div>}
+        <div className="pq-result-score">
+          <span className="pq-result-number">{score}</span>
+          <span className="pq-result-total">/{totalAnswered}</span>
         </div>
+        <div className={`pq-result-pct ${accuracy >= 70 ? 'pct--good' : 'pct--bad'}`}>
+          {accuracy}% de acerto
+        </div>
+        {accuracy < 70 && (
+          <p className="pq-result-tip">
+            💡 Revisões automáticas foram agendadas para os erros.
+          </p>
+        )}
+        <button className="pq-btn pq-btn--primary" onClick={onClose}>
+          Continuar estudando
+        </button>
       </div>
     );
   }
@@ -290,112 +303,110 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   if (!currentQuestion) return null;
 
   return (
-    <div className="pq-overlay">
-      <div className="pq-modal">
-        {/* Header */}
-        <div className="pq-header">
-          <div className="pq-progress-wrap">
-            <div
-              className="pq-progress-bar"
-              style={{ width: `${((currentIdx + 1) / (session?.total_questions ?? 5)) * 100}%` }}
-            />
-          </div>
-          <div className="pq-meta">
-            <span className="pq-counter">
-              {currentIdx + 1} / {session?.total_questions ?? 5}
-            </span>
-            <span className={`pq-diff pq-diff--${currentQuestion.difficulty.toLowerCase()}`}>
-              {currentQuestion.difficulty}
-            </span>
-            <button className="pq-close-btn" onClick={onClose} title="Fechar quiz">×</button>
-          </div>
+    <div className="pq-panel">
+      {/* Header */}
+      <div className="pq-header">
+        <div className="pq-progress-wrap">
+          <div
+            className="pq-progress-bar"
+            style={{ width: `${((currentIdx + 1) / (session?.total_questions ?? 5)) * 100}%` }}
+          />
         </div>
-
-        {/* Subject */}
-        {subjectName && (
-          <div className="pq-subject">{subjectName}</div>
-        )}
-
-        {/* Question */}
-        <p className="pq-question">{currentQuestion.question_text}</p>
-
-        {/* Hint */}
-        {currentQuestion.hint && state === 'question' && (
-          <div className="pq-hint-wrap">
-            {showHint ? (
-              <div className="pq-hint">💡 {currentQuestion.hint}</div>
-            ) : (
-              <button className="pq-hint-btn" onClick={() => setShowHint(true)}>
-                Ver dica
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Options */}
-        <div className="pq-options">
-          {currentQuestion.options.map(opt => {
-            let cls = 'pq-option';
-            if (state === 'answered') {
-              if (opt.is_correct) cls += ' pq-option--correct';
-              else if (opt.id === selected && !opt.is_correct) cls += ' pq-option--wrong';
-            } else if (opt.id === selected) {
-              cls += ' pq-option--selected';
-            }
-            return (
-              <button
-                key={opt.id}
-                className={cls}
-                onClick={() => handleSelectOption(opt.id)}
-                disabled={state === 'answered'}
-              >
-                <span className="pq-option-letter">
-                  {String.fromCharCode(65 + opt.position)}
-                </span>
-                <span className="pq-option-text">{opt.text}</span>
-                {state === 'answered' && opt.is_correct && (
-                  <span className="pq-option-icon">✓</span>
-                )}
-                {state === 'answered' && opt.id === selected && !opt.is_correct && (
-                  <span className="pq-option-icon">✗</span>
-                )}
-              </button>
-            );
-          })}
+        <div className="pq-meta">
+          <span className="pq-counter">
+            {currentIdx + 1} / {session?.total_questions ?? 5}
+          </span>
+          <span className={`pq-diff pq-diff--${currentQuestion.difficulty.toLowerCase()}`}>
+            {currentQuestion.difficulty}
+          </span>
+          <button className="pq-close-btn" onClick={onClose} title="Encerrar quiz">×</button>
         </div>
+      </div>
 
-        {/* Feedback */}
-        {state === 'answered' && result && (
-          <div className={`pq-feedback ${result.is_correct ? 'pq-feedback--correct' : 'pq-feedback--wrong'}`}>
-            <div className="pq-feedback-header">
-              {result.is_correct ? '✅ Correto!' : '❌ Incorreto'}
-              {result.flashcard_created && (
-                <span className="pq-flashcard-badge">🃏 Flashcard criado</span>
-              )}
-            </div>
-            {result.explanation && (
-              <p className="pq-feedback-text">{result.explanation}</p>
-            )}
-          </div>
-        )}
+      {/* Subject */}
+      {subjectName && (
+        <div className="pq-subject">{subjectName}</div>
+      )}
 
-        {/* Actions */}
-        <div className="pq-actions">
-          {state === 'question' && (
+      {/* Question */}
+      <p className="pq-question">{currentQuestion.question_text}</p>
+
+      {/* Hint */}
+      {currentQuestion.hint && state === 'question' && (
+        <div className="pq-hint-wrap">
+          {showHint ? (
+            <div className="pq-hint">💡 {currentQuestion.hint}</div>
+          ) : (
+            <button className="pq-hint-btn" onClick={() => setShowHint(true)}>
+              Ver dica
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Options */}
+      <div className="pq-options">
+        {currentQuestion.options.map(opt => {
+          let cls = 'pq-option';
+          if (state === 'answered') {
+            if (opt.is_correct) cls += ' pq-option--correct';
+            else if (opt.id === selected && !opt.is_correct) cls += ' pq-option--wrong';
+          } else if (opt.id === selected) {
+            cls += ' pq-option--selected';
+          }
+          return (
             <button
-              className="pq-btn pq-btn--primary"
-              onClick={handleConfirm}
-              disabled={selected === null}
+              key={opt.id}
+              className={cls}
+              onClick={() => handleSelectOption(opt.id)}
+              disabled={state === 'answered'}
             >
-              Confirmar
+              <span className="pq-option-letter">
+                {String.fromCharCode(65 + opt.position)}
+              </span>
+              <span className="pq-option-text">{opt.text}</span>
+              {state === 'answered' && opt.is_correct && (
+                <span className="pq-option-icon">✓</span>
+              )}
+              {state === 'answered' && opt.id === selected && !opt.is_correct && (
+                <span className="pq-option-icon">✗</span>
+              )}
             </button>
-          )}
-          {state === 'answered' && (
-            <button className="pq-btn pq-btn--primary" onClick={handleNext}>
-              {currentIdx + 1 >= (session?.total_questions ?? 5) ? 'Ver resultado' : 'Próxima →'}
-            </button>
+          );
+        })}
+      </div>
+
+      {/* Feedback */}
+      {state === 'answered' && result && (
+        <div className={`pq-feedback ${result.is_correct ? 'pq-feedback--correct' : 'pq-feedback--wrong'}`}>
+          <div className="pq-feedback-header">
+            {result.is_correct ? '✅ Correto!' : '❌ Incorreto'}
+            {result.flashcard_created && (
+              <span className="pq-flashcard-badge">🃏 Flashcard criado</span>
+            )}
+          </div>
+          {result.explanation && (
+            <p className="pq-feedback-text">{result.explanation}</p>
           )}
         </div>
+      )}
+
+      {/* Actions */}
+      <div className="pq-actions">
+        {state === 'question' && (
+          <button
+            className="pq-btn pq-btn--primary"
+            onClick={handleConfirm}
+            disabled={selected === null}
+          >
+            Confirmar
+          </button>
+        )}
+        {state === 'answered' && (
+          <button className="pq-btn pq-btn--primary" onClick={handleNext}>
+            {currentIdx + 1 >= (session?.total_questions ?? 5) ? 'Ver resultado' : 'Próxima →'}
+          </button>
+        )}
       </div>
     </div>
   );

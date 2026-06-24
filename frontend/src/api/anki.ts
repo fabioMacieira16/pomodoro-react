@@ -35,6 +35,18 @@ export const updateFlashcard = (id: number, data: Partial<Flashcard>) =>
 export const deleteFlashcard = (id: number) =>
   api.delete(`/anki/flashcards/${id}`).then((r) => r.data);
 
+export const importFlashcardsCSV = (params: { file: File; deckId: number; assunto?: string | null }) => {
+  const form = new FormData();
+  form.append('file', params.file);
+  form.append('deck_id', String(params.deckId));
+  if (params.assunto) form.append('assunto', params.assunto);
+  return api
+    .post<Flashcard[]>('/anki/flashcards/import-csv', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((r) => r.data);
+};
+
 // ── Review ──────────────────────────────────────────────────────────────────────────
 
 export const fetchReviewQueue = (deckId: number, limit = 50) =>

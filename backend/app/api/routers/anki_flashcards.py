@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+import csv
+import io
+from typing import Optional
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from app.api import dtos
 from app.data.database import get_db
@@ -44,6 +48,44 @@ def bulk_create_flashcards(cards: list[dtos.FlashcardCreate], db: Session = Depe
             flashcard_option_repo.replace_options(db, card.id, [o.model_dump() for o in card_in.options])
             db.refresh(card)
         created.append(card)
+    return created
+
+
+@router.post("/import-csv", response_model=list[dtos.FlashcardResponse])
+async def import_csv_flashcards(
+    deck_id: int = Form(...),
+    assunto: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Import flashcards from a 2-column CSV (front, back) — no header row."""
+    _owns_deck(db, deck_id, current_user.id)
+
+    raw = await file.read()
+    text = raw.decode("utf-8-sig", errors="replace")
+    extra_tag = f"assunto:{assunto.strip()}" if assunto and assunto.strip() else None
+
+    created = []
+    for row in csv.reader(io.StringIO(text)):
+        if len(row) < 2:
+            continue
+        front, back = row[0].strip(), row[1].strip()
+        if not front or not back:
+            continue
+        card = flashcard_repo.create(db, {
+            "deck_id": deck_id,
+            "card_type": "qa",
+            "front": front,
+            "back": back,
+            "tags": [extra_tag] if extra_tag else [],
+            "difficulty": "Medium",
+        })
+        created.append(card)
+
+    if not created:
+        raise HTTPException(status_code=400, detail="Nenhuma linha válida encontrada no CSV. Esperado: frente,verso por linha.")
+
     return created
 
 

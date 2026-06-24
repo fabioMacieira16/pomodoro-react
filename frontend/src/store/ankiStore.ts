@@ -59,6 +59,7 @@ interface AnkiState {
     cardTypes: string[];
     language?: string;
   }) => Promise<AIGenerateFromPDFResult>;
+  importCSV: (params: { file: File; deckId: number; assunto?: string | null }) => Promise<Flashcard[]>;
 }
 
 export const useAnkiStore = create<AnkiState>((set, get) => ({
@@ -230,6 +231,22 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
       return result;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao gerar flashcards a partir do PDF';
+      set({ generateError: msg });
+      throw err;
+    } finally {
+      set({ isGenerating: false });
+    }
+  },
+
+  importCSV: async (params) => {
+    set({ isGenerating: true, generateError: null });
+    try {
+      const created = await ankiApi.importFlashcardsCSV(params);
+      await get().fetchFlashcards(params.deckId);
+      await get().fetchDecks();
+      return created;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao importar CSV de flashcards';
       set({ generateError: msg });
       throw err;
     } finally {

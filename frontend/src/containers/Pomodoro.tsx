@@ -45,8 +45,6 @@ const Pomodoro: React.FC = () => {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showStudyModeModal, setShowStudyModeModal] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizPdfFile, setQuizPdfFile] = useState<File | null>(null);
   const [taskOpen, setTaskOpen] = useState(() => {
     const saved = localStorage.getItem('pomodoro-react-taskStatus');
     return saved ? JSON.parse(saved) : false;
@@ -78,17 +76,6 @@ const Pomodoro: React.FC = () => {
       settings.update({ focusMode: false });
     }
   }, [engine.status, engine.phase]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Show quiz when Pomodoro finishes in with_questions mode ────────────
-  useEffect(() => {
-    if (
-      engine.status === 'finished' &&
-      engine.phase === 'pomodoro' &&
-      studyCtx.context.current_pomodoro_mode === 'with_questions'
-    ) {
-      setShowQuiz(true);
-    }
-  }, [engine.status, engine.phase, studyCtx.context.current_pomodoro_mode]);
 
   // ── Track early interruption ──────────────────────────────────────────
   const prevStatus = useRef(engine.status);
@@ -184,9 +171,8 @@ const Pomodoro: React.FC = () => {
     engine.start();
   };
 
-  const handleStudyModeSelect = (mode: 'normal' | 'with_questions' | 'review', pdfFile?: File | null) => {
+  const handleStudyModeSelect = (mode: 'normal' | 'with_questions' | 'review') => {
     studyCtx.setPomodoroMode(mode);
-    setQuizPdfFile(pdfFile ?? null);
     setShowStudyModeModal(false);
     if (engine.status === 'finished') engine.changePhase(engine.phase);
     engine.start();
@@ -224,6 +210,7 @@ const Pomodoro: React.FC = () => {
   const isTimerActive = engine.status === 'running' || engine.status === 'paused';
   const isRunning = engine.status === 'running';
   const isReviewMode = studyCtx.context.current_pomodoro_mode === 'review' && isTimerActive;
+  const isQuizMode = studyCtx.context.current_pomodoro_mode === 'with_questions' && isTimerActive;
 
   const headerClass = [
     'app-header',
@@ -287,7 +274,7 @@ const Pomodoro: React.FC = () => {
       </header>
 
       {/* ── Main area ── */}
-      <main className="app-main">
+      <main className={`app-main ${isQuizMode ? 'app-main--quiz' : ''}`}>
         <div className="Pomodoro">
           {!isTimerActive && (
             <TypeSelect
@@ -389,8 +376,19 @@ const Pomodoro: React.FC = () => {
           </div>
         )}
 
-        {/* Task panel: visible when paused or idle/finished (not in review mode) */}
-        {!isReviewMode && !isRunning && taskOpen && (
+        {/* Quiz panel: visible during the whole timer when "Pomodoro com Questões" is active */}
+        {isQuizMode && (
+          <div className="TaskPainel">
+            <PomodoroQuiz
+              subjectName={studyCtx.context.current_subject}
+              pomodoroNumber={engine.pomodoroCount}
+              onClose={() => studyCtx.setPomodoroMode('normal')}
+            />
+          </div>
+        )}
+
+        {/* Task panel: visible when paused or idle/finished (not in review/quiz mode) */}
+        {!isReviewMode && !isQuizMode && !isRunning && taskOpen && (
           <div className="TaskPainel">
             <TaskList />
           </div>
@@ -402,16 +400,6 @@ const Pomodoro: React.FC = () => {
         <ProductivityModal onSubmit={engine.submitProductivityRating} />
       )}
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
-
-      {/* ── Quiz pós-Pomodoro ── */}
-      {showQuiz && (
-        <PomodoroQuiz
-          subjectName={studyCtx.context.current_subject}
-          pomodoroNumber={engine.pomodoroCount}
-          pdfFile={quizPdfFile}
-          onClose={() => { setShowQuiz(false); setQuizPdfFile(null); }}
-        />
-      )}
 
       {/* ── Modal: Como deseja estudar? ── */}
       {showStudyModeModal && (
@@ -440,17 +428,6 @@ const Pomodoro: React.FC = () => {
                 <span className="study-mode-btn__title">Pomodoro com Questões</span>
                 <span className="study-mode-btn__desc">Quiz durante a sessão para fixar conteúdo</span>
               </button>
-              <label className="study-mode-pdf-import" onClick={(e) => e.stopPropagation()}>
-                📎 Importar PDF de uma prova (gera 10 questões de múltipla escolha)
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleStudyModeSelect('with_questions', file);
-                  }}
-                />
-              </label>
 
               <button
                 className="study-mode-btn study-mode-btn--review"

@@ -138,6 +138,15 @@ body {
   flex: 0 1 420px;
 }
 
+/* Pomodoro com Questões: relógio à direita, questões à esquerda */
+.app-main--quiz .Pomodoro {
+  order: 2;
+}
+
+.app-main--quiz .TaskPainel {
+  order: 1;
+}
+
 /* ── Task panel ──────────────────────────────────────────────────────────── */
 .TaskPainel {
   display: flex;
@@ -331,26 +340,6 @@ body {
 .study-mode-btn--normal:hover  { border-color: #ef4444; background: rgba(239,68,68,0.06); }
 .study-mode-btn--questions:hover { border-color: #667eea; background: rgba(102,126,234,0.06); }
 .study-mode-btn--review:hover  { border-color: #10b981; background: rgba(16,185,129,0.06); }
-
-.study-mode-pdf-import {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: -2px 0 4px 52px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: #667eea;
-  cursor: pointer;
-}
-
-.study-mode-pdf-import:hover {
-  text-decoration: underline;
-}
-
-.study-mode-pdf-import input[type="file"] {
-  display: none;
-}
 
 .study-mode-modal__cancel {
   background: none;
