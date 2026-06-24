@@ -370,3 +370,5 @@ class AIGenerateFromPDFResponse(BaseModel):
     deck_id: int
     deck_name: str
     deck_created: bool
+    assunto: Optional[str] = None
+    assunto_created: bool = False

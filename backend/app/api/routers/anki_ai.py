@@ -10,10 +10,16 @@ from sqlalchemy.orm import Session
 from app.ai.factory import get_provider
 from app.ai.services.pdf_service import PDFService
 from app.api import dtos
+from app.core.config import settings as app_settings
 from app.data.database import get_db
 from app.data.repositories import anki_deck_repo, flashcard_repo, flashcard_option_repo
 from app.api.dependencies import get_current_user
 from app.domain.models import AnkiDeck, User
+
+# Conteúdo do PDF enviado à IA: gpt-4o-mini tem contexto de 128k tokens,
+# então cortamos bem mais do que o necessário para um PDF de várias páginas.
+MAX_CONTENT_CHARS = 20000
+MAX_DETECTION_CHARS = 6000
 
 router = APIRouter(prefix="/anki/ai", tags=["anki-ai"])
 
@@ -33,7 +39,7 @@ Idioma: {req.language}
 
 Conteúdo de origem:
 ---
-{req.content[:4000]}
+{req.content[:MAX_CONTENT_CHARS]}
 ---
 
 Retorne SOMENTE um JSON válido com a seguinte estrutura (array de objetos):
@@ -133,7 +139,7 @@ async def _call_openai(req: dtos.AIGenerateRequest) -> list[dict]:
                 "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "gpt-3.5-turbo",
+                    "model": app_settings.OPENAI_MODEL,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
                 },
@@ -145,7 +151,7 @@ async def _call_openai(req: dtos.AIGenerateRequest) -> list[dict]:
         raise HTTPException(status_code=502, detail=f"Erro ao chamar OpenAI: {str(e)}")
 
 
-async def _generate_and_save(req: dtos.AIGenerateRequest, db: Session) -> list:
+async def _generate_and_save(req: dtos.AIGenerateRequest, db: Session, extra_tag: str | None = None) -> list:
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if api_key:
         raw_cards = await _call_openai(req)
@@ -157,6 +163,8 @@ async def _generate_and_save(req: dtos.AIGenerateRequest, db: Session) -> list:
         options = raw.pop("options", [])
         raw["deck_id"] = req.deck_id
         raw.setdefault("tags", [])
+        if extra_tag and extra_tag not in raw["tags"]:
+            raw["tags"] = [*raw["tags"], extra_tag]
         card = flashcard_repo.create(db, raw)
         if options:
             flashcard_option_repo.replace_options(db, card.id, options)
@@ -175,14 +183,44 @@ async def _detect_discipline(content: str, api_key: str) -> str:
             "Identifique a disciplina/matéria principal abordada no texto abaixo "
             "(ex: 'Arquitetura de Software', 'Metodologias Ágeis', 'Direito Tributário'). "
             "Responda APENAS com o nome curto da disciplina, sem explicações nem aspas.\n\n"
-            f"Texto:\n---\n{content[:3000]}\n---"
+            f"Texto:\n---\n{content[:MAX_DETECTION_CHARS]}\n---"
         )
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "gpt-3.5-turbo",
+                    "model": app_settings.OPENAI_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.2,
+                },
+            )
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+            return text.strip('"').strip("'")[:60] or "Geral"
+    except Exception:
+        return "Geral"
+
+
+async def _detect_assunto(content: str, deck_name: str, api_key: str) -> str:
+    """Identifica o assunto/sub-tópico específico dentro do deck. 'Geral' como fallback."""
+    if not api_key:
+        return "Geral"
+    try:
+        import httpx
+        prompt = (
+            f"O conteúdo abaixo faz parte do material de estudos do baralho '{deck_name}'. "
+            "Identifique o assunto/sub-tópico específico abordado — algo mais específico que a disciplina geral "
+            "(ex: 'ICMS', 'Processo Administrativo Tributário', 'Scrum - Papéis e Cerimônias'). "
+            "Responda APENAS com o nome curto do assunto, sem explicações nem aspas.\n\n"
+            f"Texto:\n---\n{content[:MAX_DETECTION_CHARS]}\n---"
+        )
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": app_settings.OPENAI_MODEL,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.2,
                 },
@@ -201,6 +239,16 @@ def _find_matching_deck(decks: list[AnkiDeck], discipline: str) -> AnkiDeck | No
         name = deck.name.lower().strip()
         if name == target or name in target or target in name:
             return deck
+    return None
+
+
+def _find_matching_text(candidates: set[str], target: str) -> str | None:
+    """Casa um texto detectado com um valor já existente (nome igual ou contido)."""
+    t = target.lower().strip()
+    for candidate in candidates:
+        c = candidate.lower().strip()
+        if c == t or c in t or t in c:
+            return candidate
     return None
 
 
@@ -224,22 +272,49 @@ async def generate_flashcards_from_pdf(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Importa um PDF, extrai o texto, identifica a disciplina e gera flashcards.
-    Se deck_id não for informado, busca um deck existente com nome compatível
-    com a disciplina detectada; caso não exista, cria um novo automaticamente.
+    """Importa um PDF, extrai o texto e gera flashcards.
+
+    - Se deck_id for informado (uso normal, dentro de um deck aberto): os cartões
+      ficam nesse deck, e o ASSUNTO (sub-tópico) é detectado e casado com os já
+      usados nesse deck; se não existir, o novo assunto é aplicado como tag.
+    - Se deck_id não for informado: identifica a DISCIPLINA e busca/cria o deck
+      correspondente (fallback para quando não há um deck já aberto).
     """
     raw_bytes = await file.read()
     text = PDFService(get_provider())._extract_text(raw_bytes)
-    if not text.strip():
-        raise HTTPException(status_code=400, detail="Não foi possível extrair texto do PDF")
+    if len(text.strip()) < 50:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Não foi possível extrair texto suficiente do PDF. "
+                "Se o arquivo for escaneado/imagem (sem texto selecionável), "
+                "ele precisa passar por OCR antes de ser importado."
+            ),
+        )
 
     api_key = os.environ.get("OPENAI_API_KEY", "")
     deck_created = False
+    assunto: str | None = None
+    assunto_created = False
+    extra_tag: str | None = None
 
     if deck_id is not None:
         deck = anki_deck_repo.get(db, deck_id)
         if not deck or deck.user_id != current_user.id:
             raise HTTPException(status_code=404, detail="Deck not found")
+
+        detected_assunto = await _detect_assunto(text, deck.name, api_key)
+        existing_cards = flashcard_repo.get_by_deck(db, deck.id)
+        existing_assuntos = {
+            tag.replace("assunto:", "", 1)
+            for card in existing_cards
+            for tag in (card.tags or [])
+            if tag.startswith("assunto:")
+        }
+        matched = _find_matching_text(existing_assuntos, detected_assunto)
+        assunto = matched or detected_assunto
+        assunto_created = matched is None
+        extra_tag = f"assunto:{assunto}"
     else:
         discipline = await _detect_discipline(text, api_key)
         existing_decks = anki_deck_repo.get_by_user(db, current_user.id)
@@ -257,11 +332,13 @@ async def generate_flashcards_from_pdf(
         card_types=types_list,
         language=language,
     )
-    created = await _generate_and_save(req, db)
+    created = await _generate_and_save(req, db, extra_tag=extra_tag)
     return dtos.AIGenerateFromPDFResponse(
         created_count=len(created),
         flashcards=created,
         deck_id=deck.id,
         deck_name=deck.name,
         deck_created=deck_created,
+        assunto=assunto,
+        assunto_created=assunto_created,
     )

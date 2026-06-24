@@ -18,7 +18,10 @@
       "Bash(git check-ignore *)",
       "Bash(curl -s http://127.0.0.1:8000/api/ai/health)",
       "Bash(curl -s http://127.0.0.1:8000/openapi.json)",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Bash(curl *)",
+      "Bash(./.venv311/Scripts/python.exe -c \"import pypdf; print\\(pypdf.__version__\\)\")",
+      "Bash(./.venv311/Scripts/python.exe -m pip install \"pypdf==5.1.0\")"
     ]
   }
 }

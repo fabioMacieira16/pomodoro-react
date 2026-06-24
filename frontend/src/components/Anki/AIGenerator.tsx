@@ -32,6 +32,7 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
   const [cardTypes, setCardTypes] = useState<CardType[]>(['qa']);
   const [success, setSuccess] = useState<number | null>(null);
   const [resultDeck, setResultDeck] = useState<{ id: number; name: string; created: boolean } | null>(null);
+  const [resultAssunto, setResultAssunto] = useState<{ name: string; created: boolean } | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -50,16 +51,17 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
     if (sourceType === 'pdf') {
       if (!pdfFile) return;
       try {
-        // Auto-detecta a disciplina do PDF: usa um deck existente com nome compatível
-        // ou cria um novo, em vez de forçar o deck atualmente aberto
+        // Mantém o deck atualmente aberto; o backend detecta o ASSUNTO (sub-tópico)
+        // do PDF e casa com os já usados nesse deck, criando um novo se necessário
         const result = await generateFromPDF({
           file: pdfFile,
-          deckId: null,
+          deckId: deck.id,
           cardCount,
           cardTypes,
           language: 'pt',
         });
         setResultDeck({ id: result.deck_id, name: result.deck_name, created: result.deck_created });
+        setResultAssunto(result.assunto ? { name: result.assunto, created: result.assunto_created } : null);
         setSuccess(result.created_count);
       } catch {
         // error handled in store
@@ -78,6 +80,7 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
         language: 'pt',
       });
       setResultDeck(null);
+      setResultAssunto(null);
       setSuccess(count);
     } catch {
       // error handled in store
@@ -101,11 +104,17 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
               <div className="text-5xl mb-4">✨</div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{success} cartões gerados!</h3>
               <p className="text-gray-500 mb-2">
-                Os flashcards foram adicionados ao deck “{resultDeck?.name ?? deck.name}”.
+                Os flashcards foram adicionados ao deck “{resultDeck?.name ?? deck.name}”
+                {resultAssunto && <> &middot; assunto “{resultAssunto.name}”</>}.
               </p>
               {resultDeck?.created && (
-                <p className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded-lg px-3 py-2 inline-block mb-4">
+                <p className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded-lg px-3 py-2 inline-block mb-2">
                   📚 Disciplina detectada automaticamente — novo deck criado.
+                </p>
+              )}
+              {resultAssunto?.created && (
+                <p className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded-lg px-3 py-2 inline-block mb-4">
+                  🏷️ Assunto detectado automaticamente — novo assunto criado neste deck.
                 </p>
               )}
               <button
@@ -167,8 +176,9 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
                     )}
                   </label>
                   <p className="text-xs text-gray-400 mt-2">
-                    A disciplina será identificada automaticamente pelo conteúdo do PDF: se já existir um deck
-                    compatível, os cartões vão para ele; caso contrário, um novo deck é criado.
+                    Os cartões serão adicionados ao deck atual (“{deck.name}”). O assunto/sub-tópico será
+                    identificado automaticamente pelo conteúdo do PDF: se já existir um assunto compatível
+                    neste deck, os cartões são marcados com ele; caso contrário, um novo assunto é criado.
                   </p>
                 </div>
               ) : (
