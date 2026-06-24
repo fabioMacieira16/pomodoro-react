@@ -66,6 +66,16 @@
   color: var(--pomo-text-muted);
 }
 
+.rp-deck-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pomo-text);
+}
+
 .rp-header {
   display: flex;
   align-items: center;

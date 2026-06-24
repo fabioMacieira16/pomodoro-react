@@ -90,36 +90,19 @@ export function ReviewSession() {
   return (
     <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col z-50">
       {/* Header */}
-      <div className="flex flex-col bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between px-6 py-4">
-          <button
-            onClick={endReview}
-            className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-          >
-            ✕ Encerrar sessão
-          </button>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {currentCardIndex + 1} / {reviewQueue.length}
-          </div>
-          <div className="text-sm text-gray-500">
-            {sessionCorrect}/{sessionTotal} acertos
-          </div>
+      <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={endReview}
+          className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+        >
+          ✕ Encerrar sessão
+        </button>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          {currentCardIndex + 1} / {reviewQueue.length}
         </div>
-        {deck && (
-          <div className="flex items-center gap-2 px-6 pb-3 -mt-1">
-            <span
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: deck.color }}
-            />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{deck.name}</span>
-            {assunto && (
-              <>
-                <span className="text-gray-300 dark:text-gray-600">&bull;</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{assunto}</span>
-              </>
-            )}
-          </div>
-        )}
+        <div className="text-sm text-gray-500">
+          {sessionCorrect}/{sessionTotal} acertos
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -138,6 +121,21 @@ export function ReviewSession() {
             className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 flex-1 min-h-[26rem] flex flex-col ${card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' ? 'cursor-pointer select-none' : ''}`}
             onClick={() => card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' && !isFlipped && setIsFlipped(true)}
           >
+            {deck && (
+              <div className="flex items-center justify-center gap-2 px-6 py-3 border-b border-gray-100 dark:border-gray-700">
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: deck.color }}
+                />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{deck.name}</span>
+                {assunto && (
+                  <>
+                    <span className="text-gray-300 dark:text-gray-600">&bull;</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{assunto}</span>
+                  </>
+                )}
+              </div>
+            )}
             <div className="flex-1 p-10 flex items-center justify-center overflow-y-auto">
               {card.card_type === 'multiple_choice' ? (
                 /* Múltipla escolha: mostra pergunta + opções clicáveis */

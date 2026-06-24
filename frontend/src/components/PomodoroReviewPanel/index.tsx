@@ -80,6 +80,7 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
 
   const card = reviewQueue[currentCardIndex];
   const isFinished = isReviewing && currentCardIndex >= reviewQueue.length;
+  const activeDeck = selectedDeckId !== null ? decks.find((d) => d.id === selectedDeckId) ?? null : null;
 
   if (!isReviewing || selectedDeckId === null) {
     return (
@@ -117,6 +118,12 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
 
   return (
     <div className="rp-panel">
+      {activeDeck && (
+        <div className="rp-deck-title">
+          <span className="rp-deck-dot" style={{ backgroundColor: activeDeck.color }} />
+          <span>{activeDeck.name}</span>
+        </div>
+      )}
       <div className="rp-header">
         <span className="rp-progress">{currentCardIndex + 1} / {reviewQueue.length}</span>
         <span className="rp-score">{sessionCorrect}/{sessionTotal} acertos</span>

@@ -32,6 +32,30 @@
   margin: 0;
 }
 
+.time-digits--editable {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.time-digits--editable:hover {
+  background: var(--pomo-hover, rgba(0,0,0,0.05));
+}
+
+.time-digits-input {
+  width: 120px;
+  font-size: 52px;
+  font-weight: 300;
+  color: var(--pomo-text, #1a1a2e);
+  letter-spacing: 2px;
+  margin: 0;
+  text-align: center;
+  background: var(--pomo-input-bg, #f4f4f8);
+  border: 1.5px solid var(--pomo-accent, #ef4444);
+  border-radius: 8px;
+  -moz-appearance: textfield;
+}
+
 .time-status {
   font-size: 12px;
   text-transform: uppercase;

@@ -1,6 +1,6 @@
 """
 AI-powered flashcard generation.
-Uses the AI provider configured by the user in Configurações (or the server
+ Uses the AI provider configured by the user in Configurações (or the server
 default) if available, otherwise returns a mock.
 """
 from typing import Optional

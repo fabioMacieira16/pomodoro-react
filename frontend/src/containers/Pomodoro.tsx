@@ -203,6 +203,14 @@ const Pomodoro: React.FC = () => {
     }
   };
 
+  const handleChangeMinutes = (minutes: number) => {
+    const clamped = Math.min(120, Math.max(1, minutes));
+    if (engine.phase === 'pomodoro') settings.update({ pomodoroMinutes: clamped });
+    else if (engine.phase === 'shortBreak') settings.update({ shortBreakMinutes: clamped });
+    else settings.update({ longBreakMinutes: clamped });
+    settings.syncToBackend();
+  };
+
   const handleToggleTask = () => {
     setTaskOpen((p: boolean) => {
       const next = !p;
@@ -295,6 +303,8 @@ const Pomodoro: React.FC = () => {
             status={controlStatus}
             progress={engine.progress}
             phaseColor={engine.phaseColor}
+            editable={engine.status === 'idle'}
+            onChangeMinutes={handleChangeMinutes}
           />
 
           {/* Dots: always show when task selected; only show without task when not running */}
