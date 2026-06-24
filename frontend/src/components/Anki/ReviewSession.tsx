@@ -10,6 +10,11 @@ const QUALITY_BUTTONS = [
   { quality: 5, label: 'Fácil', color: 'bg-green-600 hover:bg-green-700', desc: '4 dias' },
 ];
 
+function getAssunto(card: Flashcard): string | null {
+  const tag = card.tags?.find((t) => t.startsWith('assunto:'));
+  return tag ? tag.replace('assunto:', '') : null;
+}
+
 export function ReviewSession() {
   const {
     reviewQueue,
@@ -19,6 +24,7 @@ export function ReviewSession() {
     sessionTotal,
     submitReview,
     endReview,
+    decks,
   } = useAnkiStore();
 
   const [isFlipped, setIsFlipped] = useState(false);
@@ -72,6 +78,9 @@ export function ReviewSession() {
 
   if (!card) return null;
 
+  const deck = decks.find((d) => d.id === card.deck_id);
+  const assunto = getAssunto(card);
+
   const handleRate = async (quality: number) => {
     setSubmitting(true);
     await submitReview(quality);
@@ -81,19 +90,36 @@ export function ReviewSession() {
   return (
     <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col z-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={endReview}
-          className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          ✕ Encerrar sessão
-        </button>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {currentCardIndex + 1} / {reviewQueue.length}
+      <div className="flex flex-col bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4">
+          <button
+            onClick={endReview}
+            className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          >
+            ✕ Encerrar sessão
+          </button>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {currentCardIndex + 1} / {reviewQueue.length}
+          </div>
+          <div className="text-sm text-gray-500">
+            {sessionCorrect}/{sessionTotal} acertos
+          </div>
         </div>
-        <div className="text-sm text-gray-500">
-          {sessionCorrect}/{sessionTotal} acertos
-        </div>
+        {deck && (
+          <div className="flex items-center gap-2 px-6 pb-3 -mt-1">
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: deck.color }}
+            />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{deck.name}</span>
+            {assunto && (
+              <>
+                <span className="text-gray-300 dark:text-gray-600">&bull;</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{assunto}</span>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Progress bar */}

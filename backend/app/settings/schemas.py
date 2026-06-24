@@ -56,6 +56,9 @@ class AIPreferencesSettings(BaseModel):
     If blank, the server .env value is used.
     """
     ai_provider_preference: str = ""  # "" | "openai" | "ollama" | "mock"
+    ai_api_key_set: bool = False  # never echo back the actual key
+    ollama_base_url: str = ""
+    ollama_model: str = ""
     sound_enabled: bool = True
 
     class Config:
@@ -64,6 +67,9 @@ class AIPreferencesSettings(BaseModel):
 
 class AIPreferencesUpdate(BaseModel):
     ai_provider_preference: Optional[str] = None
+    ai_api_key: Optional[str] = None  # write-only; "" clears the stored key
+    ollama_base_url: Optional[str] = None
+    ollama_model: Optional[str] = None
     sound_enabled: Optional[bool] = None
 
 

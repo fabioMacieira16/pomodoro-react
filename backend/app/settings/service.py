@@ -1,5 +1,6 @@
 from __future__ import annotations
 from sqlalchemy.orm import Session
+from app.core.crypto import encrypt_secret
 from app.domain.models import Setting
 from app.settings.schemas import (
     PomodoroSettings,
@@ -69,7 +70,15 @@ class SettingsService:
 
     def update_ai(self, db: Session, user_id: int, data: AIPreferencesUpdate) -> AIPreferencesSettings:
         s = self.get_or_create(db, user_id)
-        self._patch(db, s, data)
+        payload = data.model_dump(exclude_unset=True)
+        if "ai_api_key" in payload:
+            raw_key = payload.pop("ai_api_key")
+            s.ai_api_key_encrypted = encrypt_secret(raw_key) if raw_key else ""
+        for field, value in payload.items():
+            if hasattr(s, field):
+                setattr(s, field, value)
+        db.commit()
+        db.refresh(s)
         return self._ai(s)
 
     # ── Notifications ──────────────────────────────────────────────────────────
@@ -117,6 +126,9 @@ class SettingsService:
     def _ai(s: Setting) -> AIPreferencesSettings:
         return AIPreferencesSettings(
             ai_provider_preference=getattr(s, "ai_provider_preference", ""),
+            ai_api_key_set=bool(getattr(s, "ai_api_key_encrypted", "")),
+            ollama_base_url=getattr(s, "ollama_base_url", ""),
+            ollama_model=getattr(s, "ollama_model", ""),
             sound_enabled=s.sound_enabled,
         )
 

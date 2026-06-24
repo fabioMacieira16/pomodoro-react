@@ -90,7 +90,10 @@
   font-weight: 500;
 }
 
-.settings-grid input[type="number"] {
+.settings-grid input[type="number"],
+.settings-body input[type="text"],
+.settings-body input[type="password"],
+.settings-body select {
   background: var(--pomo-input-bg, #f4f4f8);
   border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.1));
   border-radius: 8px;
@@ -102,9 +105,48 @@
   transition: border-color 0.15s;
 }
 
-.settings-grid input[type="number"]:focus {
+.settings-grid input[type="number"]:focus,
+.settings-body input[type="text"]:focus,
+.settings-body input[type="password"]:focus,
+.settings-body select:focus {
   outline: none;
   border-color: var(--pomo-accent, #ef4444);
+}
+
+.settings-ai-note {
+  font-size: 0.8rem;
+  opacity: 0.65;
+  font-weight: 400;
+  margin: 2px 0 0;
+}
+
+.settings-ai-status {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #16a34a;
+  margin: 4px 0 0;
+}
+
+.settings-ai-save {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: var(--pomo-input-bg, #f4f4f8);
+  border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.12));
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.settings-ai-save:hover {
+  opacity: 0.85;
+}
+
+.settings-ai-save:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .settings-toggle {

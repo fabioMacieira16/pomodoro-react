@@ -1,5 +1,6 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { usePomodoroSettings } from '../../store/pomodoroSettingsStore';
+import api from '../../api/client';
 import type { DarkModePreference, SoundType } from '../../types';
 import './styles.css';
 
@@ -20,8 +21,37 @@ const DarkModeOptions: { value: DarkModePreference; label: string }[] = [
   { value: 'dark', label: '🌙 Escuro' },
 ];
 
+type AIProviderOption = '' | 'openai' | 'ollama';
+
+interface AIPreferencesResponse {
+  ai_provider_preference: string;
+  ai_api_key_set: boolean;
+  ollama_base_url: string;
+  ollama_model: string;
+}
+
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const s = usePomodoroSettings();
+
+  const [aiProvider, setAiProvider] = useState<AIProviderOption>('');
+  const [apiKeySet, setApiKeySet] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState('');
+  const [ollamaModel, setOllamaModel] = useState('');
+  const [savingAi, setSavingAi] = useState(false);
+  const [aiSaved, setAiSaved] = useState(false);
+
+  useEffect(() => {
+    api.get<AIPreferencesResponse>('/settings/ai').then((res) => {
+      const d = res.data;
+      setAiProvider((d.ai_provider_preference as AIProviderOption) || '');
+      setApiKeySet(d.ai_api_key_set);
+      setOllamaBaseUrl(d.ollama_base_url || '');
+      setOllamaModel(d.ollama_model || '');
+    }).catch(() => {
+      // Not authenticated or offline — keep defaults
+    });
+  }, []);
 
   const handleChange = <K extends keyof typeof s>(key: K, value: (typeof s)[K]) => {
     s.update({ [key]: value } as any);
@@ -30,6 +60,38 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const handleSave = () => {
     s.syncToBackend();
     onClose();
+  };
+
+  const handleSaveAi = async () => {
+    setSavingAi(true);
+    setAiSaved(false);
+    try {
+      const payload: Record<string, unknown> = {
+        ai_provider_preference: aiProvider,
+        ollama_base_url: ollamaBaseUrl,
+        ollama_model: ollamaModel,
+      };
+      if (apiKeyInput) {
+        payload.ai_api_key = apiKeyInput;
+      }
+      const res = await api.put<AIPreferencesResponse>('/settings/ai', payload);
+      setApiKeySet(res.data.ai_api_key_set);
+      setApiKeyInput('');
+      setAiSaved(true);
+    } finally {
+      setSavingAi(false);
+    }
+  };
+
+  const handleRemoveApiKey = async () => {
+    setSavingAi(true);
+    try {
+      const res = await api.put<AIPreferencesResponse>('/settings/ai', { ai_api_key: '' });
+      setApiKeySet(res.data.ai_api_key_set);
+      setApiKeyInput('');
+    } finally {
+      setSavingAi(false);
+    }
   };
 
   return (
@@ -149,6 +211,80 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                 </label>
               ))}
             </div>
+          </section>
+          {/* AI provider */}
+          <section className="settings-section">
+            <h3>🤖 Inteligência Artificial</h3>
+            <label>
+              Provedor de IA
+              <select
+                value={aiProvider}
+                onChange={(e) => setAiProvider(e.target.value as AIProviderOption)}
+              >
+                <option value="">Padrão do servidor</option>
+                <option value="openai">OpenAI</option>
+                <option value="ollama">Ollama (local)</option>
+              </select>
+            </label>
+
+            {aiProvider === 'openai' && (
+              <label style={{ marginTop: 12 }}>
+                Chave da API (OpenAI)
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder={apiKeySet ? 'Chave salva — deixe em branco para manter' : 'sk-...'}
+                />
+                {apiKeySet && (
+                  <p className="settings-ai-status">
+                    ✓ Chave configurada{' '}
+                    <button
+                      type="button"
+                      className="settings-ai-save"
+                      onClick={handleRemoveApiKey}
+                      disabled={savingAi}
+                      style={{ marginLeft: 8 }}
+                    >
+                      Remover
+                    </button>
+                  </p>
+                )}
+                <p className="settings-ai-note">A chave é armazenada criptografada e usada para gerar seus flashcards.</p>
+              </label>
+            )}
+
+            {aiProvider === 'ollama' && (
+              <div className="settings-grid" style={{ marginTop: 12 }}>
+                <label>
+                  Endereço do Ollama
+                  <input
+                    type="text"
+                    value={ollamaBaseUrl}
+                    onChange={(e) => setOllamaBaseUrl(e.target.value)}
+                    placeholder="http://localhost:11434"
+                  />
+                </label>
+                <label>
+                  Modelo
+                  <input
+                    type="text"
+                    value={ollamaModel}
+                    onChange={(e) => setOllamaModel(e.target.value)}
+                    placeholder="llama3.2"
+                  />
+                </label>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="settings-ai-save"
+              onClick={handleSaveAi}
+              disabled={savingAi}
+            >
+              {savingAi ? 'Salvando...' : aiSaved ? 'Salvo ✓' : 'Salvar IA'}
+            </button>
           </section>
         </div>
 

@@ -23,7 +23,9 @@
       "Bash(./.venv311/Scripts/python.exe -c \"import pypdf; print\\(pypdf.__version__\\)\")",
       "Bash(./.venv311/Scripts/python.exe -m pip install \"pypdf==5.1.0\")",
       "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
-      "Bash(find C:\\\\\\\\Projetos\\\\\\\\pomodoro-react\\\\\\\\backend -name \"*.py\" -type f)"
+      "Bash(find C:\\\\\\\\Projetos\\\\\\\\pomodoro-react\\\\\\\\backend -name \"*.py\" -type f)",
+      "Bash(xargs -I{} sh -c 'grep -H \"^revision\\\\|^down_revision\" {}')",
+      "PowerShell(cd \"C:\\\\Projetos\\\\pomodoro-react\\\\frontend\"; npx tsc --noEmit > tsc_out.txt 2>&1; Write-Output \"EXIT:$LASTEXITCODE\"; Get-Content tsc_out.txt | Select-String -Pattern \"SettingsPanel|ReviewSession\")"
     ]
   }
 }
