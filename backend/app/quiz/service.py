@@ -19,6 +19,8 @@ from app.quiz.schemas import (
 from app.ai.factory import get_provider
 from app.core.study_context import StudyContextService
 
+MAX_PDF_CONTENT_CHARS = 20000
+
 
 class QuizService:
 
@@ -161,7 +163,7 @@ Regras:
             print(f"[QuizService] AI generation error: {e}")
             return []
 
-    def _ai_question_to_exercise(self, data: dict, subject_id: int) -> Exercise:
+    def _ai_question_to_exercise(self, data: dict, subject_id: Optional[int]) -> Exercise:
         """Persist AI-generated question and return Exercise."""
         letter_to_pos = {"A": 0, "B": 1, "C": 2, "D": 3}
         correct_letter = str(data.get("correct_answer", "A")).upper().strip()
@@ -174,7 +176,6 @@ Regras:
             explanation=data.get("explanation"),
             difficulty=data.get("difficulty", "Medium"),
             correct_answer=correct_letter,
-            source="ai_generated",
         )
         self.db.add(exercise)
         self.db.flush()  # get ID without commit
@@ -192,6 +193,93 @@ Regras:
         self.db.commit()
         self.db.refresh(exercise)
         return exercise
+
+    # ── Generate quiz from an uploaded PDF (e.g. a past exam) ────────────
+
+    def generate_quiz_from_pdf(
+        self,
+        content_text: str,
+        num_questions: int,
+        subject_id: Optional[int] = None,
+        pomodoro_session_id: Optional[int] = None,
+    ) -> QuizSessionOut:
+        exercises = self._generate_ai_exercises_from_text(content_text, num_questions, subject_id)
+        if not exercises:
+            raise ValueError(
+                "Não foi possível gerar questões a partir do PDF. Configure um provedor de IA em Configurações."
+            )
+
+        session = QuizSession(
+            user_id=self.user_id,
+            pomodoro_session_id=pomodoro_session_id,
+            subject_id=subject_id,
+            total_questions=len(exercises),
+            difficulty_level="Medium",
+            session_mode="quiz_pdf",
+        )
+        self.db.add(session)
+        self.db.commit()
+        self.db.refresh(session)
+
+        questions = [self._to_question_out(e, hide_answer=True) for e in exercises]
+        return QuizSessionOut(
+            session_id=session.id,
+            subject_id=subject_id,
+            questions=questions,
+            total_questions=len(exercises),
+            difficulty_level="Medium",
+            session_mode=session.session_mode,
+        )
+
+    def _generate_ai_exercises_from_text(
+        self, content_text: str, num_questions: int, subject_id: Optional[int]
+    ) -> List[Exercise]:
+        """Generate multiple-choice questions from PDF content (e.g. a past exam)."""
+        provider = get_provider()
+        if not provider.is_available():
+            return []
+
+        prompt = f"""Você é um especialista em criar questões de concursos públicos.
+Com base no conteúdo abaixo (pode ser uma prova, apostila ou material de estudo), gere {num_questions} questões de múltipla escolha.
+Sempre que o conteúdo já contiver questões, replique-as fielmente (questões de fixação baseadas no material original).
+Quando não houver questões suficientes no texto, crie novas questões objetivas sobre os temas abordados no conteúdo.
+
+Conteúdo:
+---
+{content_text[:MAX_PDF_CONTENT_CHARS]}
+---
+
+Retorne SOMENTE JSON válido no formato:
+[
+  {{
+    "question_text": "Texto da questão?",
+    "hint": "Dica opcional",
+    "explanation": "Explicação detalhada",
+    "difficulty": "Medium",
+    "correct_answer": "B",
+    "options": [
+      {{"position": 0, "text": "Opção A"}},
+      {{"position": 1, "text": "Opção B (correta)"}},
+      {{"position": 2, "text": "Opção C"}},
+      {{"position": 3, "text": "Opção D"}}
+    ]
+  }}
+]
+
+Regras:
+- Exatamente 4 opções por questão (A, B, C, D)
+- correct_answer deve ser a letra (A, B, C ou D)
+- Questões objetivas, claras e fiéis ao conteúdo fornecido
+- Não use markdown, apenas JSON puro
+"""
+        try:
+            raw = asyncio.run(provider.complete_json(prompt))
+            if not isinstance(raw, list):
+                return []
+            return [self._ai_question_to_exercise(q, subject_id) for q in raw[:num_questions]]
+        except Exception as e:
+            print(f"[QuizService] AI PDF generation error: {e}")
+            return []
 
     # ── Submit answer ────────────────────────────────────────────────────
 

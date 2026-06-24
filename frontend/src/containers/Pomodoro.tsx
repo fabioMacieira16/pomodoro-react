@@ -46,6 +46,7 @@ const Pomodoro: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showStudyModeModal, setShowStudyModeModal] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [quizPdfFile, setQuizPdfFile] = useState<File | null>(null);
   const [taskOpen, setTaskOpen] = useState(() => {
     const saved = localStorage.getItem('pomodoro-react-taskStatus');
     return saved ? JSON.parse(saved) : false;
@@ -183,8 +184,9 @@ const Pomodoro: React.FC = () => {
     engine.start();
   };
 
-  const handleStudyModeSelect = (mode: 'normal' | 'with_questions' | 'review') => {
+  const handleStudyModeSelect = (mode: 'normal' | 'with_questions' | 'review', pdfFile?: File | null) => {
     studyCtx.setPomodoroMode(mode);
+    setQuizPdfFile(pdfFile ?? null);
     setShowStudyModeModal(false);
     if (engine.status === 'finished') engine.changePhase(engine.phase);
     engine.start();
@@ -406,7 +408,8 @@ const Pomodoro: React.FC = () => {
         <PomodoroQuiz
           subjectName={studyCtx.context.current_subject}
           pomodoroNumber={engine.pomodoroCount}
-          onClose={() => setShowQuiz(false)}
+          pdfFile={quizPdfFile}
+          onClose={() => { setShowQuiz(false); setQuizPdfFile(null); }}
         />
       )}
 
@@ -437,6 +440,17 @@ const Pomodoro: React.FC = () => {
                 <span className="study-mode-btn__title">Pomodoro com Questões</span>
                 <span className="study-mode-btn__desc">Quiz durante a sessão para fixar conteúdo</span>
               </button>
+              <label className="study-mode-pdf-import" onClick={(e) => e.stopPropagation()}>
+                📎 Importar PDF de uma prova (gera 10 questões de múltipla escolha)
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleStudyModeSelect('with_questions', file);
+                  }}
+                />
+              </label>
 
               <button
                 className="study-mode-btn study-mode-btn--review"

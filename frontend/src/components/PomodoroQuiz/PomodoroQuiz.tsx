@@ -49,6 +49,7 @@ interface PomodoroQuizProps {
   subjectId?: number | null;
   subjectName?: string | null;
   pomodoroNumber?: number;
+  pdfFile?: File | null;
   onClose: () => void;
 }
 
@@ -71,6 +72,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   subjectId,
   subjectName,
   pomodoroNumber = 1,
+  pdfFile = null,
   onClose,
 }) => {
   const { addPerformance, addReview } = useStudyContext();
@@ -88,6 +90,27 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   const loadQuiz = useCallback(async () => {
     setState('loading');
     setErrorMsg(null);
+
+    if (pdfFile) {
+      try {
+        const form = new FormData();
+        form.append('file', pdfFile);
+        form.append('num_questions', '10');
+        if (subjectId) form.append('subject_id', String(subjectId));
+
+        const res = await api.post('/quiz/generate-from-pdf', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        setSession(res.data);
+        setCurrentIdx(0);
+        setState('question');
+      } catch (err: unknown) {
+        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
+        setState('error');
+        setErrorMsg(detail || 'Erro ao gerar questões a partir do PDF.');
+      }
+      return;
+    }
 
     // Requer matéria selecionada para gerar questões contextualizadas
     if (!subjectId && !subjectName) {
@@ -123,7 +146,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         setErrorMsg(detail || 'Erro ao gerar questões. Verifique se há conteúdos cadastrados para esta disciplina.');
       }
     }
-  }, [subjectId, subjectName, pomodoroNumber]);
+  }, [pdfFile, subjectId, subjectName, pomodoroNumber]);
 
   useEffect(() => {
     loadQuiz();
@@ -188,8 +211,12 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
       <div className="pq-overlay">
         <div className="pq-modal pq-modal--loading">
           <div className="pq-spinner" />
-          <p>Gerando questões com IA...</p>
-          {subjectName && <p className="pq-loading-subject">📚 {subjectName}</p>}
+          <p>{pdfFile ? 'Gerando questões a partir do PDF...' : 'Gerando questões com IA...'}</p>
+          {pdfFile ? (
+            <p className="pq-loading-subject">📎 {pdfFile.name}</p>
+          ) : (
+            subjectName && <p className="pq-loading-subject">📚 {subjectName}</p>
+          )}
         </div>
       </div>
     );

@@ -332,6 +332,26 @@ body {
 .study-mode-btn--questions:hover { border-color: #667eea; background: rgba(102,126,234,0.06); }
 .study-mode-btn--review:hover  { border-color: #10b981; background: rgba(16,185,129,0.06); }
 
+.study-mode-pdf-import {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: -2px 0 4px 52px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #667eea;
+  cursor: pointer;
+}
+
+.study-mode-pdf-import:hover {
+  text-decoration: underline;
+}
+
+.study-mode-pdf-import input[type="file"] {
+  display: none;
+}
+
 .study-mode-modal__cancel {
   background: none;
   border: 1px solid var(--pomo-border, rgba(0,0,0,0.12));

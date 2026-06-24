@@ -1,7 +1,9 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from app.ai.factory import get_provider
+from app.ai.services.pdf_service import PDFService
 from app.data.database import get_db
 from app.api.dependencies import get_current_user
 from app.domain.models import User, QuizSession
@@ -36,6 +38,38 @@ def generate_quiz(
     try:
         return svc.generate_quiz(req, pomodoro_session_id)
     except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/generate-from-pdf",
+    response_model=QuizSessionOut,
+    summary="Generate a multiple-choice quiz from an uploaded PDF (e.g. a past exam)",
+)
+async def generate_quiz_from_pdf(
+    file: UploadFile = File(...),
+    num_questions: int = Form(10),
+    subject_id: Optional[int] = Form(None),
+    pomodoro_session_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    raw_bytes = await file.read()
+    text = PDFService(get_provider())._extract_text(raw_bytes)
+    if len(text.strip()) < 50:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Não foi possível extrair texto suficiente do PDF. "
+                "Se o arquivo for escaneado/imagem (sem texto selecionável), "
+                "ele precisa passar por OCR antes de ser importado."
+            ),
+        )
+
+    svc = QuizService(db=db, user_id=current_user.id)
+    try:
+        return svc.generate_quiz_from_pdf(text, num_questions, subject_id, pomodoro_session_id)
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
