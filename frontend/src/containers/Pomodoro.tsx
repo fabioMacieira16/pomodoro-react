@@ -18,7 +18,6 @@ import { usePomodoroSettings } from '../store/pomodoroSettingsStore';
 import { usePomodoroStore } from '../store/pomodoroStore';
 import { useStudyContext } from '../store/studyContextStore';
 import { useAnkiStore } from '../store/ankiStore';
-import { useSubjectStore } from '../store/subjectStore';
 import { useSelectedTask } from '../store/selectedTaskStore';
 import type { TimerPhase } from '../types';
 import './Pomodoro.css';
@@ -42,13 +41,11 @@ const Pomodoro: React.FC = () => {
   const pomodoroStore = usePomodoroStore();
 
   const studyCtx = useStudyContext();
-  const { subjects: subjectList, fetchSubjects } = useSubjectStore();
   const { selectedTask, incrementActual } = useSelectedTask();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showStudyModeModal, setShowStudyModeModal] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState(studyCtx.context.current_subject ?? '');
   const [taskOpen, setTaskOpen] = useState(() => {
     const saved = localStorage.getItem('pomodoro-react-taskStatus');
     return saved ? JSON.parse(saved) : false;
@@ -80,18 +77,6 @@ const Pomodoro: React.FC = () => {
       settings.update({ focusMode: false });
     }
   }, [engine.status, engine.phase]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Fetch subjects on mount ──────────────────────────────────────────
-  useEffect(() => {
-    void fetchSubjects();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Sync selectedSubject when modal opens ────────────────────────────
-  useEffect(() => {
-    if (showStudyModeModal) {
-      setSelectedSubject(studyCtx.context.current_subject ?? '');
-    }
-  }, [showStudyModeModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Show quiz when Pomodoro finishes in with_questions mode ────────────
   useEffect(() => {
@@ -199,7 +184,6 @@ const Pomodoro: React.FC = () => {
   };
 
   const handleStudyModeSelect = (mode: 'normal' | 'with_questions' | 'review') => {
-    studyCtx.setCurrentSubject(selectedSubject.trim() || null);
     studyCtx.setPomodoroMode(mode);
     setShowStudyModeModal(false);
     if (engine.status === 'finished') engine.changePhase(engine.phase);
@@ -230,11 +214,6 @@ const Pomodoro: React.FC = () => {
   const isTimerActive = engine.status === 'running' || engine.status === 'paused';
   const isRunning = engine.status === 'running';
   const isReviewMode = studyCtx.context.current_pomodoro_mode === 'review' && isTimerActive;
-
-  const allSubjectOptions = Array.from(new Set([
-    ...studyCtx.context.subjects,
-    ...subjectList.map(s => s.name),
-  ])).filter(Boolean);
 
   const headerClass = [
     'app-header',
@@ -429,22 +408,6 @@ const Pomodoro: React.FC = () => {
             {studyCtx.context.concurso && (
               <p className="study-mode-modal__concurso">{studyCtx.context.concurso}</p>
             )}
-
-            <div className="subject-picker">
-              <label className="subject-picker__label">📚 Matéria</label>
-              <input
-                className="subject-picker__input"
-                list="subject-suggestions"
-                placeholder="Ex: Direito Tributário…"
-                value={selectedSubject}
-                onChange={e => setSelectedSubject(e.target.value)}
-              />
-              <datalist id="subject-suggestions">
-                {allSubjectOptions.map(s => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
-            </div>
 
             <div className="study-mode-modal__options">
               <button

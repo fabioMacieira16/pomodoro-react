@@ -21,7 +21,9 @@
       "PowerShell(Get-Process *)",
       "Bash(curl *)",
       "Bash(./.venv311/Scripts/python.exe -c \"import pypdf; print\\(pypdf.__version__\\)\")",
-      "Bash(./.venv311/Scripts/python.exe -m pip install \"pypdf==5.1.0\")"
+      "Bash(./.venv311/Scripts/python.exe -m pip install \"pypdf==5.1.0\")",
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
+      "Bash(find C:\\\\\\\\Projetos\\\\\\\\pomodoro-react\\\\\\\\backend -name \"*.py\" -type f)"
     ]
   }
 }

@@ -347,42 +347,6 @@ body {
   background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
 }
 
-/* ── Subject picker (modal) ──────────────────────────────────────────────── */
-.subject-picker {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  margin-bottom: 20px;
-  text-align: left;
-  width: 100%;
-}
-
-.subject-picker__label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--pomo-text-muted, #888);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.subject-picker__input {
-  width: 100%;
-  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
-  border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.12));
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 0.95rem;
-  color: var(--pomo-text, #1a1a2e);
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-}
-
-.subject-picker__input:focus {
-  border-color: #667eea;
-}
-
 /* ── Subject chip (idle screen) ──────────────────────────────────────────── */
 .subject-chip {
   background: none;
