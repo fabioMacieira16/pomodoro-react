@@ -18,6 +18,7 @@ from app.study_planner.schemas import (
 )
 from app.ai.factory import get_provider
 from app.core.config import settings
+from app.core.study_context import StudyContextService
 
 
 class StudyPlannerService:
@@ -69,6 +70,18 @@ class StudyPlannerService:
         self.db.commit()
         self.db.refresh(config)
         plan_output.plan_id = config.id
+
+        # Sync weekly schedule into global study context
+        _DAY_MAP = {"Seg": 0, "Ter": 1, "Qua": 2, "Qui": 3, "Sex": 4, "Sáb": 5, "Dom": 6}
+        weekly_ctx = [
+            {"day_of_week": _DAY_MAP.get(day, i), "subjects": subjects, "study_hours": wizard.daily_hours}
+            for i, (day, subjects) in enumerate(weekly_schedule.items())
+        ]
+        try:
+            StudyContextService.update_context(weekly_schedule=weekly_ctx)
+        except Exception:
+            pass
+
         return plan_output
 
     def generate_plan_from_prompt(self, body: QuickPlanRequest) -> PlanOutput:

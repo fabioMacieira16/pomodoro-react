@@ -11,10 +11,12 @@ router = APIRouter(prefix="/anki/review", tags=["anki-review"])
 
 
 @router.get("/queue/{deck_id}", response_model=list[dtos.FlashcardResponse])
-def get_review_queue(deck_id: int, limit: int = 50, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_review_queue(deck_id: int, limit: int = 50, force: bool = False, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     deck = anki_deck_repo.get(db, deck_id)
     if not deck or deck.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Deck not found")
+    if force:
+        return flashcard_repo.get_by_deck(db, deck_id)[:limit]
     return flashcard_repo.get_review_queue(db, deck_id, limit=limit)
 
 

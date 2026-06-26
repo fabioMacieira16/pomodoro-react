@@ -64,7 +64,8 @@ class PomodoroQuizMode(BaseModel):
 
 
 class QuizGenerateRequest(BaseModel):
-    subject_id: int
+    subject_id: Optional[int] = None
+    subject_name: Optional[str] = None
     num_questions: int = 5
     difficulty: Optional[str] = None   # auto-detect if None
     pomodoro_number: int = 1

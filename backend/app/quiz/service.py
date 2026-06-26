@@ -59,31 +59,49 @@ class QuizService:
     # ── Generate quiz ────────────────────────────────────────────────────
 
     def generate_quiz(self, req: QuizGenerateRequest, pomodoro_session_id: Optional[int] = None) -> QuizSessionOut:
-        difficulty = req.difficulty or self._auto_difficulty(req.subject_id)
+        subject_id = req.subject_id
 
-        exercises = (
-            self.db.query(Exercise)
-            .filter_by(subject_id=req.subject_id)
-            .filter(Exercise.difficulty == difficulty)
-            .order_by(func.random())
-            .limit(req.num_questions)
-            .all()
-        )
+        # Resolve subject by name when no ID provided
+        if not subject_id and req.subject_name:
+            subject = (
+                self.db.query(Subject)
+                .filter(func.lower(Subject.name) == req.subject_name.strip().lower())
+                .first()
+            )
+            if not subject:
+                subject = Subject(name=req.subject_name.strip())
+                self.db.add(subject)
+                self.db.commit()
+                self.db.refresh(subject)
+            subject_id = subject.id
 
-        # Fallback: any difficulty
-        if len(exercises) < req.num_questions:
+        difficulty = req.difficulty or (self._auto_difficulty(subject_id) if subject_id else "Medium")
+
+        exercises: List[Exercise] = []
+        if subject_id:
             exercises = (
                 self.db.query(Exercise)
-                .filter_by(subject_id=req.subject_id)
+                .filter_by(subject_id=subject_id)
+                .filter(Exercise.difficulty == difficulty)
                 .order_by(func.random())
                 .limit(req.num_questions)
                 .all()
             )
 
+            # Fallback: any difficulty for this subject
+            if len(exercises) < req.num_questions:
+                exercises = (
+                    self.db.query(Exercise)
+                    .filter_by(subject_id=subject_id)
+                    .order_by(func.random())
+                    .limit(req.num_questions)
+                    .all()
+                )
+
         # AI fallback: generate questions when DB is empty
         ai_generated = False
         if len(exercises) == 0:
-            exercises = self._generate_ai_exercises(req.subject_id, req.num_questions, difficulty)
+            exercises = self._generate_ai_exercises(subject_id, req.num_questions, difficulty, req.subject_name)
             ai_generated = True
 
         session = QuizSession(
@@ -110,10 +128,13 @@ class QuizService:
 
     # ── AI question generation ───────────────────────────────────────────
 
-    def _generate_ai_exercises(self, subject_id: int, num_questions: int, difficulty: str) -> List[Exercise]:
+    def _generate_ai_exercises(self, subject_id: Optional[int], num_questions: int, difficulty: str, subject_name: Optional[str] = None) -> List[Exercise]:
         """Generate questions via AI when no exercises exist in the DB."""
-        subject = self.db.query(Subject).filter_by(id=subject_id).first()
-        subject_name = subject.name if subject else "Conhecimentos Gerais"
+        if subject_id:
+            subject = self.db.query(Subject).filter_by(id=subject_id).first()
+            subject_name = subject.name if subject else (subject_name or "Conhecimentos Gerais")
+        else:
+            subject_name = subject_name or "Conhecimentos Gerais"
 
         # Enrich with study context
         ctx = StudyContextService.get_context()

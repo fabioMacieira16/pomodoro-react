@@ -26,9 +26,11 @@ const emptyOptions = (): Partial<FlashcardOption>[] => [
 ];
 
 export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
-  const { createFlashcard, updateFlashcard, flashcards } = useAnkiStore();
+  const { createFlashcard, updateFlashcard, flashcards, decks } = useAnkiStore();
   const { context } = useStudyContext();
   const { subjects: subjectList } = useSubjectStore();
+
+  const [selectedDeckId, setSelectedDeckId] = useState<number>(card?.deck_id ?? deck.id);
 
   const [cardType, setCardType] = useState<CardType>(card?.card_type ?? 'qa');
   const [front, setFront] = useState(card?.front ?? '');
@@ -53,18 +55,20 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
   );
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Determine discipline from deck.subject_id or deck.name
+  const selectedDeck = decks.find(d => d.id === selectedDeckId) ?? deck;
+
+  // Determine discipline label from the selected deck
   const deckDiscipline = (() => {
-    if (deck.subject_id) {
-      const subject = subjectList.find(s => s.id === deck.subject_id);
+    if (selectedDeck.subject_id) {
+      const subject = subjectList.find(s => s.id === selectedDeck.subject_id);
       if (subject) return subject.name;
     }
-    // Fallback: check if deck name matches a context subject
     const contextMatch = context.subjects.find(
-      s => deck.name.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(deck.name.toLowerCase())
+      s => selectedDeck.name.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(selectedDeck.name.toLowerCase())
     );
-    return contextMatch ?? deck.name;
+    return contextMatch ?? selectedDeck.name;
   })();
 
   // Assunto suggestions: subjects already used on cards in this deck, plus disciplina names
@@ -89,6 +93,8 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
       const assuntoTag = card.tags?.find(t => t.startsWith('assunto:'));
       setAssunto(assuntoTag ? assuntoTag.replace('assunto:', '') : '');
       setOptions(card.options?.length ? card.options : emptyOptions());
+      setSelectedDeckId(card.deck_id ?? deck.id);
+      setSaveError(null);
     }
   }, [card]);
 
@@ -113,15 +119,19 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setSaveError(null);
     const effectiveBack =
       cardType === 'multiple_choice'
         ? (options.find((o) => o.is_correct)?.text?.trim() ?? '')
         : back.trim();
-    if (!front.trim() || !effectiveBack) return;
+    if (!front.trim() || !effectiveBack) {
+      setSaveError(!front.trim() ? 'Preencha a pergunta/frente do cartão.' : 'Selecione ou preencha a resposta/verso.');
+      return;
+    }
     setSaving(true);
     try {
       const payload: Partial<Flashcard> = {
-        deck_id: deck.id,
+        deck_id: selectedDeckId,
         card_type: cardType,
         front: front.trim(),
         back: effectiveBack,
@@ -139,7 +149,6 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         onClose();
       } else {
         await createFlashcard(payload);
-        // Stay on screen so the user can immediately register the next card
         setFront('');
         setBack('');
         setHint('');
@@ -148,6 +157,9 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
       }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setSaveError(msg ?? 'Erro ao salvar o cartão. Verifique a conexão e tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -166,15 +178,20 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
-          {/* Disciplina (read-only, from deck) */}
+          {/* Disciplina — seletor de deck */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Disciplina <span className="text-red-500">*</span>
+              Disciplina (Deck) <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{deckDiscipline}</span>
-              <span className="text-xs text-gray-400 ml-auto">via deck "{deck.name}"</span>
-            </div>
+            <select
+              value={selectedDeckId}
+              onChange={(e) => setSelectedDeckId(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {decks.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Assunto (optional) */}
@@ -338,6 +355,11 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
             </div>
           </div>
 
+          {saveError && (
+            <div className="text-sm text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
           {justSaved && (
             <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2">
               <CheckCircle2 size={16} />

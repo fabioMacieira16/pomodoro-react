@@ -24,6 +24,7 @@ export function ReviewSession() {
     sessionTotal,
     submitReview,
     endReview,
+    cancelReview,
     decks,
   } = useAnkiStore();
 
@@ -91,12 +92,24 @@ export function ReviewSession() {
     <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex flex-col z-50">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={endReview}
-          className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          ✕ Encerrar sessão
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={cancelReview}
+            className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            title="Fechar sem encerrar a sessão — cards já revisados permanecem salvos"
+          >
+            ← Fechar
+          </button>
+          {sessionTotal > 0 && (
+            <button
+              onClick={endReview}
+              className="text-sm text-red-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              title="Encerrar e salvar estatísticas da sessão"
+            >
+              ✕ Encerrar sessão
+            </button>
+          )}
+        </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {currentCardIndex + 1} / {reviewQueue.length}
         </div>

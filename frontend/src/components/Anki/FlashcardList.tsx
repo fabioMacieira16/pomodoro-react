@@ -46,7 +46,7 @@ interface Baralho {
 }
 
 export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: FlashcardListProps) {
-  const { flashcards, fetchFlashcards, deleteFlashcard, isLoadingCards, importCSV } = useAnkiStore();
+  const { flashcards, fetchFlashcards, deleteFlashcard, isLoadingCards, importCSV, startReviewAll } = useAnkiStore();
   const [showForm, setShowForm] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
@@ -148,15 +148,35 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
             <Plus size={14} />
             Novo Cartão
           </button>
-          {deck.card_count > 0 && (
-            <button
-              onClick={() => onStartReview(deck, selectedAssunto)}
-              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-            >
-              <Brain size={14} />
-              {currentBaralho ? `Estudar "${currentBaralho.label}" (${visibleCards.length})` : `Estudar (${deck.due_count + deck.new_count})`}
-            </button>
-          )}
+          {deck.card_count > 0 && (() => {
+            const dueInBaralho = currentBaralho
+              ? currentBaralho.cards.filter(c => isDue(c) || isNew(c)).length
+              : deck.due_count + deck.new_count;
+            const totalInScope = currentBaralho ? currentBaralho.cards.length : deck.card_count;
+            if (dueInBaralho > 0) {
+              return (
+                <button
+                  onClick={() => onStartReview(deck, selectedAssunto)}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  <Brain size={14} />
+                  {currentBaralho ? `Estudar "${currentBaralho.label}" (${dueInBaralho})` : `Estudar (${dueInBaralho})`}
+                </button>
+              );
+            }
+            return (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-green-600 dark:text-green-400 font-medium">✓ Todos em dia</span>
+                <button
+                  onClick={() => startReviewAll(deck.id, selectedAssunto)}
+                  className="flex items-center gap-2 px-3 py-2 border border-green-500 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-sm font-medium"
+                >
+                  <Brain size={14} />
+                  Revisar tudo ({totalInScope})
+                </button>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

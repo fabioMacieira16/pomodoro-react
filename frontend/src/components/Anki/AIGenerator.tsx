@@ -95,7 +95,7 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
             <Zap size={18} className="text-purple-600" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gerar Flashcards com IA</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+          <button onClick={() => onClose()} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-6 space-y-4">
@@ -257,7 +257,7 @@ export function AIGenerator({ deck, onClose }: AIGeneratorProps) {
           <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => onClose()}
               className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancelar

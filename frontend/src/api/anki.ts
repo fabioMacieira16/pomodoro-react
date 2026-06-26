@@ -49,8 +49,8 @@ export const importFlashcardsCSV = (params: { file: File; deckId: number; assunt
 
 // ── Review ──────────────────────────────────────────────────────────────────────────
 
-export const fetchReviewQueue = (deckId: number, limit = 50) =>
-  api.get<Flashcard[]>(`/anki/review/queue/${deckId}?limit=${limit}`).then((r) => r.data);
+export const fetchReviewQueue = (deckId: number, limit = 50, force = false) =>
+  api.get<Flashcard[]>(`/anki/review/queue/${deckId}?limit=${limit}&force=${force}`).then((r) => r.data);
 
 export const submitReview = (flashcardId: number, quality: number, responseTimeMs?: number) =>
   api
@@ -77,6 +77,8 @@ export interface AIGenerateFromPDFResult {
   deck_id: number;
   deck_name: string;
   deck_created: boolean;
+  assunto: string | null;
+  assunto_created: boolean;
 }
 
 export const generateFlashcardsFromPDF = (params: {

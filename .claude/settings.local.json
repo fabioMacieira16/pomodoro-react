@@ -28,7 +28,10 @@
       "PowerShell(cd \"C:\\\\Projetos\\\\pomodoro-react\\\\frontend\"; npx tsc --noEmit > tsc_out.txt 2>&1; Write-Output \"EXIT:$LASTEXITCODE\"; Get-Content tsc_out.txt | Select-String -Pattern \"SettingsPanel|ReviewSession\")",
       "PowerShell(cd \"C:\\\\Projetos\\\\pomodoro-react\\\\frontend\"; npx tsc --noEmit > tsc_out5.txt 2>&1; Write-Output \"EXIT:$LASTEXITCODE\"; Get-Content tsc_out5.txt)",
       "Skill(run)",
-      "PowerShell(cd backend; python -m py_compile app/quiz/service.py app/quiz/router.py; echo \"EXIT:$LASTEXITCODE\")"
+      "PowerShell(cd backend; python -m py_compile app/quiz/service.py app/quiz/router.py; echo \"EXIT:$LASTEXITCODE\")",
+      "Bash(Get-Content *)",
+      "Bash(node_modules\\\\.bin\\\\tsc --noEmit)",
+      "Bash(Out-String)"
     ]
   }
 }
