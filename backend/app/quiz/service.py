@@ -104,6 +104,19 @@ class QuizService:
             exercises = self._generate_ai_exercises(subject_id, req.num_questions, difficulty, req.subject_name)
             ai_generated = True
 
+        # Flashcard fallback: convert multiple_choice flashcards to exercises when AI is unavailable
+        if len(exercises) == 0 and subject_id:
+            exercises = self._flashcards_to_exercises(subject_id, req.num_questions)
+
+        # Last resort: use any existing exercises (cross-subject, random) so user has something to study
+        if len(exercises) == 0:
+            exercises = (
+                self.db.query(Exercise)
+                .order_by(func.random())
+                .limit(req.num_questions)
+                .all()
+            )
+
         session = QuizSession(
             user_id=self.user_id,
             pomodoro_session_id=pomodoro_session_id,
@@ -214,6 +227,72 @@ Regras:
         self.db.commit()
         self.db.refresh(exercise)
         return exercise
+
+    # ── Flashcard → Exercise conversion ─────────────────────────────────
+
+    def _flashcards_to_exercises(self, subject_id: int, limit: int) -> List[Exercise]:
+        """Convert multiple_choice flashcards from the subject's deck to Exercise objects."""
+        subject = self.db.query(Subject).filter_by(id=subject_id).first()
+        if not subject:
+            return []
+
+        deck = (
+            self.db.query(AnkiDeck)
+            .filter(
+                AnkiDeck.user_id == self.user_id,
+                func.lower(AnkiDeck.name).contains(func.lower(subject.name))
+            )
+            .first()
+        )
+        if not deck:
+            # Try decks linked by subject_id
+            deck = self.db.query(AnkiDeck).filter_by(user_id=self.user_id, subject_id=subject_id).first()
+        if not deck:
+            return []
+
+        mc_cards = (
+            self.db.query(Flashcard)
+            .filter_by(deck_id=deck.id, card_type="multiple_choice")
+            .order_by(func.random())
+            .limit(limit)
+            .all()
+        )
+        exercises = []
+        for card in mc_cards:
+            if not card.options:
+                continue
+            correct_opt = next((o for o in card.options if o.is_correct), None)
+            if not correct_opt:
+                continue
+            correct_letter = chr(65 + correct_opt.position)
+
+            # Find or create exercise from this flashcard
+            existing = self.db.query(Exercise).filter_by(question_text=card.front, subject_id=subject_id).first()
+            if existing:
+                exercises.append(existing)
+                continue
+
+            exercise = Exercise(
+                subject_id=subject_id,
+                question_text=card.front,
+                hint=card.hint,
+                explanation=card.back,
+                difficulty=card.difficulty,
+                correct_answer=correct_letter,
+            )
+            self.db.add(exercise)
+            self.db.flush()
+            for opt in sorted(card.options, key=lambda o: o.position):
+                self.db.add(ExerciseOption(
+                    exercise_id=exercise.id,
+                    text=opt.text,
+                    is_correct=opt.is_correct,
+                    position=opt.position,
+                ))
+            self.db.commit()
+            self.db.refresh(exercise)
+            exercises.append(exercise)
+        return exercises
 
     # ── Generate quiz from an uploaded PDF (e.g. a past exam) ────────────
 

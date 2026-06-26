@@ -24,9 +24,12 @@ const EstudosPage: React.FC = () => {
   const [showCargoSelection, setShowCargoSelection] = useState(false);
   const [mindMapData, setMindMapData] = useState<{ root: MindMapNodeData; subject: string; totalNodes: number } | null>(null);
   const [mindMapLoading, setMindMapLoading] = useState<string | null>(null);
+  const [mindMapError, setMindMapError] = useState<string | null>(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
   const [autoGeneratePlan, setAutoGeneratePlan] = useState(false);
+  const [newSubjectInput, setNewSubjectInput] = useState('');
+  const [showAddSubject, setShowAddSubject] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -120,14 +123,25 @@ const EstudosPage: React.FC = () => {
 
   const handleGenerateMindMap = async (subjectName: string) => {
     setMindMapLoading(subjectName);
+    setMindMapError(null);
     try {
       const res = await api.post('/mindmap/generate', { subject_name: subjectName, depth: 3 });
       setMindMapData({ root: res.data.root, subject: res.data.subject, totalNodes: res.data.total_nodes });
-    } catch (err) {
-      showNotice({ type: 'error', message: '❌ Erro ao gerar mapa mental.' });
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setMindMapError(detail || 'Erro ao gerar mapa mental. Verifique se há um provedor de IA configurado.');
     } finally {
       setMindMapLoading(null);
     }
+  };
+
+  const handleAddSubject = async () => {
+    const name = newSubjectInput.trim();
+    if (!name) return;
+    const updated = [...context.subjects.filter(s => s !== name), name];
+    await updateContext({ subjects: updated });
+    setNewSubjectInput('');
+    setShowAddSubject(false);
   };
 
   const handleGenerateAIPlan = async () => {
@@ -142,9 +156,26 @@ const EstudosPage: React.FC = () => {
           ? context.exam_date.split('T')[0]
           : new Date(Date.now() + 120 * 86400000).toISOString().split('T')[0],
       });
-      setGeneratedPlan(res.data);
+      const plan = res.data;
+      setGeneratedPlan(plan);
       await fetchContext();
-      showNotice({ type: 'success', message: '✅ Plano de estudos gerado com IA!' }, 5000);
+
+      // Criar templates de tarefas por dia com base no plano
+      if (plan.weekly_schedule) {
+        const concursoLabel = plan.concurso || context.concurso || 'Plano de Estudos';
+        const stored = JSON.parse(localStorage.getItem('pomodoro-task-templates') || '[]');
+        for (const [day, subjects] of Object.entries(plan.weekly_schedule as Record<string, string[]>)) {
+          const tplName = `${concursoLabel} — ${day}`;
+          const tasks = (subjects as string[]).map(s => `Estudar: ${s}`);
+          const tpl = { id: `plan-${day}-${Date.now()}`, name: tplName, tasks };
+          const idx = stored.findIndex((t: { name: string }) => t.name === tplName);
+          if (idx >= 0) stored[idx] = tpl; else stored.push(tpl);
+        }
+        localStorage.setItem('pomodoro-task-templates', JSON.stringify(stored));
+        showNotice({ type: 'success', message: `✅ Plano gerado! Templates criados por dia para "${concursoLabel}".` }, 6000);
+      } else {
+        showNotice({ type: 'success', message: '✅ Plano de estudos gerado com IA!' }, 5000);
+      }
     } catch (err) {
       showNotice({ type: 'error', message: '❌ Erro ao gerar plano. Verifique o edital ativo.' });
     } finally {
@@ -353,38 +384,77 @@ const EstudosPage: React.FC = () => {
           )}
 
           {/* Disciplinas */}
-          {context.subjects.length > 0 && (
-            <div className="subjects-section">
+          <div className="subjects-section">
+            <div className="subjects-section__header">
               <h3>📚 Disciplinas</h3>
-              <div className="subjects-grid">
-                {context.subjects.map(subject => {
-                  const perf = context.performances.find(p => p.subject === subject);
-                  return (
-                    <div key={subject} className={`subject-card priority-${perf?.priority || 3}`}>
-                      <div className="subject-name">{subject}</div>
-                      {perf && (
-                        <div className="subject-stats">
-                          <span className="accuracy">{perf.accuracy.toFixed(0)}%</span>
-                          <span className="hours">{perf.study_hours}h</span>
-                          <span className={`difficulty diff-${perf.difficulty_level}`}>
-                            {perf.difficulty_level === 'easy' ? '😊' : perf.difficulty_level === 'medium' ? '😐' : '😰'}
-                          </span>
-                        </div>
-                      )}
-                      <button
-                        className="subject-mindmap-btn"
-                        onClick={() => handleGenerateMindMap(subject)}
-                        disabled={mindMapLoading === subject}
-                        title="Gerar mapa mental"
-                      >
-                        {mindMapLoading === subject ? '⏳' : '🗺'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <button
+                className="subjects-section__add-btn"
+                onClick={() => setShowAddSubject(v => !v)}
+                title="Adicionar disciplina"
+              >
+                + Disciplina
+              </button>
             </div>
-          )}
+
+            {showAddSubject && (
+              <div className="subject-add-row">
+                <input
+                  className="subject-add-input"
+                  value={newSubjectInput}
+                  onChange={e => setNewSubjectInput(e.target.value)}
+                  placeholder="Ex: Direito Administrativo"
+                  onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
+                  autoFocus
+                />
+                <button
+                  className="subject-add-confirm"
+                  onClick={handleAddSubject}
+                  disabled={!newSubjectInput.trim()}
+                >
+                  Adicionar
+                </button>
+                <button className="subject-add-cancel" onClick={() => { setShowAddSubject(false); setNewSubjectInput(''); }}>
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {mindMapError && (
+              <div className="mindmap-error">⚠️ {mindMapError}</div>
+            )}
+
+            {context.subjects.length === 0 && !showAddSubject && (
+              <p className="subjects-empty">Nenhuma disciplina. Importe um edital ou adicione manualmente.</p>
+            )}
+
+            <div className="subjects-grid">
+              {context.subjects.map(subject => {
+                const perf = context.performances.find(p => p.subject === subject);
+                return (
+                  <div key={subject} className={`subject-card priority-${perf?.priority || 3}`}>
+                    <div className="subject-name">{subject}</div>
+                    {perf && (
+                      <div className="subject-stats">
+                        <span className="accuracy">{perf.accuracy.toFixed(0)}%</span>
+                        <span className="hours">{perf.study_hours}h</span>
+                        <span className={`difficulty diff-${perf.difficulty_level}`}>
+                          {perf.difficulty_level === 'easy' ? '😊' : perf.difficulty_level === 'medium' ? '😐' : '😰'}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      className="subject-mindmap-btn"
+                      onClick={() => { setMindMapError(null); handleGenerateMindMap(subject); }}
+                      disabled={!!mindMapLoading}
+                      title="Gerar mapa mental com IA"
+                    >
+                      {mindMapLoading === subject ? '⏳' : '🗺 Mapa Mental'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 

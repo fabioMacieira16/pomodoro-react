@@ -44,8 +44,10 @@ interface AnkiState {
 
   // Review actions
   startReview: (deckId: number, assunto?: string | null) => Promise<void>;
+  startReviewAll: (deckId: number, assunto?: string | null) => Promise<void>;
   submitReview: (quality: number) => Promise<void>;
   endReview: () => void;
+  cancelReview: () => void;
 
   // Stats actions
   fetchStats: () => Promise<void>;
@@ -166,6 +168,25 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
     });
   },
 
+  startReviewAll: async (deckId, assunto) => {
+    const queue = await ankiApi.fetchReviewQueue(deckId, 200, true);
+    const filteredQueue = assunto
+      ? queue.filter((c) => {
+          const tag = c.tags?.find((t) => t.startsWith('assunto:'));
+          const cardAssunto = tag ? tag.replace('assunto:', '') : null;
+          return assunto === '__none__' ? !cardAssunto : cardAssunto === assunto;
+        })
+      : queue;
+    set({
+      reviewQueue: filteredQueue,
+      currentCardIndex: 0,
+      isReviewing: true,
+      reviewStartTime: Date.now(),
+      sessionCorrect: 0,
+      sessionTotal: 0,
+    });
+  },
+
   submitReview: async (quality) => {
     const { reviewQueue, currentCardIndex, reviewStartTime } = get();
     const card = reviewQueue[currentCardIndex];
@@ -189,6 +210,10 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
     set({ isReviewing: false, reviewQueue: [], currentCardIndex: 0 });
     get().fetchDecks();
     get().fetchStats();
+  },
+
+  cancelReview: () => {
+    set({ isReviewing: false, reviewQueue: [], currentCardIndex: 0 });
   },
 
   // ── Stats ──────────────────────────────────────────────────────────────────────

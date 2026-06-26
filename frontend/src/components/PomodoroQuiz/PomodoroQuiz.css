@@ -338,6 +338,25 @@
   line-height: 1.5;
 }
 
+.pq-no-content-detail {
+  color: var(--pomo-text-muted, #888);
+  font-style: italic;
+}
+
+.pq-no-content-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pq-no-content-secondary {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 /* ── Loading subject label ──────────────────────────────────────────────── */
 .pq-loading-subject {
   font-size: 0.85rem;

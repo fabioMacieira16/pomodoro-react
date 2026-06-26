@@ -45,6 +45,7 @@ const Pomodoro: React.FC = () => {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showStudyModeModal, setShowStudyModeModal] = useState(false);
+  const [modalSubject, setModalSubject] = useState<string>('');
   const [taskOpen, setTaskOpen] = useState(() => {
     const saved = localStorage.getItem('pomodoro-react-taskStatus');
     return saved ? JSON.parse(saved) : false;
@@ -164,6 +165,7 @@ const Pomodoro: React.FC = () => {
   const handleStart = () => {
     // Mostrar modal de modo de estudo antes de iniciar Pomodoro (só na fase pomodoro)
     if (engine.phase === 'pomodoro' && (engine.status === 'idle' || engine.status === 'finished')) {
+      setModalSubject(studyCtx.context.current_subject ?? '');
       setShowStudyModeModal(true);
       return;
     }
@@ -173,6 +175,7 @@ const Pomodoro: React.FC = () => {
 
   const handleStudyModeSelect = (mode: 'normal' | 'with_questions' | 'review') => {
     studyCtx.setPomodoroMode(mode);
+    if (modalSubject) studyCtx.setCurrentSubject(modalSubject);
     setShowStudyModeModal(false);
     if (engine.status === 'finished') engine.changePhase(engine.phase);
     engine.start();
@@ -408,6 +411,23 @@ const Pomodoro: React.FC = () => {
             <h2 className="study-mode-modal__title">Como deseja estudar?</h2>
             {studyCtx.context.concurso && (
               <p className="study-mode-modal__concurso">{studyCtx.context.concurso}</p>
+            )}
+
+            {/* Seletor de matéria */}
+            {studyCtx.context.subjects.length > 0 && (
+              <div className="study-mode-modal__subject-row">
+                <label className="study-mode-modal__subject-label">Matéria:</label>
+                <select
+                  className="study-mode-modal__subject-select"
+                  value={modalSubject}
+                  onChange={e => setModalSubject(e.target.value)}
+                >
+                  <option value="">— Nenhuma selecionada —</option>
+                  {studyCtx.context.subjects.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
             )}
 
             <div className="study-mode-modal__options">
