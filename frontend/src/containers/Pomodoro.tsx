@@ -274,7 +274,7 @@ const Pomodoro: React.FC = () => {
       </header>
 
       {/* ── Main area ── */}
-      <main className={`app-main ${isQuizMode ? 'app-main--quiz' : ''}`}>
+      <main className="app-main">
         <div className="Pomodoro">
           {!isTimerActive && (
             <TypeSelect
