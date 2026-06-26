@@ -196,14 +196,14 @@ Regras:
 
     # ── Generate quiz from an uploaded PDF (e.g. a past exam) ────────────
 
-    def generate_quiz_from_pdf(
+    async def generate_quiz_from_pdf(
         self,
         content_text: str,
         num_questions: int,
         subject_id: Optional[int] = None,
         pomodoro_session_id: Optional[int] = None,
     ) -> QuizSessionOut:
-        exercises = self._generate_ai_exercises_from_text(content_text, num_questions, subject_id)
+        exercises = await self._generate_ai_exercises_from_text(content_text, num_questions, subject_id)
         if not exercises:
             raise ValueError(
                 "Não foi possível gerar questões a partir do PDF. Configure um provedor de IA em Configurações."
@@ -231,7 +231,7 @@ Regras:
             session_mode=session.session_mode,
         )
 
-    def _generate_ai_exercises_from_text(
+    async def _generate_ai_exercises_from_text(
         self, content_text: str, num_questions: int, subject_id: Optional[int]
     ) -> List[Exercise]:
         """Generate multiple-choice questions from PDF content (e.g. a past exam)."""
@@ -273,7 +273,7 @@ Regras:
 - Não use markdown, apenas JSON puro
 """
         try:
-            raw = asyncio.run(provider.complete_json(prompt))
+            raw = await provider.complete_json(prompt)
             if not isinstance(raw, list):
                 return []
             return [self._ai_question_to_exercise(q, subject_id) for q in raw[:num_questions]]

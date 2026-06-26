@@ -173,10 +173,15 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
     if (!session || selected === null || !currentQuestion) return;
 
     try {
+      const selectedOpt = currentQuestion.options.find(o => o.id === selected);
+      const userAnswerLetter = selectedOpt
+        ? String.fromCharCode(65 + selectedOpt.position)
+        : String(selected);
+
       const res = await api.post('/quiz/answer', {
         session_id: session.session_id,
         exercise_id: currentQuestion.exercise_id,
-        user_answer: String(selected),
+        user_answer: userAnswerLetter,
         pomodoro_number: pomodoroNumber,
       });
 
@@ -347,10 +352,16 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
       {/* Options */}
       <div className="pq-options">
         {currentQuestion.options.map(opt => {
+          const optLetter = String.fromCharCode(65 + opt.position);
+          const isCorrectOpt = state === 'answered' && result
+            ? optLetter === result.correct_answer?.toUpperCase()
+            : false;
+          const isWrongSelected = state === 'answered' && opt.id === selected && !isCorrectOpt;
+
           let cls = 'pq-option';
           if (state === 'answered') {
-            if (opt.is_correct) cls += ' pq-option--correct';
-            else if (opt.id === selected && !opt.is_correct) cls += ' pq-option--wrong';
+            if (isCorrectOpt) cls += ' pq-option--correct';
+            else if (isWrongSelected) cls += ' pq-option--wrong';
           } else if (opt.id === selected) {
             cls += ' pq-option--selected';
           }
@@ -361,14 +372,12 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
               onClick={() => handleSelectOption(opt.id)}
               disabled={state === 'answered'}
             >
-              <span className="pq-option-letter">
-                {String.fromCharCode(65 + opt.position)}
-              </span>
+              <span className="pq-option-letter">{optLetter}</span>
               <span className="pq-option-text">{opt.text}</span>
-              {state === 'answered' && opt.is_correct && (
+              {state === 'answered' && isCorrectOpt && (
                 <span className="pq-option-icon">✓</span>
               )}
-              {state === 'answered' && opt.id === selected && !opt.is_correct && (
+              {state === 'answered' && isWrongSelected && (
                 <span className="pq-option-icon">✗</span>
               )}
             </button>
@@ -385,6 +394,15 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
               <span className="pq-flashcard-badge">🃏 Flashcard criado</span>
             )}
           </div>
+          {!result.is_correct && result.correct_answer && (
+            <p className="pq-feedback-correct-label">
+              Resposta correta: <strong>{result.correct_answer}</strong>
+              {' — '}
+              {currentQuestion.options.find(
+                o => String.fromCharCode(65 + o.position) === result.correct_answer?.toUpperCase()
+              )?.text}
+            </p>
+          )}
           {result.explanation && (
             <p className="pq-feedback-text">{result.explanation}</p>
           )}

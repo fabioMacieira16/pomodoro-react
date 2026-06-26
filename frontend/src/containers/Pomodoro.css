@@ -138,15 +138,6 @@ body {
   flex: 0 1 420px;
 }
 
-/* Pomodoro com Questões: relógio à direita, questões à esquerda */
-.app-main--quiz .Pomodoro {
-  order: 2;
-}
-
-.app-main--quiz .TaskPainel {
-  order: 1;
-}
-
 /* ── Task panel ──────────────────────────────────────────────────────────── */
 .TaskPainel {
   display: flex;

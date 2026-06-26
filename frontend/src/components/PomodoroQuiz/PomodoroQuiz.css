@@ -235,6 +235,14 @@
   font-weight: 600;
 }
 
+.pq-feedback-correct-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #059669;
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
 .pq-feedback-text {
   color: var(--pomo-text-muted, #666);
   margin: 0;

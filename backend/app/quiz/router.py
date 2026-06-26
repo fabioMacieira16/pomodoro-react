@@ -68,7 +68,7 @@ async def generate_quiz_from_pdf(
 
     svc = QuizService(db=db, user_id=current_user.id)
     try:
-        return svc.generate_quiz_from_pdf(text, num_questions, subject_id, pomodoro_session_id)
+        return await svc.generate_quiz_from_pdf(text, num_questions, subject_id, pomodoro_session_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
