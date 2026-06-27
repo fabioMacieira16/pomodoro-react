@@ -34,7 +34,8 @@
       "Bash(Out-String)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(tee /dev/stderr)"
+      "Bash(tee /dev/stderr)",
+      "Bash(echo \"TSC_EXIT:$?\")"
     ]
   }
 }

@@ -5,6 +5,7 @@ export interface SelectedTask {
   title: string;
   estPomo: number;    // estimated_minutes / 25
   actualPomo: number; // actual_minutes / 25
+  subjectId?: number | null;
 }
 
 interface SelectedTaskState {

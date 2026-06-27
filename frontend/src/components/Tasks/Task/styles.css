@@ -240,6 +240,27 @@
   border-color: #667eea;
 }
 
+.pomo-task__deck-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pomo-task__deck-label {
+  font-size: 0.75rem;
+  color: var(--pomo-text-muted, #888);
+}
+
+.pomo-task__deck-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--pomo-border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background: var(--pomo-surface, #fff);
+  color: var(--pomo-text, #1a1a2e);
+}
+
 .pomo-task__links-row {
   display: flex;
   gap: 12px;

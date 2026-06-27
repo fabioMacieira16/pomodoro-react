@@ -46,6 +46,7 @@ class TaskUpdate(BaseModel):
     estimated_minutes: Optional[int] = None
     actual_minutes: Optional[int] = None
     position: Optional[int] = None
+    subject_id: Optional[int] = None
 
 class TaskResponse(TaskBase):
     id: int

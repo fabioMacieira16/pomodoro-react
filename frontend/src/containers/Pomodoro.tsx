@@ -383,7 +383,8 @@ const Pomodoro: React.FC = () => {
         {isQuizMode && (
           <div className="TaskPainel">
             <PomodoroQuiz
-              subjectName={studyCtx.context.current_subject}
+              subjectId={selectedTask?.subjectId ?? undefined}
+              subjectName={selectedTask?.title ?? studyCtx.context.current_subject}
               pomodoroNumber={engine.pomodoroCount}
               onClose={() => studyCtx.setPomodoroMode('normal')}
             />

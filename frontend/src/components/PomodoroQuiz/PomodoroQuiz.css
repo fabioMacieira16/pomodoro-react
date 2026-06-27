@@ -69,6 +69,21 @@
   color: var(--pomo-text-muted, #888);
 }
 
+.pq-score-live {
+  display: flex;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.pq-score-correct {
+  color: #22c55e;
+}
+
+.pq-score-wrong {
+  color: #ef4444;
+}
+
 .pq-diff {
   font-size: 0.7rem;
   font-weight: 600;
@@ -249,6 +264,37 @@
   line-height: 1.5;
 }
 
+/* ── Attempt history ────────────────────────────────────────────────────── */
+.pq-history {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.75rem;
+  margin-bottom: 12px;
+}
+
+.pq-history-label {
+  color: var(--pomo-text-muted, #999);
+  margin-right: 2px;
+}
+
+.pq-history-item {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.pq-history-item--ok {
+  background: rgba(16,185,129,0.12);
+  color: #059669;
+}
+
+.pq-history-item--err {
+  background: rgba(239,68,68,0.12);
+  color: #dc2626;
+}
+
 /* ── Actions ────────────────────────────────────────────────────────────── */
 .pq-actions {
   display: flex;
@@ -425,4 +471,14 @@
   background: rgba(245,158,11,0.08);
   border-radius: 8px;
   padding: 8px 12px;
+}
+
+.pq-result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
 }

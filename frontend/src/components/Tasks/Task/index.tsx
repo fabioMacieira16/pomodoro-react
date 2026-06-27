@@ -3,6 +3,7 @@ import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import './styles.css';
 import TaskContext from '../TaskList/context';
 import { Task as TaskType } from '../../../types';
+import { useAnkiStore } from '../../../store/ankiStore';
 
 interface TaskProps {
   task: TaskType;
@@ -18,6 +19,7 @@ export default function Task({ task, index }: TaskProps) {
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { move, handleStatus, updateTask, deleteTask, selectedTaskId, selectTask } = useContext(TaskContext);
+  const { decks } = useAnkiStore();
 
   const [editing, setEditing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -25,6 +27,7 @@ export default function Task({ task, index }: TaskProps) {
   const [editNote, setEditNote] = useState(task.description ?? '');
   const [showNote, setShowNote] = useState(!!(task.description));
   const [estPomo, setEstPomo] = useState(Math.max(1, Math.round((task.estimated_minutes || 25) / 25)));
+  const [editSubjectId, setEditSubjectId] = useState<number | null>(task.subject_id ?? null);
   const actPomo = Math.round((task.actual_minutes || 0) / 25);
 
   useEffect(() => {
@@ -68,6 +71,7 @@ export default function Task({ task, index }: TaskProps) {
     setEditNote(task.description ?? '');
     setEstPomo(Math.max(1, Math.round((task.estimated_minutes || 25) / 25)));
     setShowNote(!!(task.description));
+    setEditSubjectId(task.subject_id ?? null);
     setEditing(true);
     setMenuOpen(false);
   };
@@ -78,6 +82,7 @@ export default function Task({ task, index }: TaskProps) {
       title: editTitle.trim() || task.title,
       description: editNote,
       estimated_minutes: estPomo * 25,
+      subject_id: editSubjectId,
     });
     setEditing(false);
   };
@@ -164,6 +169,29 @@ export default function Task({ task, index }: TaskProps) {
               placeholder="Adicionar nota..."
               rows={3}
             />
+          )}
+
+          {/* Deck link */}
+          {decks.length > 0 && (
+            <div className="pomo-task__deck-row">
+              <label className="pomo-task__deck-label">📚 Disciplina (deck)</label>
+              <select
+                className="pomo-task__deck-select"
+                value={editSubjectId ?? ''}
+                onChange={(e) => {
+                  const deckId = Number(e.target.value);
+                  const deck = decks.find(d => d.id === deckId);
+                  setEditSubjectId(deck?.subject_id ?? null);
+                }}
+              >
+                <option value="">Nenhuma</option>
+                {decks.map(d => (
+                  <option key={d.id} value={d.subject_id ?? ''}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           <div className="pomo-task__links-row">

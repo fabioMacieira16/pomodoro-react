@@ -10,6 +10,7 @@ export interface Task {
   estimated_minutes: number;
   actual_minutes: number;
   position: number;
+  subject_id?: number | null;
 }
 
 interface TaskState {

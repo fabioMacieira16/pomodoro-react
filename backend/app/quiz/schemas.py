@@ -1,5 +1,11 @@
 from typing import List, Optional
+from datetime import datetime
 from pydantic import BaseModel
+
+
+class AttemptHistoryItem(BaseModel):
+    attempted_at: datetime
+    is_correct: bool
 
 
 class ExerciseOptionOut(BaseModel):
@@ -20,6 +26,7 @@ class QuizQuestionOut(BaseModel):
     options: List[ExerciseOptionOut]
     explanation: Optional[str] = None  # only after answer
     correct_answer: Optional[str] = None  # only after answer
+    previous_attempts: List[AttemptHistoryItem] = []
 
     class Config:
         from_attributes = True

@@ -172,6 +172,7 @@ const TaskList: React.FC = () => {
         title: updated.title,
         estPomo: Math.max(1, Math.round((updated.estimated_minutes || 25) / 25)),
         actualPomo: Math.round((updated.actual_minutes || 0) / 25),
+        subjectId: updated.subject_id ?? null,
       });
     }
   }
@@ -190,6 +191,7 @@ const TaskList: React.FC = () => {
         title: task.title,
         estPomo: Math.max(1, Math.round((task.estimated_minutes || 25) / 25)),
         actualPomo: Math.round((task.actual_minutes || 0) / 25),
+        subjectId: task.subject_id ?? null,
       });
     }
   }

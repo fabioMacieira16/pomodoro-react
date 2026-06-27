@@ -1,6 +1,7 @@
 """Quiz Service — adaptive quiz generation + auto error-card on wrong answers."""
 import asyncio
 import json
+import re
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -12,7 +13,7 @@ from app.domain.models import (
     QuizSession, ErrorCard, Flashcard, AnkiDeck, Subject
 )
 from app.quiz.schemas import (
-    QuizSessionOut, QuizQuestionOut, ExerciseOptionOut,
+    QuizSessionOut, QuizQuestionOut, ExerciseOptionOut, AttemptHistoryItem,
     QuizAnswerRequest, QuizAnswerResult, PomodoroQuizMode,
     QuizGenerateRequest
 )
@@ -104,18 +105,9 @@ class QuizService:
             exercises = self._generate_ai_exercises(subject_id, req.num_questions, difficulty, req.subject_name)
             ai_generated = True
 
-        # Flashcard fallback: convert multiple_choice flashcards to exercises when AI is unavailable
+        # Flashcard fallback: convert multiple_choice flashcards from the subject's deck
         if len(exercises) == 0 and subject_id:
             exercises = self._flashcards_to_exercises(subject_id, req.num_questions)
-
-        # Last resort: use any existing exercises (cross-subject, random) so user has something to study
-        if len(exercises) == 0:
-            exercises = (
-                self.db.query(Exercise)
-                .order_by(func.random())
-                .limit(req.num_questions)
-                .all()
-            )
 
         session = QuizSession(
             user_id=self.user_id,
@@ -174,10 +166,10 @@ Retorne SOMENTE JSON válido no formato:
     "difficulty": "{difficulty}",
     "correct_answer": "B",
     "options": [
-      {{"position": 0, "text": "Opção A"}},
-      {{"position": 1, "text": "Opção B (correta)"}},
-      {{"position": 2, "text": "Opção C"}},
-      {{"position": 3, "text": "Opção D"}}
+      {{"position": 0, "text": "Texto da opção A"}},
+      {{"position": 1, "text": "Texto da opção B"}},
+      {{"position": 2, "text": "Texto da opção C"}},
+      {{"position": 3, "text": "Texto da opção D"}}
     ]
   }}
 ]
@@ -185,6 +177,7 @@ Retorne SOMENTE JSON válido no formato:
 Regras:
 - Exatamente 4 opções por questão (A, B, C, D)
 - correct_answer deve ser a letra (A, B, C ou D)
+- NÃO inclua "(correta)", "(gabarito)" ou qualquer marcador no texto das opções
 - Questões objetivas, claras e relevantes para concursos públicos
 - Não use markdown, apenas JSON puro
 """
@@ -358,10 +351,10 @@ Retorne SOMENTE JSON válido no formato:
     "difficulty": "Medium",
     "correct_answer": "B",
     "options": [
-      {{"position": 0, "text": "Opção A"}},
-      {{"position": 1, "text": "Opção B (correta)"}},
-      {{"position": 2, "text": "Opção C"}},
-      {{"position": 3, "text": "Opção D"}}
+      {{"position": 0, "text": "Texto da opção A"}},
+      {{"position": 1, "text": "Texto da opção B"}},
+      {{"position": 2, "text": "Texto da opção C"}},
+      {{"position": 3, "text": "Texto da opção D"}}
     ]
   }}
 ]
@@ -369,6 +362,7 @@ Retorne SOMENTE JSON válido no formato:
 Regras:
 - Exatamente 4 opções por questão (A, B, C, D)
 - correct_answer deve ser a letra (A, B, C ou D)
+- NÃO inclua "(correta)", "(gabarito)" ou qualquer marcador no texto das opções
 - Questões objetivas, claras e fiéis ao conteúdo fornecido
 - Não use markdown, apenas JSON puro
 """
@@ -533,16 +527,29 @@ Regras:
         session = self.db.query(QuizSession).filter_by(id=session_id).first()
         return session.score_pct if session else 0.0
 
+    @staticmethod
+    def _clean_option_text(text: str) -> str:
+        cleaned = re.sub(r'\s*\((corret[ao]|gabarito|resposta\s+corret[ao])\)\s*$', '', text, flags=re.IGNORECASE)
+        return cleaned.strip()
+
     def _to_question_out(self, exercise: Exercise, hide_answer: bool = True) -> QuizQuestionOut:
         opts = [
             ExerciseOptionOut(
                 id=o.id,
-                text=o.text,
+                text=self._clean_option_text(o.text),
                 is_correct=False if hide_answer else o.is_correct,
                 position=o.position,
             )
             for o in sorted(exercise.options, key=lambda x: x.position)
         ]
+        past = (
+            self.db.query(ExerciseAttempt)
+            .filter_by(user_id=self.user_id, exercise_id=exercise.id)
+            .order_by(ExerciseAttempt.attempted_at.desc())
+            .limit(5)
+            .all()
+        )
+        history = [AttemptHistoryItem(attempted_at=a.attempted_at, is_correct=a.is_correct) for a in past]
         return QuizQuestionOut(
             exercise_id=exercise.id,
             question_text=exercise.question_text,
@@ -551,4 +558,5 @@ Regras:
             options=opts,
             explanation=None if hide_answer else exercise.explanation,
             correct_answer=None if hide_answer else exercise.correct_answer,
+            previous_attempts=history,
         )

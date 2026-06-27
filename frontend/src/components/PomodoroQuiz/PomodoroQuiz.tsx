@@ -19,6 +19,11 @@ interface Option {
   position: number;
 }
 
+interface AttemptHistory {
+  attempted_at: string;
+  is_correct: boolean;
+}
+
 interface Question {
   exercise_id: number;
   question_text: string;
@@ -27,6 +32,7 @@ interface Question {
   options: Option[];
   explanation: string | null;
   correct_answer: string | null;
+  previous_attempts: AttemptHistory[];
 }
 
 interface QuizSession {
@@ -88,6 +94,8 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<number, { selectedId: number; result: AnswerResult }>>({});
+  const [isReviewing, setIsReviewing] = useState(false);
 
   // Tenta gerar questões a partir da matéria/tarefa atual sendo estudada.
   // Se não houver conteúdo suficiente, cai no estado "no_content", que oferece
@@ -96,6 +104,11 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
     setState('loading');
     setErrorMsg(null);
     setPdfFileName(null);
+
+    if (!subjectId && !subjectName) {
+      setState('no_content');
+      return;
+    }
 
     try {
       const payload: Record<string, unknown> = {
@@ -116,6 +129,12 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
 
       setSession(data);
       setCurrentIdx(0);
+      setSelected(null);
+      setResult(null);
+      setScore(0);
+      setTotalAnswered(0);
+      setAnswers({});
+      setIsReviewing(false);
       setState('question');
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
@@ -142,6 +161,12 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
       });
       setSession(res.data);
       setCurrentIdx(0);
+      setSelected(null);
+      setResult(null);
+      setScore(0);
+      setTotalAnswered(0);
+      setAnswers({});
+      setIsReviewing(false);
       setState('question');
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
@@ -186,6 +211,8 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
       const answerResult: AnswerResult = res.data;
       setResult(answerResult);
       setState('answered');
+      setIsReviewing(false);
+      setAnswers(prev => ({ ...prev, [currentIdx]: { selectedId: selected!, result: answerResult } }));
 
       if (answerResult.is_correct) {
         setScore(s => s + 1);
@@ -199,21 +226,51 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         await addReview(subject, currentQuestion.question_text.slice(0, 80), 1);
       }
     } catch (err) {
-      console.error('Erro ao submeter resposta:', err);
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setErrorMsg(detail ?? 'Erro ao registrar resposta. Tente novamente.');
+      // Mantém estado 'question' para o usuário poder clicar Confirmar de novo
     }
+  };
+
+  const handleBack = () => {
+    const prevIdx = currentIdx - 1;
+    if (prevIdx < 0) return;
+    const prev = answers[prevIdx];
+    if (!prev) return;
+    setCurrentIdx(prevIdx);
+    setSelected(prev.selectedId);
+    setResult(prev.result);
+    setState('answered');
+    setIsReviewing(true);
+    setShowHint(false);
+    setErrorMsg(null);
   };
 
   const handleNext = () => {
     if (!session) return;
-    setSelected(null);
-    setResult(null);
     setShowHint(false);
+    setErrorMsg(null);
 
-    if (currentIdx + 1 >= session.questions.length) {
+    const nextIdx = currentIdx + 1;
+    if (nextIdx >= session.questions.length) {
       setState('finished');
+      setIsReviewing(false);
+      return;
+    }
+
+    const nextAnswer = answers[nextIdx];
+    if (nextAnswer) {
+      setCurrentIdx(nextIdx);
+      setSelected(nextAnswer.selectedId);
+      setResult(nextAnswer.result);
+      setState('answered');
+      setIsReviewing(true);
     } else {
-      setCurrentIdx(i => i + 1);
+      setCurrentIdx(nextIdx);
+      setSelected(null);
+      setResult(null);
       setState('question');
+      setIsReviewing(false);
     }
   };
 
@@ -289,6 +346,23 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
 
   if (state === 'finished') {
     const grade = accuracy >= 80 ? '🎉' : accuracy >= 60 ? '👍' : '📚';
+    const wrongQuestions = session
+      ? session.questions.filter((_, idx) => answers[idx] && !answers[idx].result.is_correct)
+      : [];
+
+    const handleReviewErrors = () => {
+      if (!session || wrongQuestions.length === 0) return;
+      setSession({ ...session, questions: wrongQuestions, total_questions: wrongQuestions.length });
+      setCurrentIdx(0);
+      setSelected(null);
+      setResult(null);
+      setScore(0);
+      setTotalAnswered(0);
+      setAnswers({});
+      setIsReviewing(false);
+      setState('question');
+    };
+
     return (
       <div className="pq-panel pq-panel--result">
         <div className="pq-result-grade">{grade}</div>
@@ -306,9 +380,26 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
             💡 Revisões automáticas foram agendadas para os erros.
           </p>
         )}
-        <button className="pq-btn pq-btn--primary" onClick={onClose}>
-          Continuar estudando
-        </button>
+        <div className="pq-result-actions">
+          {wrongQuestions.length > 0 && (
+            <button className="pq-btn pq-btn--primary" onClick={handleReviewErrors}>
+              🔄 Revisar erros ({wrongQuestions.length})
+            </button>
+          )}
+          <button className="pq-btn pq-btn--secondary" onClick={() => pdfInputRef.current?.click()}>
+            📎 Importar PDF
+          </button>
+          <button className="pq-btn pq-btn--ghost" onClick={onClose}>
+            Continuar estudando
+          </button>
+        </div>
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          hidden
+          onChange={handlePickPdf}
+        />
       </div>
     );
   }
@@ -329,6 +420,12 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
           <span className="pq-counter">
             {currentIdx + 1} / {session?.total_questions ?? 5}
           </span>
+          {totalAnswered > 0 && (
+            <span className="pq-score-live">
+              <span className="pq-score-correct">✓{score}</span>
+              <span className="pq-score-wrong">✗{totalAnswered - score}</span>
+            </span>
+          )}
           <span className={`pq-diff pq-diff--${currentQuestion.difficulty.toLowerCase()}`}>
             {currentQuestion.difficulty}
           </span>
@@ -408,12 +505,40 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         </div>
       )}
 
+      {/* Histórico de tentativas anteriores */}
+      {state === 'answered' && currentQuestion.previous_attempts.length > 0 && (
+        <div className="pq-history">
+          <span className="pq-history-label">Tentativas anteriores:</span>
+          {currentQuestion.previous_attempts.map((a, i) => {
+            const date = new Date(a.attempted_at);
+            const formatted = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+            return (
+              <span key={i} className={`pq-history-item ${a.is_correct ? 'pq-history-item--ok' : 'pq-history-item--err'}`}>
+                {a.is_correct ? '✓' : '✗'} {formatted}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Submit error */}
+      {state === 'question' && errorMsg && (
+        <p className="pq-error" style={{ marginBottom: 8 }}>{errorMsg}</p>
+      )}
+
       {/* Actions */}
       <div className="pq-actions">
+        {/* Anterior — aparece em 'answered' e 'question' quando há questões respondidas atrás */}
+        {(state === 'answered' || state === 'question') && currentIdx > 0 && (
+          <button className="pq-btn pq-btn--secondary" onClick={handleBack}>
+            ← Anterior
+          </button>
+        )}
+
         {state === 'question' && (
           <button
             className="pq-btn pq-btn--primary"
-            onClick={handleConfirm}
+            onClick={() => { setErrorMsg(null); handleConfirm(); }}
             disabled={selected === null}
           >
             Confirmar
@@ -421,7 +546,9 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
         )}
         {state === 'answered' && (
           <button className="pq-btn pq-btn--primary" onClick={handleNext}>
-            {currentIdx + 1 >= (session?.total_questions ?? 5) ? 'Ver resultado' : 'Próxima →'}
+            {currentIdx + 1 >= (session?.total_questions ?? 5)
+              ? (isReviewing ? 'Ver resultado' : 'Ver resultado')
+              : (isReviewing ? 'Avançar →' : 'Próxima →')}
           </button>
         )}
       </div>
