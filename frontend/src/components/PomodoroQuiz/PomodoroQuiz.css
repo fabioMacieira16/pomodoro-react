@@ -157,6 +157,25 @@
   margin-bottom: 16px;
 }
 
+.pq-option-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pq-option-row .pq-option {
+  flex: 1;
+}
+
+.pq-option--eliminated {
+  opacity: 0.4 !important;
+  border-style: dashed !important;
+}
+
+.pq-option--eliminated .pq-option-text {
+  text-decoration: line-through;
+}
+
 .pq-option {
   display: flex;
   align-items: flex-start;

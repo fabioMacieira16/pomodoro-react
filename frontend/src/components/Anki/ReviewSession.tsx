@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import type { Flashcard } from '../../types';
+import { EliminateButton } from '../EliminateButton';
 
 const QUALITY_BUTTONS = [
   { quality: 0, label: 'De Novo', color: 'bg-red-600 hover:bg-red-700', desc: 'Não lembrei' },
@@ -33,6 +34,7 @@ export function ReviewSession() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedOptionPos, setSelectedOptionPos] = useState<number | null>(null);
   const [selectedTrueFalse, setSelectedTrueFalse] = useState<string | null>(null);
+  const [eliminatedOptions, setEliminatedOptions] = useState<Set<number>>(new Set());
 
   const card: Flashcard | undefined = reviewQueue[currentCardIndex];
   const isFinished = currentCardIndex >= reviewQueue.length;
@@ -42,6 +44,7 @@ export function ReviewSession() {
     setShowHint(false);
     setSelectedOptionPos(null);
     setSelectedTrueFalse(null);
+    setEliminatedOptions(new Set());
   }, [currentCardIndex]);
 
   if (!isReviewing) return null;
@@ -174,6 +177,7 @@ export function ReviewSession() {
                     {(card.options ?? []).map((opt, idx) => {
                       const isSelected = selectedOptionPos === opt.position;
                       const answered = isFlipped;
+                      const isEliminated = eliminatedOptions.has(opt.position);
                       let cls = 'border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10';
                       if (answered) {
                         if (opt.is_correct) cls = 'border border-green-400 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 font-semibold';
@@ -181,20 +185,31 @@ export function ReviewSession() {
                         else cls = 'border border-gray-200 dark:border-gray-600 text-gray-400 opacity-40';
                       }
                       return (
-                        <button
-                          key={opt.position}
-                          type="button"
-                          disabled={answered}
-                          onClick={(e) => { e.stopPropagation(); setSelectedOptionPos(opt.position); setIsFlipped(true); }}
-                          className={`w-full flex items-center gap-3 p-3 rounded-lg text-sm text-left transition-colors ${cls} ${!answered ? 'cursor-pointer' : 'cursor-default'}`}
-                        >
-                          <span className="shrink-0 w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-bold">
-                            {String.fromCharCode(65 + idx)}
-                          </span>
-                          <span className="flex-1">{opt.text}</span>
-                          {answered && opt.is_correct && <CheckCircle2 size={14} className="text-green-600 shrink-0" />}
-                          {answered && isSelected && !opt.is_correct && <span className="text-red-500 font-bold shrink-0">✗</span>}
-                        </button>
+                        <div key={opt.position} className="flex items-center gap-1">
+                          {!answered && (
+                            <EliminateButton
+                              eliminated={isEliminated}
+                              onToggle={() => setEliminatedOptions(prev => {
+                                const next = new Set(prev);
+                                if (next.has(opt.position)) next.delete(opt.position); else next.add(opt.position);
+                                return next;
+                              })}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            disabled={answered}
+                            onClick={(e) => { e.stopPropagation(); setSelectedOptionPos(opt.position); setIsFlipped(true); }}
+                            className={`flex-1 flex items-center gap-3 p-3 rounded-lg text-sm text-left transition-colors ${cls} ${!answered ? 'cursor-pointer' : 'cursor-default'} ${isEliminated && !answered ? 'opacity-40 border-dashed' : ''}`}
+                          >
+                            <span className="shrink-0 w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-bold">
+                              {String.fromCharCode(65 + idx)}
+                            </span>
+                            <span className={`flex-1 ${isEliminated && !answered ? 'line-through' : ''}`}>{opt.text}</span>
+                            {answered && opt.is_correct && <CheckCircle2 size={14} className="text-green-600 shrink-0" />}
+                            {answered && isSelected && !opt.is_correct && <span className="text-red-500 font-bold shrink-0">✗</span>}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

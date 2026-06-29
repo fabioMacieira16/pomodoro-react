@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuizStore } from '../store/quizStore';
 import { usePomodoroStore } from '../store/pomodoroStore';
+import { EliminateButton } from '../components/EliminateButton';
 import './QuizPage.css';
 
 const QuizPage: React.FC = () => {
@@ -15,6 +16,7 @@ const QuizPage: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [result, setResult] = useState<import('../store/quizStore').QuizAnswerResult | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [eliminatedOptions, setEliminatedOptions] = useState<Set<number>>(new Set());
 
   // Auto-start quiz for current subject
   useEffect(() => {
@@ -38,6 +40,7 @@ const QuizPage: React.FC = () => {
     setSelectedOption('');
     setResult(null);
     setSubmitted(false);
+    setEliminatedOptions(new Set());
     nextQuestion();
   };
 
@@ -132,6 +135,7 @@ const QuizPage: React.FC = () => {
 
           <div className="options-list">
             {question.options.map((opt) => {
+              const isEliminated = eliminatedOptions.has(opt.id);
               let cls = 'option-btn';
               if (submitted && result) {
                 if (opt.text === result.correct_answer) cls += ' correct';
@@ -139,15 +143,27 @@ const QuizPage: React.FC = () => {
               } else if (opt.text === selectedOption) {
                 cls += ' selected';
               }
+              if (isEliminated && !submitted) cls += ' eliminated';
               return (
-                <button
-                  key={opt.id}
-                  className={cls}
-                  onClick={() => !submitted && setSelectedOption(opt.text)}
-                  disabled={submitted}
-                >
-                  {opt.text}
-                </button>
+                <div key={opt.id} className="option-row">
+                  {!submitted && (
+                    <EliminateButton
+                      eliminated={isEliminated}
+                      onToggle={() => setEliminatedOptions(prev => {
+                        const next = new Set(prev);
+                        if (next.has(opt.id)) next.delete(opt.id); else next.add(opt.id);
+                        return next;
+                      })}
+                    />
+                  )}
+                  <button
+                    className={cls}
+                    onClick={() => !submitted && setSelectedOption(opt.text)}
+                    disabled={submitted}
+                  >
+                    {opt.text}
+                  </button>
+                </div>
               );
             })}
           </div>

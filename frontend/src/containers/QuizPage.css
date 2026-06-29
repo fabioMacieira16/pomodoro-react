@@ -60,6 +60,9 @@
 .hint-block summary { cursor: pointer; color: var(--pomo-text-muted); }
 .hint-block p { margin: 8px 0 0; }
 .options-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.option-row { display: flex; align-items: center; gap: 4px; }
+.option-row .option-btn { flex: 1; }
+.option-btn.eliminated { opacity: 0.4; text-decoration: line-through; border-style: dashed; }
 .option-btn {
   background: var(--pomo-surface);
   border: 1.5px solid var(--pomo-border);

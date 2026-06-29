@@ -10,6 +10,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../../api/client';
 import { useStudyContext } from '../../store/studyContextStore';
+import { EliminateButton } from '../EliminateButton';
 import './PomodoroQuiz.css';
 
 interface Option {
@@ -96,6 +97,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   const [pdfFileName, setPdfFileName] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, { selectedId: number; result: AnswerResult }>>({});
   const [isReviewing, setIsReviewing] = useState(false);
+  const [eliminatedOptions, setEliminatedOptions] = useState<Set<number>>(new Set());
 
   // Tenta gerar questões a partir da matéria/tarefa atual sendo estudada.
   // Se não houver conteúdo suficiente, cai no estado "no_content", que oferece
@@ -250,6 +252,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
     if (!session) return;
     setShowHint(false);
     setErrorMsg(null);
+    setEliminatedOptions(new Set());
 
     const nextIdx = currentIdx + 1;
     if (nextIdx >= session.questions.length) {
@@ -462,6 +465,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
             ? optLetter === result.correct_answer?.toUpperCase()
             : false;
           const isWrongSelected = state === 'answered' && opt.id === selected && !isCorrectOpt;
+          const isEliminated = eliminatedOptions.has(opt.id);
 
           let cls = 'pq-option';
           if (state === 'answered') {
@@ -470,22 +474,34 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
           } else if (opt.id === selected) {
             cls += ' pq-option--selected';
           }
+          if (isEliminated && state === 'question') cls += ' pq-option--eliminated';
           return (
-            <button
-              key={opt.id}
-              className={cls}
-              onClick={() => handleSelectOption(opt.id)}
-              disabled={state === 'answered'}
-            >
-              <span className="pq-option-letter">{optLetter}</span>
-              <span className="pq-option-text">{opt.text}</span>
-              {state === 'answered' && isCorrectOpt && (
-                <span className="pq-option-icon">✓</span>
+            <div key={opt.id} className="pq-option-row">
+              {state === 'question' && (
+                <EliminateButton
+                  eliminated={isEliminated}
+                  onToggle={() => setEliminatedOptions(prev => {
+                    const next = new Set(prev);
+                    if (next.has(opt.id)) next.delete(opt.id); else next.add(opt.id);
+                    return next;
+                  })}
+                />
               )}
-              {state === 'answered' && isWrongSelected && (
-                <span className="pq-option-icon">✗</span>
-              )}
-            </button>
+              <button
+                className={cls}
+                onClick={() => handleSelectOption(opt.id)}
+                disabled={state === 'answered'}
+              >
+                <span className="pq-option-letter">{optLetter}</span>
+                <span className="pq-option-text">{opt.text}</span>
+                {state === 'answered' && isCorrectOpt && (
+                  <span className="pq-option-icon">✓</span>
+                )}
+                {state === 'answered' && isWrongSelected && (
+                  <span className="pq-option-icon">✗</span>
+                )}
+              </button>
+            </div>
           );
         })}
       </div>
