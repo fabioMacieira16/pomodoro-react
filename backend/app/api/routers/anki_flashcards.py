@@ -34,6 +34,11 @@ def create_flashcard(card_in: dtos.FlashcardCreate, db: Session = Depends(get_db
     if card_in.options:
         flashcard_option_repo.replace_options(db, card.id, [o.model_dump() for o in card_in.options])
         db.refresh(card)
+    try:
+        from app.achievements.service import AchievementService
+        AchievementService(db).register_event(current_user.id, "FLASHCARD_CREATED")
+    except Exception:
+        pass
     return card
 
 
@@ -48,6 +53,11 @@ def bulk_create_flashcards(cards: list[dtos.FlashcardCreate], db: Session = Depe
             flashcard_option_repo.replace_options(db, card.id, [o.model_dump() for o in card_in.options])
             db.refresh(card)
         created.append(card)
+    try:
+        from app.achievements.service import AchievementService
+        AchievementService(db).register_event(current_user.id, "FLASHCARD_CREATED", value=len(created))
+    except Exception:
+        pass
     return created
 
 

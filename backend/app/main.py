@@ -9,9 +9,22 @@ from app.quiz.router import router as quiz_router
 from app.documents.router import router as documents_router
 from app.documents.mindmap_router import router as mindmap_router
 from app.core.study_context_router import router as study_context_router
+from app.achievements.router import router as achievements_router
 from app.core.config import settings as app_settings
 
 app = FastAPI(title=app_settings.PROJECT_NAME)
+
+
+@app.on_event("startup")
+async def _startup():
+    from app.achievements.service import ensure_tables, seed_achievements
+    from app.data.database import SessionLocal
+    ensure_tables()
+    db = SessionLocal()
+    try:
+        seed_achievements(db)
+    finally:
+        db.close()
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +52,7 @@ app.include_router(quiz_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(mindmap_router, prefix="/api")
 app.include_router(study_context_router, prefix="/api")
+app.include_router(achievements_router, prefix="/api")
 
 
 @app.get("/")

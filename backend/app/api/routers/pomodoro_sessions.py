@@ -46,4 +46,15 @@ def update_session(
     session = pomodoro_repo.get(db, session_id)
     if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Session not found")
-    return pomodoro_repo.update(db, session, session_in.model_dump(exclude_unset=True))
+    was_completed = bool(session.completed)
+    updated = pomodoro_repo.update(db, session, session_in.model_dump(exclude_unset=True))
+    if not was_completed and updated.completed and updated.session_type == "Pomodoro":
+        try:
+            from app.achievements.service import AchievementService
+            AchievementService(db).register_event(
+                current_user.id, "POMODORO_COMPLETED",
+                value=updated.duration_minutes or 25,
+            )
+        except Exception:
+            pass
+    return updated

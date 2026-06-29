@@ -1,0 +1,143 @@
+.ach-card {
+  background: var(--pomo-surface, #fff);
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.1));
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ach-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+/* ── Recompensas ─────────────────────────────────────── */
+.ach-card__rewards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ach-reward {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 54px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
+  flex: 1;
+}
+
+.ach-reward__icon  { font-size: 1.25rem; line-height: 1; }
+.ach-reward__value { font-size: 1.1rem; font-weight: 700; color: var(--pomo-text, #1a1a2e); }
+.ach-reward__label { font-size: 0.6rem; opacity: 0.5; text-align: center; color: var(--pomo-text, #1a1a2e); }
+
+/* ── Barra de progresso ──────────────────────────────── */
+.ach-card__progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ach-card__progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ach-card__progress-label { font-size: 0.8rem; font-weight: 600; color: var(--pomo-text, #1a1a2e); }
+.ach-card__progress-next  { font-size: 0.75rem; opacity: 0.65; color: var(--pomo-text, #1a1a2e); }
+
+.ach-card__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pomo-border, rgba(0,0,0,0.12));
+  overflow: hidden;
+}
+
+.ach-card__fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  transition: width 0.4s ease;
+}
+
+.ach-card__pct {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  text-align: right;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+/* ── Últimas conquistas ──────────────────────────────── */
+.ach-card__recent { display: flex; flex-direction: column; gap: 6px; }
+
+.ach-card__recent-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.5;
+  margin: 0;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.ach-card__recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ach-card__recent-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.03));
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.ach-card__recent-icon { font-size: 1rem; flex-shrink: 0; }
+.ach-card__recent-name { font-weight: 500; }
+
+/* ── Stats de desempenho ─────────────────────────────── */
+.ach-card__stats { display: flex; flex-direction: column; gap: 8px; }
+
+.ach-card__stats-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.5;
+  margin: 0;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.ach-card__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.ach-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.04));
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
+}
+
+.ach-stat__value { font-size: 1.1rem; font-weight: 700; color: var(--pomo-text, #1a1a2e); }
+.ach-stat__label { font-size: 0.62rem; opacity: 0.5; color: var(--pomo-text, #1a1a2e); }

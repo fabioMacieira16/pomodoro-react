@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useDashboardStore } from '../store/dashboardStore';
 import { useStudyContext } from '../store/studyContextStore';
 import { useAnkiStore } from '../store/ankiStore';
+import { useAchievementStore } from '../store/achievementStore';
 import StatCard from '../components/Dashboard/StatCard';
 import ConsistencyBar from '../components/Dashboard/ConsistencyBar';
 import WeeklyChart from '../components/Dashboard/WeeklyChart';
+import AchievementsCard from '../components/Dashboard/AchievementsCard';
 import './Dashboard.css';
 
 const TASK_STATS_KEY = 'pomodoro-task-stats';
@@ -37,6 +39,7 @@ const Dashboard: React.FC = () => {
   const { data, isLoading, error, fetchDashboard } = useDashboardStore();
   const { context, fetchContext, getTodaysSubjects, getWeakSubjects, getPendingReviews } = useStudyContext();
   const { stats: ankiStats, fetchStats: fetchAnkiStats } = useAnkiStore();
+  const { summary: achSummary, recent: achRecent, stats: achStats, fetch: fetchAchievements } = useAchievementStore();
 
   const taskStats = useMemo(() => {
     const stats = loadTaskStats();
@@ -68,7 +71,8 @@ const Dashboard: React.FC = () => {
     fetchDashboard();
     fetchContext();
     fetchAnkiStats();
-  }, [fetchDashboard, fetchContext, fetchAnkiStats]);
+    fetchAchievements();
+  }, [fetchDashboard, fetchContext, fetchAnkiStats, fetchAchievements]);
 
   const todaysSubjects = getTodaysSubjects();
   const weakSubjects = getWeakSubjects();
@@ -148,6 +152,17 @@ const Dashboard: React.FC = () => {
                 : undefined}
             />
           </section>
+
+          {/* ── Conquistas ─────────────────────────────── */}
+          {achSummary && achStats && (
+            <section className="dashboard__section">
+              <AchievementsCard
+                summary={achSummary}
+                recent={achRecent}
+                stats={achStats}
+              />
+            </section>
+          )}
 
           {/* Stats de Questões e Flashcards */}
           <section className="dashboard__metrics-extended">

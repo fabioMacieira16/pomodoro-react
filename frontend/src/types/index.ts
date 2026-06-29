@@ -261,3 +261,49 @@ export interface AIGenerateRequest {
   card_types: CardType[];
   language: string;
 }
+
+// ── Achievements ────────────────────────────────────────────────────────────
+
+export interface AchievementSummary {
+  total_stars: number;
+  total_medals: number;
+  total_trophies: number;
+  total_diamonds: number;
+  total_legends: number;
+  next_reward: string;
+  stars_in_tier: number;
+  next_milestone: number;
+  progress_pct: number;
+}
+
+export interface AchievementUnlock {
+  code: string;
+  title: string;
+  icon: string | null;
+  category: string;
+  unlocked_at: string;
+}
+
+export interface AchievementItem {
+  code: string;
+  category: string;
+  title: string;
+  icon: string | null;
+  threshold: number | null;
+  progress: number;
+  unlocked: boolean;
+  unlocked_at: string | null;
+}
+
+export interface AchievementStats {
+  pomodoros_completed: number;
+  quizzes_answered: number;
+  quizzes_correct: number;
+  flashcards_created: number;
+  flashcards_reviewed: number;
+  total_study_minutes: number;
+  total_study_hours: number;
+  current_streak_days: number;
+  longest_streak_days: number;
+  accuracy_pct: number;
+}

@@ -4,14 +4,15 @@
 
 ---
 
-## 🏛️ Os 4 Pilares
+## 🏛️ Os 5 Pilares
 
 | Pilar | O que faz | Por que importa |
 |-------|-----------|-----------------|
 | 🍅 **Pomodoro** | Timer com sessões, pausas e métricas | Base do foco e da consistência |
 | 📅 **Agenda Inteligente** | Plano de estudos adaptado à data da prova | Prioriza o que importa, quando importa |
-| 📊 **Dashboard de Performance** | Heatmap, evolução semanal, streak | Transforma esforço invisível em dados visíveis |
+| 📊 **Central de Desempenho** | Heatmap, conquistas, streak, ranking pessoal | Transforma esforço invisível em dados visíveis — e recompensa |
 | 🧠 **Sistema Anki + IA** | Revisão espaçada gerada a partir de PDFs, vídeos, erros e questões | **O diferencial absurdo** — memória de longo prazo automática |
+| 🏆 **Sistema de Conquistas** | Gamificação integrada ao Dashboard — sem telas extras | Mantém a motivação com progressão real e recompensas visíveis |
 
 ---
 
@@ -176,6 +177,73 @@ database/
 
 ---
 
+## 🏆 Sistema de Conquistas — Central de Desempenho
+
+O Dashboard é a **Central de Desempenho** do usuário. As conquistas aparecem integradas, sem telas extras.
+
+### Progressão de Recompensas
+
+```
+⭐ Estrela  →(×10)→  🥇 Medalha  →(×10)→  🏆 Troféu  →(×10)→  💎 Diamante  →(×10)→  👑 Lenda
+```
+
+Toda conquista desbloqueada concede **1 Estrela**. O sistema converte automaticamente para os níveis superiores.
+
+### Categorias de Conquistas
+
+| Categoria | Exemplos |
+|-----------|---------|
+| ⏱ **Pomodoro** | 10 / 25 / 50 / 100 / 500 pomodoros |
+| 📝 **Questões** | Respondidas: 10, 100, 500, 1.000 · Acertos: 10, 50, 100, 500, 1.000 |
+| 📖 **Flashcards** | Criados: 10–500 · Revisados: 10–1.000 |
+| 🤖 **IA** | 1º plano, 1º quiz, 1º mapa mental, 1º resumo |
+| 📄 **Documentos** | 1º edital, 1º PDF, 1º vídeo importado |
+| 🏛 **Concursos** | Edital concluído, cronograma seguido 30 dias, todas as disciplinas concluídas |
+| 🔥 **Consistência** | Streak de 3, 7, 15, 30, 60, 90, 180, 365 dias |
+| ⏰ **Horas** | 10h, 25h, 50h, 100h, 250h, 500h, 1.000h |
+
+### Card de Conquistas no Dashboard
+
+```
+┌──────────────────────────────────────────────┐
+│  🏅 Conquistas                               │
+│                                              │
+│  ⭐ 34   🥇 3   🏆 0   💎 0   👑 0          │
+│                                              │
+│  ████████████████░░░░  34/40 (85%)          │
+│  Próxima: 🥇 Medalha Bronze                  │
+│                                              │
+│  Últimas conquistas:                         │
+│  🏆 Mestre do Pomodoro                       │
+│  ⭐ Primeira Semana Completa                  │
+│  🥇 100 Questões Respondidas                 │
+└──────────────────────────────────────────────┘
+```
+
+### Arquitetura
+
+```
+AchievementService
+├── registerEvent(event)       ← chamado por todos os roteadores
+├── evaluateAll(userId)        ← avalia regras data-driven
+├── unlockAchievement(...)     ← persiste desbloqueio
+└── grantReward(...)           ← ⭐ → 🥇 → 🏆 → 💎 → 👑
+```
+
+**Extensibilidade:** adicionar nova conquista = inserir 1 linha no banco. Zero alteração de código.
+
+### Endpoints
+
+```
+GET /api/achievements/            → catálogo completo
+GET /api/achievements/me          → conquistas + progresso do usuário
+GET /api/achievements/me/summary  → contadores de recompensas + próxima
+GET /api/achievements/me/recent   → últimas conquistas desbloqueadas
+GET /api/achievements/me/stats    → 10 métricas de desempenho
+```
+
+---
+
 ## 🤖 API de IA
 
 Todos os endpoints funcionam **sem nenhuma API key** (provider `mock` por padrão).
@@ -284,10 +352,23 @@ npm run dev
 
 ## 🗺️ Roadmap
 
+### Fases planejadas
+
+| Fase | Objetivo | Status |
+|------|----------|--------|
+| ✅ 1–5 | Auth, Tasks, Pomodoro, Anki+IA, Stats | Concluído |
+| 🔲 6 | Security Hardening (SECRET_KEY, CORS, env vars) | Planejado |
+| 🔲 7 | Database Integrity (Alembic clean, ghost models) | Planejado |
+| 🔲 8 | Study Features (Subjects, Categories, Editais) | Planejado |
+| 🔲 9 | Testing (pytest, vitest, Playwright) | Planejado |
+| 🔲 10 | PWA & Production (mobile, Docker prod) | Planejado |
+| 🔲 11 | **Achievements & Performance Hub** | Planejado |
+
+### Backlog adicional
+
 - [ ] Importação de PDF via drag-and-drop → flashcards automáticos
 - [ ] Transcrição de vídeo-aula → resumo + deck Anki
 - [ ] Dashboard de erros frequentes → reforço automático
-- [ ] Gamificação (XP, níveis, conquistas)
 - [ ] Exportação de decks (formato Anki `.apkg`)
 - [ ] App mobile (React Native)
 - [ ] PostgreSQL para deploy em nuvem

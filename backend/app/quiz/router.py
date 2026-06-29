@@ -77,9 +77,18 @@ async def generate_quiz_from_pdf(
 def submit_answer(
     req: QuizAnswerRequest,
     svc: QuizService = Depends(_svc),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     try:
-        return svc.submit_answer(req)
+        result = svc.submit_answer(req)
+        try:
+            from app.achievements.service import AchievementService
+            event = "QUIZ_CORRECT" if result.is_correct else "QUIZ_WRONG"
+            AchievementService(db).register_event(current_user.id, event)
+        except Exception:
+            pass
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

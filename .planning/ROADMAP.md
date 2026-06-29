@@ -2,7 +2,7 @@
 
 **Created:** 2026-05-14
 **Type:** Retrospective + Forward Planning
-**Status:** Phase 5 complete — Phase 6 next
+**Status:** Phase 5 complete — Phase 6 next (Phase 11 planned: Achievements)
 
 ---
 
@@ -18,6 +18,7 @@
 - [ ] **Phase 8: Study Features** — Subjects, categories, Anki decks, flashcards (activate ghost models)
 - [ ] **Phase 9: Testing** — Unit, integration, and e2e test coverage
 - [ ] **Phase 10: PWA & Production Readiness** — Mobile optimization, PWA, production Docker config
+- [ ] **Phase 11: Achievements & Performance Hub** — AchievementService, gamification, Dashboard como Central de Desempenho
 
 ---
 
@@ -223,6 +224,33 @@
 | 8. Study Features | Subjects, decks, flashcards | 🔲 Planned | - |
 | 9. Testing | Automated test coverage | 🔲 Planned | - |
 | 10. PWA & Production Readiness | Deployable + installable | 🔲 Planned | - |
+| 11. Achievements & Performance Hub | Gamificação + Central de Desempenho | 🔲 Planned | - |
+
+---
+
+### Phase 11: Achievements & Performance Hub
+**Status:** PLANNED
+**Goal:** O Dashboard se torna a Central de Desempenho — gamificação completa sem criar novas telas
+**Key Deliverables:**
+- `AchievementService` — registrar eventos, avaliar regras data-driven, desbloquear conquistas, conceder recompensas
+- Tabelas `achievements`, `user_achievements`, `user_stats` + migration Alembic
+- Seed de conquistas: 8 categorias (Estudos, Pomodoro, Questões, Flashcards, IA, Documentos, Concursos, Consistência, Horas)
+- Sistema de progressão: ⭐ Estrela → 🥇 Medalha → 🏆 Troféu → 💎 Diamante → 👑 Lenda
+- Endpoints `/api/achievements/*` (catálogo, progresso, resumo, últimas conquistas, stats)
+- Emissão de eventos nos roteadores existentes (pomodoro, quiz, anki, ai)
+- Card "Conquistas" no Dashboard: contadores + barra de progresso + próxima recompensa
+- Card "Estatísticas" expandido: 10 métricas de desempenho
+- Card "Ranking Pessoal": melhor/pior/mais estudada/maior evolução por disciplina
+- `achievementStore` (Zustand) para estado frontend
+- Toast/notificação ao desbloquear conquista
+**Success Criteria:**
+1. Completar pomodoro → evento emitido → contador atualizado → conquista desbloqueada automaticamente se threshold atingido
+2. Dashboard exibe progresso, contadores e últimas conquistas sem tela separada
+3. Nova conquista adicionada apenas com insert no banco — zero alteração de lógica
+4. Progressão ⭐→🥇→🏆→💎→👑 calculada automaticamente pelo backend
+5. Todas as 10 estatísticas do card de desempenho derivadas de dados reais
+**Plans:** `ACHIEVEMENTS_PLAN.md`
+**Dependencies:** Phase 5 (Stats API pattern), Phase 8 (Study Features para eventos de disciplina)
 
 ---
 

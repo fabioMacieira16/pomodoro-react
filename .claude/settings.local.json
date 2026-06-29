@@ -36,7 +36,8 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(tee /dev/stderr)",
       "Bash(echo \"TSC_EXIT:$?\")",
-      "PowerShell(cd C:\\\\Projetos\\\\pomodoro-react\\\\frontend; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"Tasks/Task\" } | Select-Object -First 20)"
+      "PowerShell(cd C:\\\\Projetos\\\\pomodoro-react\\\\frontend; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"Tasks/Task\" } | Select-Object -First 20)",
+      "PowerShell(cd C:\\\\Projetos\\\\pomodoro-react\\\\frontend; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"Tasks/Task\" } | Select-Object -First 30)"
     ]
   }
 }

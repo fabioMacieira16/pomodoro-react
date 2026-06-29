@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, Float, Enum, Text, JSON
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, Float, Enum, Text, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -398,3 +398,47 @@ class DocumentIndex(Base):
 
     user    = relationship("User")
     subject = relationship("Subject", back_populates="document_indexes")
+
+# ── Achievements System ──────────────────────────────────────────────────────
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+    id          = Column(Integer, primary_key=True)
+    code        = Column(String(10), unique=True, nullable=False)
+    category    = Column(String(50), nullable=False)
+    title       = Column(String(100), nullable=False)
+    description = Column(String(255), nullable=True)
+    icon        = Column(String(10), nullable=True)
+    reward_type = Column(String(20), nullable=False, default="star")
+    threshold   = Column(Integer, nullable=True)
+    event_type  = Column(String(50), nullable=True)
+
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+    id             = Column(Integer, primary_key=True)
+    user_id        = Column(Integer, ForeignKey("users.id"), nullable=False)
+    achievement_id = Column(Integer, ForeignKey("achievements.id"), nullable=False)
+    unlocked_at    = Column(DateTime(timezone=True), nullable=True)
+    progress       = Column(Integer, default=0)
+    __table_args__ = (UniqueConstraint("user_id", "achievement_id", name="uq_user_achievement"),)
+
+
+class UserStats(Base):
+    __tablename__ = "user_stats"
+    user_id             = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    total_stars         = Column(Integer, default=0)
+    total_medals        = Column(Integer, default=0)
+    total_trophies      = Column(Integer, default=0)
+    total_diamonds      = Column(Integer, default=0)
+    total_legends       = Column(Integer, default=0)
+    pomodoros_completed = Column(Integer, default=0)
+    quizzes_answered    = Column(Integer, default=0)
+    quizzes_correct     = Column(Integer, default=0)
+    flashcards_created  = Column(Integer, default=0)
+    flashcards_reviewed = Column(Integer, default=0)
+    total_study_minutes = Column(Integer, default=0)
+    current_streak_days = Column(Integer, default=0)
+    longest_streak_days = Column(Integer, default=0)
+    last_study_date     = Column(DateTime(timezone=True), nullable=True)
+    updated_at          = Column(DateTime(timezone=True), onupdate=func.now())

@@ -45,6 +45,12 @@ def submit_review(review_in: dtos.ReviewSubmit, db: Session = Depends(get_db), c
             correct=review_in.quality >= 3,
         )
 
+    try:
+        from app.achievements.service import AchievementService
+        AchievementService(db).register_event(current_user.id, "FLASHCARD_REVIEWED")
+    except Exception:
+        pass
+
     return dtos.ReviewResult(
         flashcard_id=updated_card.id,
         next_review=updated_card.next_review,
