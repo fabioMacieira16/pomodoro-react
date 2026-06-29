@@ -244,6 +244,136 @@ GET /api/achievements/me/stats    → 10 métricas de desempenho
 
 ---
 
+## 📥 Importação de Conteúdo
+
+O sistema aceita importação de questões e flashcards em múltiplos formatos. Use esses modelos para gerar o arquivo direto no ChatGPT e importar em segundos.
+
+---
+
+### Formato 1 — Questões de Múltipla Escolha (CSV)
+
+**Endpoint:** `POST /api/quiz/import-csv`
+
+#### Colunas
+
+| Coluna | Obrigatório | Descrição |
+|--------|-------------|-----------|
+| `disciplina` | Não | Nome da matéria (cria automaticamente se não existir) |
+| `enunciado` | **Sim** | Texto completo da questão |
+| `a` | **Sim** | Texto da alternativa A |
+| `b` | **Sim** | Texto da alternativa B |
+| `c` | **Sim** | Texto da alternativa C |
+| `d` | **Sim** | Texto da alternativa D |
+| `e` | Não | Alternativa E (para bancas com 5 opções, ex: CESPE) |
+| `gabarito` | **Sim** | Letra correta: `A`, `B`, `C`, `D` ou `E` |
+| `explicacao` | Não | Explicação da resposta correta |
+| `dificuldade` | Não | `Easy`, `Medium` ou `Hard` (padrão: `Medium`) |
+| `banca` | Não | Banca examinadora (apenas metadado, sem efeito no sistema) |
+| `ano` | Não | Ano da prova (apenas metadado) |
+
+#### Exemplo de arquivo
+
+```csv
+disciplina,enunciado,a,b,c,d,gabarito,explicacao,dificuldade
+Direito Constitucional,O Brasil adota qual forma de governo?,Monarquia,República,Teocracia,Anarquia,B,A CF/88 art. 1º define o Brasil como República Federativa.,Easy
+Direito Constitucional,Qual é o prazo para o STF julgar habeas corpus?,10 dias,20 dias,Prazo razoável,48 horas,C,Não existe prazo fixo; aplica-se o princípio da razoável duração.,Medium
+Direito Administrativo,O princípio da legalidade exige que o administrador,Faça o que a lei proíbe,Faça apenas o que a lei permite,Interprete a lei livremente,Ignore normas infraconstitucionais,B,Diferente do particular que pode fazer tudo o que a lei não proíbe.,Easy
+```
+
+#### Prompt para gerar no ChatGPT
+
+Copie e cole no ChatGPT, substituindo `{DISCIPLINA}` e `{QUANTIDADE}`:
+
+```
+Gere {QUANTIDADE} questões de múltipla escolha sobre {DISCIPLINA} para concursos públicos.
+
+Retorne APENAS um CSV com o cabeçalho abaixo (sem texto extra, sem markdown):
+disciplina,enunciado,a,b,c,d,gabarito,explicacao,dificuldade
+
+Regras:
+- Cada linha = 1 questão
+- Gabarito = apenas a letra (A, B, C ou D)
+- Não coloque "(correta)" ou "(X)" nas alternativas
+- dificuldade = Easy, Medium ou Hard
+- Use vírgulas como separador; se o texto tiver vírgula, envolva em aspas duplas
+```
+
+---
+
+### Formato 2 — Flashcards Simples (CSV)
+
+**Endpoint:** `POST /api/anki/flashcards/import-csv`
+
+Formato mínimo: duas colunas **sem cabeçalho**, `frente,verso`.
+
+```csv
+O que é habeas corpus?,Remédio constitucional que protege a liberdade de locomoção
+Quem pode propor ADI?,Legitimados do art. 103 da CF/88
+Prazo da prisão temporária nos crimes hediondos?,30 dias prorrogáveis por mais 30
+```
+
+**Parâmetros do form-data:**
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `deck_id` | int | ID do deck de destino |
+| `file` | arquivo | Arquivo `.csv` |
+| `assunto` | string | Tag opcional (ex: `"Direito Penal"`) |
+
+#### Prompt para gerar no ChatGPT
+
+```
+Gere {QUANTIDADE} flashcards sobre {TEMA} no formato CSV puro (sem cabeçalho, sem markdown).
+Cada linha: frente da pergunta,resposta objetiva
+Regras: respostas curtas (máx 2 linhas), se tiver vírgula no texto use aspas duplas.
+```
+
+---
+
+### Formato 3 — Questões via PDF
+
+**Endpoint:** `POST /api/quiz/generate-from-pdf`
+
+Envie qualquer PDF (apostila, prova anterior, edital) como `multipart/form-data`.  
+A IA extrai o texto e gera questões automaticamente.
+
+| Campo | Tipo | Default |
+|-------|------|---------|
+| `file` | arquivo PDF | — |
+| `num_questions` | int | `10` |
+| `subject_id` | int | opcional |
+
+> **Atenção:** PDFs escaneados (imagem sem texto selecionável) precisam passar por OCR antes da importação.
+
+---
+
+### Formato 4 — Flashcards via PDF
+
+**Endpoint:** `POST /api/anki/ai/generate-from-pdf`
+
+Mesmo conceito do formato 3, mas gera flashcards em vez de questões.
+
+| Campo | Tipo | Default |
+|-------|------|---------|
+| `file` | arquivo PDF | — |
+| `deck_id` | int | opcional (detecta/cria automaticamente) |
+| `card_count` | int | `10` |
+| `card_types` | string | `"qa"` (`qa`, `multiple_choice`, `cloze`, `true_false`) |
+| `language` | string | `"pt"` |
+
+---
+
+### Resumo dos endpoints de importação
+
+| Formato | Endpoint | Gera |
+|---------|----------|------|
+| CSV múltipla escolha | `POST /api/quiz/import-csv` | Exercícios para o quiz |
+| CSV flashcard simples | `POST /api/anki/flashcards/import-csv` | Flashcards qa |
+| PDF → questões | `POST /api/quiz/generate-from-pdf` | Exercícios via IA |
+| PDF → flashcards | `POST /api/anki/ai/generate-from-pdf` | Flashcards via IA |
+
+---
+
 ## 🤖 API de IA
 
 Todos os endpoints funcionam **sem nenhuma API key** (provider `mock` por padrão).
