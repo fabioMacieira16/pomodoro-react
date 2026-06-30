@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { X, Upload, FileText, ClipboardCopy } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { importQuizCSV, type QuizImportResult } from '../../api/imports';
+import { importAnkiExport, type AnkiImportResult } from '../../api/anki';
 import type { Deck } from '../../types';
 
 const QUIZ_PROMPT = `Gere 20 questões de múltipla escolha sobre [DISCIPLINA] para concursos públicos.
@@ -23,7 +24,7 @@ Regras:
 - Respostas curtas (máx 2 linhas)
 - Se o texto tiver vírgula, envolva em aspas duplas`;
 
-type TabType = 'flashcards' | 'questoes';
+type TabType = 'flashcards' | 'questoes' | 'anki';
 
 interface Props {
   deck: Deck;
@@ -45,12 +46,17 @@ export function CSVImporter({ deck, onClose }: Props) {
   const [quizFile, setQuizFile] = useState<File | null>(null);
   const [quizResult, setQuizResult] = useState<QuizImportResult | null>(null);
 
+  // Anki export state
+  const [ankiFile, setAnkiFile] = useState<File | null>(null);
+  const [ankiResult, setAnkiResult] = useState<AnkiImportResult | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [copiedQuiz, setCopiedQuiz] = useState(false);
 
   const flashInputRef = useRef<HTMLInputElement>(null);
   const quizInputRef = useRef<HTMLInputElement>(null);
+  const ankiInputRef = useRef<HTMLInputElement>(null);
 
   const copy = (text: string, setCopied: (v: boolean) => void) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -95,6 +101,22 @@ export function CSVImporter({ deck, onClose }: Props) {
     }
   };
 
+  const handleAnkiImport = async () => {
+    if (!ankiFile) return;
+    setIsLoading(true);
+    setError(null);
+    setAnkiResult(null);
+    try {
+      const result = await importAnkiExport(ankiFile);
+      setAnkiResult(result);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(msg ?? 'Erro ao importar export do Anki.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
@@ -130,7 +152,17 @@ export function CSVImporter({ deck, onClose }: Props) {
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            Questões de Múltipla Escolha
+            Questões MC
+          </button>
+          <button
+            onClick={() => { setTab('anki'); setError(null); }}
+            className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+              tab === 'anki'
+                ? 'border-green-500 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            Importar Anki
           </button>
         </div>
 
@@ -217,6 +249,83 @@ export function CSVImporter({ deck, onClose }: Props) {
                     <pre className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
                       {FLASH_PROMPT}
                     </pre>
+                  </div>
+
+                  {error && (
+                    <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{error}</p>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* ── Anki Export tab ─────────────────────────────────── */}
+          {tab === 'anki' && (
+            <>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Importe um arquivo exportado diretamente do{' '}
+                <strong>Anki</strong> (<em>Arquivo → Exportar → Notas em texto simples</em>).
+                O primeiro segmento do caminho do baralho vira o nome do deck; o último segmento vira o assunto.
+              </p>
+
+              {ankiResult ? (
+                <div className="text-center py-6">
+                  <div className="text-4xl mb-3">{ankiResult.imported > 0 ? '✅' : '⚠️'}</div>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {ankiResult.imported} flashcard(s) importado(s)
+                  </p>
+                  {ankiResult.skipped > 0 && (
+                    <p className="text-sm text-gray-500 mt-1">{ankiResult.skipped} linha(s) ignorada(s)</p>
+                  )}
+                  {ankiResult.errors.length > 0 && (
+                    <ul className="text-xs text-red-500 mt-2 text-left list-disc list-inside space-y-0.5">
+                      {ankiResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                    </ul>
+                  )}
+                  <button
+                    onClick={onClose}
+                    className="mt-4 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                  >
+                    Ver Decks
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <label className="flex flex-col items-center justify-center gap-2 w-full py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-green-400 transition-colors">
+                    <input
+                      ref={ankiInputRef}
+                      type="file"
+                      accept=".html,.txt,.tsv,.apkg"
+                      className="hidden"
+                      onChange={(e) => setAnkiFile(e.target.files?.[0] ?? null)}
+                    />
+                    {ankiFile ? (
+                      <>
+                        <FileText size={26} className="text-green-600" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{ankiFile.name}</span>
+                        <span className="text-xs text-gray-400">Clique para trocar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={26} className="text-gray-400" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Clique para selecionar o arquivo</span>
+                        <span className="text-xs text-gray-400">.html · .txt · .tsv</span>
+                      </>
+                    )}
+                  </label>
+
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="font-semibold text-gray-600 dark:text-gray-300">Como exportar do Anki:</p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>Abra o Anki → <strong>Arquivo</strong> → <strong>Exportar</strong></li>
+                      <li>Formato: <strong>Notas em texto simples (.txt)</strong></li>
+                      <li>Marque <strong>Incluir baralho</strong> e <strong>Incluir tipo de nota</strong></li>
+                      <li>Exporte e selecione o arquivo aqui</li>
+                    </ol>
+                    <p className="mt-2">
+                      O sistema cria automaticamente um deck com o nome do baralho raiz
+                      e organiza os cartões por <strong>assunto</strong> (último nível do caminho).
+                    </p>
                   </div>
 
                   {error && (
@@ -338,7 +447,7 @@ export function CSVImporter({ deck, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        {((tab === 'flashcards' && !flashResult) || (tab === 'questoes' && !quizResult)) && (
+        {((tab === 'flashcards' && !flashResult) || (tab === 'questoes' && !quizResult) || (tab === 'anki' && !ankiResult)) && (
           <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
             <button
               onClick={onClose}
@@ -347,8 +456,8 @@ export function CSVImporter({ deck, onClose }: Props) {
               Cancelar
             </button>
             <button
-              onClick={tab === 'flashcards' ? handleFlashImport : handleQuizImport}
-              disabled={isLoading || (tab === 'flashcards' ? !flashFile : !quizFile)}
+              onClick={tab === 'flashcards' ? handleFlashImport : tab === 'questoes' ? handleQuizImport : handleAnkiImport}
+              disabled={isLoading || (tab === 'flashcards' ? !flashFile : tab === 'questoes' ? !quizFile : !ankiFile)}
               className="flex-1 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isLoading ? (

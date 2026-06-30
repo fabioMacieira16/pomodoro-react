@@ -85,7 +85,7 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
   if (!isReviewing || selectedDeckId === null) {
     return (
       <div className="rp-panel">
-        <h3 className="rp-title">🔁 Modo Revisão</h3>
+        <h3 className="rp-title">🧠 Modo Revisão</h3>
         <p className="rp-hint">Escolha um baralho para revisar enquanto o tempo corre:</p>
         <div className="rp-deck-list">
           {decks.filter((d) => d.card_count > 0).map((d) => (

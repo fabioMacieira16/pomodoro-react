@@ -454,7 +454,7 @@ const Pomodoro: React.FC = () => {
                 className="study-mode-btn study-mode-btn--review"
                 onClick={() => handleStudyModeSelect('review')}
               >
-                <span className="study-mode-btn__icon">🔁</span>
+                <span className="study-mode-btn__icon">🧠</span>
                 <span className="study-mode-btn__title">Modo Revisão</span>
                 <span className="study-mode-btn__desc">Revisar flashcards e conteúdos anteriores</span>
               </button>

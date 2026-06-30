@@ -183,7 +183,7 @@ class Flashcard(Base):
     deck = relationship("AnkiDeck", back_populates="flashcards")
     options = relationship("FlashcardOption", back_populates="flashcard", cascade="all, delete-orphan")
     reviews = relationship("FlashcardReview", back_populates="flashcard", cascade="all, delete-orphan")
-    error_card = relationship("ErrorCard", back_populates="flashcard", uselist=False)
+    error_card = relationship("ErrorCard", back_populates="flashcard", uselist=False, cascade="all, delete-orphan")
 
 class FlashcardOption(Base):
     __tablename__ = "flashcard_options"

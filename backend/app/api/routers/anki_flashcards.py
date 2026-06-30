@@ -8,7 +8,7 @@ from app.api import dtos
 from app.data.database import get_db
 from app.data.repositories import anki_deck_repo, flashcard_repo, flashcard_option_repo
 from app.api.dependencies import get_current_user
-from app.domain.models import User
+from app.domain.models import User, AnkiDeck
 
 router = APIRouter(prefix="/anki/flashcards", tags=["anki-flashcards"])
 
@@ -97,6 +97,112 @@ async def import_csv_flashcards(
         raise HTTPException(status_code=400, detail="Nenhuma linha válida encontrada no CSV. Esperado: frente,verso por linha.")
 
     return created
+
+
+_NOTETYPE_DIFFICULTY = {
+    "fácil": "Easy", "facil": "Easy", "easy": "Easy",
+    "médio": "Medium", "medio": "Medium", "medium": "Medium",
+    "difícil": "Hard", "dificil": "Hard", "hard": "Hard",
+}
+
+_DAY_SEGMENTS = {"segunda", "terça", "terca", "quarta", "quinta", "sexta", "sábado", "sabado", "domingo",
+                 "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira"}
+
+
+@router.post("/import-anki", summary="Importar export do Anki (.html / .txt / .tsv)")
+async def import_anki_export(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Importa um arquivo exportado pelo Anki (Arquivo > Exportar > Notas em texto simples).
+    Formato: TSV com cabeçalho de diretivas (#separator:tab, #deck column:N, …).
+    O primeiro segmento do caminho do baralho vira o nome do deck; o último segmento vira o assunto.
+    """
+    raw = await file.read()
+    text = raw.decode("utf-8-sig", errors="replace")
+
+    separator = "\t"
+    guid_col = 0
+    notetype_col = 1
+    deck_col = 2
+    data_lines: list[str] = []
+
+    for line in text.splitlines():
+        if line.startswith("#separator:"):
+            val = line.split(":", 1)[1].strip().lower()
+            separator = "\t" if val == "tab" else val
+        elif line.startswith("#guid column:"):
+            guid_col = int(line.split(":", 1)[1].strip()) - 1
+        elif line.startswith("#notetype column:"):
+            notetype_col = int(line.split(":", 1)[1].strip()) - 1
+        elif line.startswith("#deck column:"):
+            deck_col = int(line.split(":", 1)[1].strip()) - 1
+        elif not line.startswith("#") and line.strip():
+            data_lines.append(line)
+
+    # Note fields start right after the last special column
+    first_field = max(guid_col, notetype_col, deck_col) + 1
+
+    deck_cache: dict[str, AnkiDeck] = {}
+    created = skipped = 0
+    errors: list[str] = []
+
+    reader = csv.reader(io.StringIO("\n".join(data_lines)), delimiter=separator)
+    for lineno, row in enumerate(reader, start=1):
+        if len(row) < first_field + 2:
+            skipped += 1
+            errors.append(f"Linha {lineno}: colunas insuficientes ({len(row)})")
+            continue
+
+        note_type = row[notetype_col].strip()
+        deck_path = row[deck_col].strip()
+        front = row[first_field].strip()
+        back = row[first_field + 1].strip()
+
+        if not front or not back:
+            skipped += 1
+            continue
+
+        segments = [s.strip() for s in deck_path.split("::") if s.strip()]
+        if not segments:
+            skipped += 1
+            continue
+
+        deck_name = segments[0]
+        # Last segment = subject; skip day-of-week segments
+        subject_segments = [s for s in segments[1:] if s.lower() not in _DAY_SEGMENTS]
+        assunto = subject_segments[-1] if subject_segments else None
+
+        difficulty = _NOTETYPE_DIFFICULTY.get(note_type.lower(), "Medium")
+
+        if deck_name not in deck_cache:
+            deck = db.query(AnkiDeck).filter_by(user_id=current_user.id, name=deck_name).first()
+            if not deck:
+                deck = AnkiDeck(user_id=current_user.id, name=deck_name, color="#3b82f6")
+                db.add(deck)
+                db.commit()
+                db.refresh(deck)
+            deck_cache[deck_name] = deck
+
+        deck_obj = deck_cache[deck_name]
+        tags = [f"assunto:{assunto}"] if assunto else []
+
+        flashcard_repo.create(db, {
+            "deck_id": deck_obj.id,
+            "card_type": "qa",
+            "front": front,
+            "back": back,
+            "tags": tags,
+            "difficulty": difficulty,
+        })
+        created += 1
+
+    if created == 0 and errors:
+        raise HTTPException(status_code=400, detail=errors[0])
+
+    return {"imported": created, "skipped": skipped, "errors": errors[:10]}
 
 
 @router.get("/{card_id}", response_model=dtos.FlashcardResponse)

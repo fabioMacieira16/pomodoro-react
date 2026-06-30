@@ -47,6 +47,22 @@ export const importFlashcardsCSV = (params: { file: File; deckId: number; assunt
     .then((r) => r.data);
 };
 
+export interface AnkiImportResult {
+  imported: number;
+  skipped: number;
+  errors: string[];
+}
+
+export const importAnkiExport = (file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api
+    .post<AnkiImportResult>('/anki/flashcards/import-anki', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((r) => r.data);
+};
+
 // ── Review ──────────────────────────────────────────────────────────────────────────
 
 export const fetchReviewQueue = (deckId: number, limit = 50, force = false) =>
