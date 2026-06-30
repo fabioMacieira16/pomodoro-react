@@ -1,5 +1,7 @@
 """Quiz Service — adaptive quiz generation + auto error-card on wrong answers."""
 import asyncio
+import csv
+import io
 import json
 import re
 from typing import List, Optional
@@ -10,7 +12,7 @@ from sqlalchemy import func
 
 from app.domain.models import (
     Exercise, ExerciseAttempt, ExerciseOption,
-    QuizSession, ErrorCard, Flashcard, AnkiDeck, Subject
+    QuizSession, ErrorCard, Flashcard, AnkiDeck, Subject, DocumentIndex
 )
 from app.quiz.schemas import (
     QuizSessionOut, QuizQuestionOut, ExerciseOptionOut, AttemptHistoryItem,
@@ -133,6 +135,44 @@ class QuizService:
 
     # ── AI question generation ───────────────────────────────────────────
 
+    def _get_subject_pdf_content(self, subject_id: int) -> str:
+        """Return text content from the most recent indexed document for this subject."""
+        docs = (
+            self.db.query(DocumentIndex)
+            .filter_by(subject_id=subject_id)
+            .order_by(DocumentIndex.indexed_at.desc())
+            .limit(3)
+            .all()
+        )
+        if not docs:
+            return ""
+
+        parts = []
+        for doc in docs:
+            # Try to read the PDF from disk first
+            try:
+                from pathlib import Path
+                path = Path(doc.file_path)
+                if path.exists() and path.suffix.lower() == ".pdf":
+                    import pypdf, io
+                    reader = pypdf.PdfReader(str(path))
+                    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+                    if text.strip():
+                        parts.append(text[:8000])
+                        continue
+            except Exception:
+                pass
+
+            # Fallback: use stored summary + topics
+            if doc.summary:
+                parts.append(f"Resumo: {doc.summary}")
+            if doc.topics_json:
+                topics = doc.topics_json if isinstance(doc.topics_json, list) else []
+                if topics:
+                    parts.append("Tópicos: " + ", ".join(str(t) for t in topics[:20]))
+
+        return "\n\n".join(parts)[:MAX_PDF_CONTENT_CHARS]
+
     def _generate_ai_exercises(self, subject_id: Optional[int], num_questions: int, difficulty: str, subject_name: Optional[str] = None) -> List[Exercise]:
         """Generate questions via AI when no exercises exist in the DB."""
         if subject_id:
@@ -149,11 +189,49 @@ class QuizService:
             if ctx.banca:
                 context_hint += f" (banca {ctx.banca})"
 
+        # Try to get real PDF content for this subject
+        pdf_content = self._get_subject_pdf_content(subject_id) if subject_id else ""
+
         provider = get_provider()
         if not provider.is_available():
             return []
 
-        prompt = f"""
+        if pdf_content:
+            prompt = f"""Você é um especialista em criar questões de concursos públicos.
+Com base no conteúdo abaixo (material de estudo de {subject_name} {context_hint}), gere {num_questions} questões de múltipla escolha.
+Dificuldade: {difficulty}.
+Crie questões fiéis ao conteúdo fornecido — não invente temas fora do material.
+
+Conteúdo:
+---
+{pdf_content}
+---
+
+Retorne SOMENTE JSON válido no formato:
+[
+  {{
+    "question_text": "Texto da questão?",
+    "hint": "Dica opcional",
+    "explanation": "Explicação detalhada",
+    "difficulty": "{difficulty}",
+    "correct_answer": "B",
+    "options": [
+      {{"position": 0, "text": "Texto da opção A"}},
+      {{"position": 1, "text": "Texto da opção B"}},
+      {{"position": 2, "text": "Texto da opção C"}},
+      {{"position": 3, "text": "Texto da opção D"}}
+    ]
+  }}
+]
+
+Regras:
+- Exatamente 4 opções por questão (A, B, C, D)
+- correct_answer deve ser a letra (A, B, C ou D)
+- NÃO inclua "(correta)", "(gabarito)" ou qualquer marcador no texto das opções
+- Não use markdown, apenas JSON puro
+"""
+        else:
+            prompt = f"""
 Gere {num_questions} questões de múltipla escolha sobre {subject_name} {context_hint}.
 Dificuldade: {difficulty}.
 
@@ -420,39 +498,54 @@ Regras:
     # ── Error card auto-generation ───────────────────────────────────────────
 
     def _create_error_card(self, attempt: ExerciseAttempt, exercise: Exercise) -> Optional[int]:
-        """Auto-generate a flashcard when user answers incorrectly."""
-        # Find or create deck for the subject
-        subject = self.db.query(Subject).filter_by(id=exercise.subject_id).first()
-        deck_name = f"Erros — {subject.name}" if subject else "Erros Gerais"
+        """Auto-generate a flashcard when user answers incorrectly.
 
+        All error cards go into a single 'Caderno de Erros' deck; the subject
+        is encoded as a tag so the user can filter inside that deck.
+        """
+        subject = self.db.query(Subject).filter_by(id=exercise.subject_id).first()
+
+        # Single shared deck for all error cards
         deck = (
             self.db.query(AnkiDeck)
-            .filter_by(user_id=self.user_id, name=deck_name)
+            .filter_by(user_id=self.user_id, name="Caderno de Erros")
             .first()
         )
         if not deck:
             deck = AnkiDeck(
                 user_id=self.user_id,
-                name=deck_name,
-                description=f"Cartões gerados automaticamente de erros em {deck_name}",
+                name="Caderno de Erros",
+                description="Questões erradas para revisão. Organizadas por tags de disciplina.",
                 color="#ef4444",
-                subject_id=exercise.subject_id,
             )
             self.db.add(deck)
             self.db.commit()
             self.db.refresh(deck)
 
-        # Calculate next review: same weekday next week
-        next_review = datetime.utcnow() + timedelta(days=7)
+        # Build tags: subject name so the user can filter inside the deck
+        tags = ["erro-automático"]
+        if subject:
+            tags.append(f"disciplina:{subject.name}")
+
+        next_review = datetime.utcnow() + timedelta(days=1)
+
+        correct_opt = next(
+            (o for o in exercise.options if o.is_correct), None
+        )
+        back_text = (
+            f"{exercise.correct_answer}) {correct_opt.text}\n\n{exercise.explanation or ''}"
+            if correct_opt else exercise.correct_answer
+        ).strip()
 
         flashcard = Flashcard(
             deck_id=deck.id,
             card_type="qa",
             front=exercise.question_text,
-            back=exercise.correct_answer,
+            back=back_text,
             hint=exercise.hint,
             difficulty=exercise.difficulty,
             from_error=True,
+            tags=tags,
             next_review=next_review,
         )
         self.db.add(flashcard)
@@ -471,6 +564,109 @@ Regras:
         self.db.commit()
 
         return flashcard.id
+
+    # ── CSV import ───────────────────────────────────────────────────────
+
+    def import_csv(self, csv_bytes: bytes) -> dict:
+        """Import multiple-choice questions from a UTF-8 CSV file.
+
+        Required columns: enunciado, a, b, c, d, gabarito
+        Optional columns: disciplina, e, explicacao, dificuldade, banca, ano
+        Returns: {"imported": N, "skipped": N, "errors": [...]}
+        """
+        text = csv_bytes.decode("utf-8-sig", errors="replace")
+        reader = csv.DictReader(io.StringIO(text))
+
+        # Normalise header names (strip + lowercase)
+        if reader.fieldnames is None:
+            return {"imported": 0, "skipped": 0, "errors": ["Arquivo vazio ou sem cabeçalho."]}
+
+        fieldnames = [f.strip().lower() for f in reader.fieldnames]
+        required = {"enunciado", "a", "b", "c", "d", "gabarito"}
+        missing = required - set(fieldnames)
+        if missing:
+            return {
+                "imported": 0,
+                "skipped": 0,
+                "errors": [f"Colunas obrigatórias ausentes: {', '.join(sorted(missing))}"],
+            }
+
+        imported = skipped = 0
+        errors: list[str] = []
+        subject_cache: dict[str, int] = {}
+
+        letter_map = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4}
+
+        for lineno, raw_row in enumerate(reader, start=2):
+            row = {k.strip().lower(): (v or "").strip() for k, v in raw_row.items()}
+
+            enunciado = row.get("enunciado", "")
+            gabarito  = row.get("gabarito", "").upper().strip()
+            if not enunciado or gabarito not in letter_map:
+                errors.append(f"Linha {lineno}: enunciado vazio ou gabarito inválido ('{gabarito}').")
+                skipped += 1
+                continue
+
+            opt_texts = {
+                "A": row.get("a", ""),
+                "B": row.get("b", ""),
+                "C": row.get("c", ""),
+                "D": row.get("d", ""),
+                "E": row.get("e", ""),
+            }
+            # Remove empty options (E is optional)
+            opt_texts = {k: v for k, v in opt_texts.items() if v}
+            if gabarito not in opt_texts:
+                errors.append(f"Linha {lineno}: gabarito '{gabarito}' sem alternativa correspondente.")
+                skipped += 1
+                continue
+
+            # Resolve subject
+            disciplina = row.get("disciplina", "").strip()
+            subject_id: Optional[int] = None
+            if disciplina:
+                if disciplina not in subject_cache:
+                    subj = (
+                        self.db.query(Subject)
+                        .filter(func.lower(Subject.name) == disciplina.lower())
+                        .first()
+                    )
+                    if not subj:
+                        subj = Subject(name=disciplina)
+                        self.db.add(subj)
+                        self.db.commit()
+                        self.db.refresh(subj)
+                    subject_cache[disciplina] = subj.id
+                subject_id = subject_cache[disciplina]
+
+            difficulty = row.get("dificuldade", "Medium").capitalize()
+            if difficulty not in ("Easy", "Medium", "Hard"):
+                difficulty = "Medium"
+
+            # Create Exercise
+            exercise = Exercise(
+                subject_id=subject_id,
+                question_text=enunciado,
+                explanation=row.get("explicacao") or None,
+                difficulty=difficulty,
+                correct_answer=gabarito,
+            )
+            self.db.add(exercise)
+            self.db.flush()
+
+            for letter, text in opt_texts.items():
+                pos = letter_map[letter]
+                self.db.add(ExerciseOption(
+                    exercise_id=exercise.id,
+                    text=text,
+                    is_correct=(letter == gabarito),
+                    position=pos,
+                ))
+
+            self.db.commit()
+            imported += 1
+
+        return {"imported": imported, "skipped": skipped, "errors": errors}
 
     # ── Adaptive difficulty ──────────────────────────────────────────────
 

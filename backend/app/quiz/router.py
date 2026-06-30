@@ -93,6 +93,28 @@ def submit_answer(
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@router.post(
+    "/import-csv",
+    summary="Importar questões de múltipla escolha via CSV",
+)
+async def import_csv_questions(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Importa questões de múltipla escolha a partir de um CSV com cabeçalho.
+
+    Colunas obrigatórias: enunciado, a, b, c, d, gabarito
+    Colunas opcionais: disciplina, e, explicacao, dificuldade, banca, ano
+    """
+    raw = await file.read()
+    svc = QuizService(db=db, user_id=current_user.id)
+    result = svc.import_csv(raw)
+    if result["imported"] == 0 and result["errors"]:
+        raise HTTPException(status_code=400, detail=result["errors"][0])
+    return result
+
+
 @router.get("/session/{session_id}", response_model=QuizSessionOut, summary="Get quiz session details")
 def get_session(
     session_id: int,
