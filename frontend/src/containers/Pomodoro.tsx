@@ -177,18 +177,22 @@ const Pomodoro: React.FC = () => {
     studyCtx.setPomodoroMode(mode);
     if (modalSubject) studyCtx.setCurrentSubject(modalSubject);
     setShowStudyModeModal(false);
-    if (engine.status === 'finished') engine.changePhase(engine.phase);
-    engine.start();
+    if (engine.status === 'paused') {
+      // Retoma de onde parou, não reseta
+      engine.resume();
+    } else {
+      if (engine.status === 'finished') engine.changePhase(engine.phase);
+      engine.start();
+    }
   };
 
   const handlePause = () => {
     if (engine.status === 'running') {
       engine.pause();
-      // Auto-open task panel so user can track/select tasks
-      setTaskOpen((prev: boolean) => {
-        if (!prev) localStorage.setItem('pomodoro-react-taskStatus', 'true');
-        return true;
-      });
+      if (engine.phase === 'pomodoro') {
+        setModalSubject(studyCtx.context.current_subject ?? '');
+        setShowStudyModeModal(true);
+      }
     } else if (engine.status === 'paused') {
       engine.resume();
     }
@@ -340,6 +344,7 @@ const Pomodoro: React.FC = () => {
               Pular →
             </button>
           )}
+
 
           {engine.status === 'countdown' && (
             <div className="auto-banner">

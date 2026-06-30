@@ -429,6 +429,82 @@
   font-weight: 600;
 }
 
+/* ── Idle (initial selection) state ─────────────────────────────────────── */
+.pq-panel--idle {
+  text-align: center;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pq-idle-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  margin: 8px 0 4px;
+}
+
+.pq-idle-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  width: 100%;
+}
+
+.pq-idle-btn:hover {
+  transform: translateY(-1px);
+}
+
+.pq-idle-btn--ai {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.35);
+}
+
+.pq-idle-btn--ai:hover {
+  background: rgba(102, 126, 234, 0.18);
+  border-color: rgba(102, 126, 234, 0.6);
+}
+
+.pq-idle-btn--pdf {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.pq-idle-btn--pdf:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.55);
+}
+
+.pq-idle-btn__icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.pq-idle-btn__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--pomo-text, #1f2937);
+  display: block;
+}
+
+.pq-idle-btn__desc {
+  font-size: 0.75rem;
+  color: var(--pomo-text-muted, #6b7280);
+  display: block;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
 /* ── Result subject tag ─────────────────────────────────────────────────── */
 .pq-result-subject {
   font-size: 0.82rem;

@@ -174,6 +174,7 @@ body {
   background: var(--pomo-surface-alt);
 }
 
+
 /* ── Auto-start countdown banner ─────────────────────────────────────────── */
 .auto-banner {
   display: flex;

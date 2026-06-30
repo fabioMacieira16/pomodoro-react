@@ -61,7 +61,7 @@ interface PomodoroQuizProps {
   onClose: () => void;
 }
 
-type QuizState = 'loading' | 'error' | 'no_content' | 'question' | 'answered' | 'finished';
+type QuizState = 'idle' | 'loading' | 'error' | 'no_content' | 'question' | 'answered' | 'finished';
 
 const NO_CONTENT_MESSAGES = [
   'no content',
@@ -87,7 +87,7 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
 
   const [session, setSession] = useState<QuizSession | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [state, setState] = useState<QuizState>('loading');
+  const [state, setState] = useState<QuizState>('idle');
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [score, setScore] = useState(0);
@@ -183,9 +183,6 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
     if (file) loadQuizFromPdf(file);
   };
 
-  useEffect(() => {
-    loadQuiz();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentQuestion = session?.questions[currentIdx];
 
@@ -278,6 +275,48 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
   };
 
   const accuracy = totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0;
+
+  if (state === 'idle') {
+    return (
+      <div className="pq-panel pq-panel--idle">
+        <div className="pq-no-content-icon">📝</div>
+        <h3 className="pq-no-content-title">Como deseja gerar as questões?</h3>
+        {subjectName && (
+          <p className="pq-no-content-msg">
+            Disciplina: <strong>{subjectName}</strong>
+          </p>
+        )}
+        <div className="pq-idle-actions">
+          <button
+            className="pq-idle-btn pq-idle-btn--ai"
+            onClick={loadQuiz}
+          >
+            <span className="pq-idle-btn__icon">🤖</span>
+            <span className="pq-idle-btn__title">Gerar com IA</span>
+            <span className="pq-idle-btn__desc">Questões geradas automaticamente sobre a disciplina</span>
+          </button>
+          <button
+            className="pq-idle-btn pq-idle-btn--pdf"
+            onClick={() => pdfInputRef.current?.click()}
+          >
+            <span className="pq-idle-btn__icon">📎</span>
+            <span className="pq-idle-btn__title">Importar PDF</span>
+            <span className="pq-idle-btn__desc">Gerar questões a partir de uma prova ou apostila</span>
+          </button>
+        </div>
+        <button className="pq-btn pq-btn--ghost" onClick={onClose}>
+          Continuar sem questões
+        </button>
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          hidden
+          onChange={handlePickPdf}
+        />
+      </div>
+    );
+  }
 
   if (state === 'loading') {
     return (
