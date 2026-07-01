@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { DeckCard } from './DeckCard';
 import { DeckForm } from './DeckForm';
+import { CSVImporter } from './CSVImporter';
 import type { Deck } from '../../types';
 
 const DECK_ORDER_KEY = 'anki:deckOrder';
@@ -38,6 +39,7 @@ interface DeckListProps {
 export function DeckList({ onSelectDeck, onStartReview, filteredDecks }: DeckListProps) {
   const { decks, fetchDecks, deleteDeck, isLoadingDecks } = useAnkiStore();
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingDeck, setEditingDeck] = useState<Deck | null>(null);
   const [deckOrder, setDeckOrder] = useState<number[]>(loadDeckOrder);
   const [draggedId, setDraggedId] = useState<number | null>(null);
@@ -104,13 +106,22 @@ export function DeckList({ onSelectDeck, onStartReview, filteredDecks }: DeckLis
             </span>
           )}
         </h2>
-        <button
-          onClick={() => { setEditingDeck(null); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-        >
-          <Plus size={16} />
-          Novo Deck
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-green-400 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-sm font-medium"
+          >
+            <Upload size={16} />
+            Importar
+          </button>
+          <button
+            onClick={() => { setEditingDeck(null); setShowForm(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            <Plus size={16} />
+            Novo Deck
+          </button>
+        </div>
       </div>
 
       {isLoadingDecks ? (
@@ -158,6 +169,17 @@ export function DeckList({ onSelectDeck, onStartReview, filteredDecks }: DeckLis
         <DeckForm
           deck={editingDeck}
           onClose={() => setShowForm(false)}
+        />
+      )}
+
+      {showImport && (
+        <CSVImporter
+          tabs={['anki', 'questoes']}
+          defaultTab="anki"
+          onClose={() => {
+            setShowImport(false);
+            fetchDecks();
+          }}
         />
       )}
     </div>

@@ -132,9 +132,9 @@ const Pomodoro: React.FC = () => {
       switch (e.key) {
         case ' ':
           e.preventDefault();
-          if (engine.status === 'idle' || engine.status === 'finished') engine.start();
+          if (engine.status === 'idle' || engine.status === 'finished') handleStart();
           else if (engine.status === 'running') engine.pause();
-          else if (engine.status === 'paused') engine.resume();
+          else if (engine.status === 'paused') handlePause();
           break;
         case 'Escape':
           // Encerra a sessão de revisão (contabilizando no dashboard) antes de zerar o timer
@@ -189,12 +189,13 @@ const Pomodoro: React.FC = () => {
   const handlePause = () => {
     if (engine.status === 'running') {
       engine.pause();
+    } else if (engine.status === 'paused') {
       if (engine.phase === 'pomodoro') {
         setModalSubject(studyCtx.context.current_subject ?? '');
         setShowStudyModeModal(true);
+      } else {
+        engine.resume();
       }
-    } else if (engine.status === 'paused') {
-      engine.resume();
     }
   };
 
@@ -384,17 +385,15 @@ const Pomodoro: React.FC = () => {
           </div>
         )}
 
-        {/* Quiz panel: visible during the whole timer when "Pomodoro com Questões" is active */}
-        {isQuizMode && (
-          <div className="TaskPainel">
-            <PomodoroQuiz
-              subjectId={selectedTask?.subjectId ?? undefined}
-              subjectName={selectedTask?.title ?? studyCtx.context.current_subject}
-              pomodoroNumber={engine.pomodoroCount}
-              onClose={() => studyCtx.setPomodoroMode('normal')}
-            />
-          </div>
-        )}
+        {/* Quiz panel: always mounted to preserve session state, hidden when not in quiz mode */}
+        <div className="TaskPainel" style={{ display: isQuizMode ? undefined : 'none' }}>
+          <PomodoroQuiz
+            subjectId={selectedTask?.subjectId ?? undefined}
+            subjectName={selectedTask?.title ?? studyCtx.context.current_subject}
+            pomodoroNumber={engine.pomodoroCount}
+            onClose={() => studyCtx.setPomodoroMode('normal')}
+          />
+        </div>
 
         {/* Task panel: visible when paused or idle/finished (not in review/quiz mode) */}
         {!isReviewMode && !isQuizMode && !isRunning && taskOpen && (

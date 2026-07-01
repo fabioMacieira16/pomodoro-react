@@ -284,6 +284,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
       {showImport && (
         <CSVImporter
           deck={deck}
+          tabs={['flashcards', 'questoes']}
           onClose={() => {
             setShowImport(false);
             fetchFlashcards(deck.id);

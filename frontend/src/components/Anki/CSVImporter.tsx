@@ -27,14 +27,21 @@ Regras:
 type TabType = 'flashcards' | 'questoes' | 'anki';
 
 interface Props {
-  deck: Deck;
+  deck?: Deck | null;
   onClose: () => void;
+  /** Quais abas exibir. Padrão: todas. */
+  tabs?: TabType[];
+  /** Aba aberta ao montar. Padrão: primeira da lista. */
+  defaultTab?: TabType;
 }
 
-export function CSVImporter({ deck, onClose }: Props) {
+const ALL_TABS: TabType[] = ['flashcards', 'questoes', 'anki'];
+
+export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Props) {
   const { importCSV } = useAnkiStore();
 
-  const [tab, setTab] = useState<TabType>('flashcards');
+  const visibleTabs = tabs.length > 0 ? tabs : ALL_TABS;
+  const [tab, setTab] = useState<TabType>(defaultTab ?? visibleTabs[0]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Flashcard CSV state
@@ -66,7 +73,7 @@ export function CSVImporter({ deck, onClose }: Props) {
   };
 
   const handleFlashImport = async () => {
-    if (!flashFile) return;
+    if (!flashFile || !deck) return;
     setIsLoading(true);
     setError(null);
     setFlashResult(null);
@@ -132,39 +139,47 @@ export function CSVImporter({ deck, onClose }: Props) {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 px-6">
-          <button
-            onClick={() => { setTab('flashcards'); setError(null); }}
-            className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'flashcards'
-                ? 'border-green-500 text-green-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            Flashcards
-          </button>
-          <button
-            onClick={() => { setTab('questoes'); setError(null); }}
-            className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'questoes'
-                ? 'border-green-500 text-green-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            Questões MC
-          </button>
-          <button
-            onClick={() => { setTab('anki'); setError(null); }}
-            className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'anki'
-                ? 'border-green-500 text-green-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            Importar Anki
-          </button>
-        </div>
+        {/* Tabs — only render tabs that are in visibleTabs */}
+        {visibleTabs.length > 1 && (
+          <div className="flex border-b border-gray-200 dark:border-gray-700 px-6">
+            {visibleTabs.includes('flashcards') && (
+              <button
+                onClick={() => { setTab('flashcards'); setError(null); }}
+                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'flashcards'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Flashcards
+              </button>
+            )}
+            {visibleTabs.includes('questoes') && (
+              <button
+                onClick={() => { setTab('questoes'); setError(null); }}
+                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'questoes'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Questões MC
+              </button>
+            )}
+            {visibleTabs.includes('anki') && (
+              <button
+                onClick={() => { setTab('anki'); setError(null); }}
+                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'anki'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Importar Anki
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 p-6 space-y-4">
@@ -174,14 +189,14 @@ export function CSVImporter({ deck, onClose }: Props) {
             <>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Formato: duas colunas <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">frente,verso</code> sem cabeçalho.
-                Os cartões vão para o deck <strong>"{deck.name}"</strong>.
+                {deck && <> Os cartões vão para o deck <strong>"{deck.name}"</strong>.</>}
               </p>
 
               {flashResult ? (
                 <div className="text-center py-6">
                   <div className="text-4xl mb-3">✅</div>
                   <p className="font-semibold text-gray-900 dark:text-white">{flashResult.count} flashcard(s) importado(s)!</p>
-                  <p className="text-sm text-gray-500 mt-1">Deck: "{deck.name}"</p>
+                  {deck && <p className="text-sm text-gray-500 mt-1">Deck: "{deck.name}"</p>}
                   <button
                     onClick={onClose}
                     className="mt-4 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
@@ -457,7 +472,7 @@ export function CSVImporter({ deck, onClose }: Props) {
             </button>
             <button
               onClick={tab === 'flashcards' ? handleFlashImport : tab === 'questoes' ? handleQuizImport : handleAnkiImport}
-              disabled={isLoading || (tab === 'flashcards' ? !flashFile : tab === 'questoes' ? !quizFile : !ankiFile)}
+              disabled={isLoading || (tab === 'flashcards' ? (!flashFile || !deck) : tab === 'questoes' ? !quizFile : !ankiFile)}
               className="flex-1 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isLoading ? (
