@@ -19,6 +19,7 @@ import { usePomodoroStore } from '../store/pomodoroStore';
 import { useStudyContext } from '../store/studyContextStore';
 import { useAnkiStore } from '../store/ankiStore';
 import { useSelectedTask } from '../store/selectedTaskStore';
+import { useAchievementStore } from '../store/achievementStore';
 import type { TimerPhase } from '../types';
 import './Pomodoro.css';
 
@@ -42,6 +43,7 @@ const Pomodoro: React.FC = () => {
 
   const studyCtx = useStudyContext();
   const { selectedTask, incrementActual } = useSelectedTask();
+  const fetchAchievements = useAchievementStore(s => s.fetch);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showStudyModeModal, setShowStudyModeModal] = useState(false);
@@ -57,13 +59,17 @@ const Pomodoro: React.FC = () => {
 
   // ── Increment selected task actual pomodoros when engine completes one ──
   useEffect(() => {
-    if (engine.pomodoroCount > prevPomoCount.current && selectedTask) {
-      incrementActual();
-      // Notifica o TaskList (fonte da verdade do localStorage) em vez de escrever direto,
-      // evitando que uma edição de task sobrescreva o ciclo recém-concluído
-      window.dispatchEvent(
-        new CustomEvent('pomodoro:cycle-completed', { detail: { taskId: selectedTask.id } })
-      );
+    if (engine.pomodoroCount > prevPomoCount.current) {
+      if (selectedTask) {
+        incrementActual();
+        // Notifica o TaskList (fonte da verdade do localStorage) em vez de escrever direto,
+        // evitando que uma edição de task sobrescreva o ciclo recém-concluído
+        window.dispatchEvent(
+          new CustomEvent('pomodoro:cycle-completed', { detail: { taskId: selectedTask.id } })
+        );
+      }
+      // Verifica se novas conquistas foram desbloqueadas
+      void fetchAchievements();
     }
     prevPomoCount.current = engine.pomodoroCount;
   }, [engine.pomodoroCount]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -10,6 +10,7 @@ import AnkiPage from './containers/AnkiPage';
 import EstudosPage from './containers/EstudosPage';
 import QuizPage from './containers/QuizPage';
 import FixedMenu from './components/FixedMenu';
+import AchievementCelebration from './components/AchievementCelebration';
 import { usePomodoroSettings } from './store/pomodoroSettingsStore';
 import './style.css';
 
@@ -53,6 +54,7 @@ function AppRoutes() {
 
   return (
     <>
+      <AchievementCelebration />
       {!isPomodoro && <FixedMenu />}
       <Routes>
         <Route path="/" element={<Pomodoro />} />

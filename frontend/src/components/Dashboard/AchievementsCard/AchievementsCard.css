@@ -111,6 +111,68 @@
 .ach-card__recent-icon { font-size: 1rem; flex-shrink: 0; }
 .ach-card__recent-name { font-weight: 500; }
 
+/* ── Metas por categoria ─────────────────────────────── */
+.ach-card__goals { display: flex; flex-direction: column; gap: 10px; }
+
+.ach-card__goals-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.5;
+  margin: 0;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.ach-goals-group { display: flex; flex-direction: column; gap: 6px; }
+
+.ach-goals-group__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.6;
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.ach-goals-group__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ach-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: default;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  transition: transform 0.15s ease;
+}
+
+.ach-pill--unlocked {
+  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.08));
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #b45309;
+}
+
+.dark .ach-pill--unlocked { color: #fbbf24; }
+
+.ach-pill--locked {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
+  border-color: var(--pomo-border, rgba(0,0,0,0.1));
+  color: var(--pomo-text, #1a1a2e);
+  opacity: 0.38;
+}
+
+.ach-pill__icon { font-size: 0.82rem; flex-shrink: 0; }
+.ach-pill__name { overflow: hidden; text-overflow: ellipsis; }
+.ach-pill__progress { font-size: 0.62rem; opacity: 0.85; }
+
 /* ── Stats de desempenho ─────────────────────────────── */
 .ach-card__stats { display: flex; flex-direction: column; gap: 8px; }
 
