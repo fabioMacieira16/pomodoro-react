@@ -26,18 +26,10 @@ function loadTaskStats(): DailyTaskStat[] {
   }
 }
 
-const DAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-
-function daysUntil(dateStr: string | null): number | null {
-  if (!dateStr) return null;
-  const diff = new Date(dateStr).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
-
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { data, isLoading, error, fetchDashboard } = useDashboardStore();
-  const { context, fetchContext, getTodaysSubjects, getWeakSubjects, getPendingReviews } = useStudyContext();
+  const { context, fetchContext, getWeakSubjects, getPendingReviews } = useStudyContext();
   const { stats: ankiStats, fetchStats: fetchAnkiStats } = useAnkiStore();
   const { summary: achSummary, recent: achRecent, stats: achStats, fetch: fetchAchievements } = useAchievementStore();
 
@@ -74,10 +66,8 @@ const Dashboard: React.FC = () => {
     fetchAchievements();
   }, [fetchDashboard, fetchContext, fetchAnkiStats, fetchAchievements]);
 
-  const todaysSubjects = getTodaysSubjects();
   const weakSubjects = getWeakSubjects();
   const pendingReviews = getPendingReviews();
-  const daysLeft = daysUntil(context.exam_date);
 
   // Computed metrics from context performances
   const totalQuestions = context.performances.reduce(
@@ -97,35 +87,8 @@ const Dashboard: React.FC = () => {
 
   const statsLoading = isLoading || (!data && !error);
 
-  const todayIndex = (() => {
-    const d = new Date().getDay();
-    return d === 0 ? 6 : d - 1;
-  })();
-
   return (
     <div className="dashboard">
-      {/* ── Plano Ativo ────────────────────────────────── */}
-      {context.edital_active && (
-        <section className="dashboard__plano-ativo">
-          <div className="dashboard__plano-header">
-            <div className="dashboard__plano-info">
-              <span className="dashboard__plano-badge">📋 Plano Ativo</span>
-              <h2 className="dashboard__plano-title">{context.concurso ?? 'Concurso'}</h2>
-              <div className="dashboard__plano-meta">
-                {context.banca && <span>🏛 {context.banca}</span>}
-                {context.cargo && <span>💼 {context.cargo}</span>}
-              </div>
-            </div>
-            {daysLeft !== null && (
-              <div className={`dashboard__countdown ${daysLeft <= 30 ? 'countdown--urgent' : ''}`}>
-                <span className="countdown__number">{daysLeft}</span>
-                <span className="countdown__label">dias para a prova</span>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
       {/* ── Stats de Estudo ────────────────────────────── */}
       {statsLoading ? (
         <section className="dashboard__section">
@@ -235,76 +198,6 @@ const Dashboard: React.FC = () => {
             )}
           </section>
         </>
-      )}
-
-      {/* ── Calendário de Estudos (substitui heatmap) ─── */}
-      {context.weekly_schedule.length > 0 && (
-        <section className="dashboard__section">
-          <h3 className="dashboard__section-title">📅 Calendário de Estudos</h3>
-          <div className="dashboard__study-calendar">
-            {context.weekly_schedule.map(slot => {
-              const isToday = slot.day_of_week === todayIndex;
-              const completed = slot.subjects.every(s => {
-                const perf = context.performances.find(p => p.subject === s);
-                return perf && perf.last_study && isToday
-                  ? new Date(perf.last_study).toDateString() === new Date().toDateString()
-                  : false;
-              });
-              return (
-                <div
-                  key={slot.day_of_week}
-                  className={`calendar-day ${isToday ? 'calendar-day--today' : ''} ${completed ? 'calendar-day--done' : ''}`}
-                >
-                  <div className="calendar-day__header">
-                    <span className="calendar-day__name">{DAY_NAMES[slot.day_of_week]}</span>
-                    {isToday && <span className="calendar-day__today-badge">HOJE</span>}
-                    {completed && <span className="calendar-day__done-icon">✓</span>}
-                  </div>
-                  <div className="calendar-day__subjects">
-                    {slot.subjects.map(s => {
-                      const perf = context.performances.find(p => p.subject === s);
-                      return (
-                        <div key={s} className="calendar-subject">
-                          <span className="calendar-subject__name">{s}</span>
-                          {perf && (
-                            <span className={`calendar-subject__acc ${
-                              perf.accuracy >= 70 ? 'acc--good' : perf.accuracy >= 50 ? 'acc--mid' : 'acc--bad'
-                            }`}>
-                              {Math.round(perf.accuracy)}%
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="calendar-day__hours">{slot.study_hours}h</div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ── Agenda de Hoje ─────────────────────────────── */}
-      {todaysSubjects.length > 0 && (
-        <section className="dashboard__section">
-          <h3 className="dashboard__section-title">📚 Matérias de Hoje</h3>
-          <div className="dashboard__today-subjects">
-            {todaysSubjects.map(subject => {
-              const perf = context.performances.find(p => p.subject === subject);
-              return (
-                <div key={subject} className="dashboard__subject-chip">
-                  <span className="subject-chip__name">{subject}</span>
-                  {perf && (
-                    <span className={`subject-chip__acc ${perf.accuracy >= 70 ? 'acc--good' : perf.accuracy >= 50 ? 'acc--mid' : 'acc--bad'}`}>
-                      {Math.round(perf.accuracy)}%
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
       )}
 
       {/* ── Ranking de Disciplinas ─────────────────────── */}
@@ -421,17 +314,6 @@ const Dashboard: React.FC = () => {
         </section>
       )}
 
-      {/* ── Sem plano ativo ────────────────────────────── */}
-      {!context.edital_active && (
-        <div className="dashboard__empty-plan">
-          <p className="dashboard__empty-icon">📚</p>
-          <p>Nenhum plano de estudos ativo.</p>
-          <p className="dashboard__empty-sub">Importe um edital para gerar seu plano automaticamente.</p>
-          <button className="dashboard__cta" onClick={() => navigate('/estudos')}>
-            📋 Importar Edital
-          </button>
-        </div>
-      )}
     </div>
   );
 };

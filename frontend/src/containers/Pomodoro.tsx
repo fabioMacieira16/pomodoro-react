@@ -392,7 +392,7 @@ const Pomodoro: React.FC = () => {
         )}
 
         {/* Quiz panel: always mounted to preserve session state, hidden when not in quiz mode */}
-        <div className="TaskPainel" style={{ display: isQuizMode ? undefined : 'none' }}>
+        <div className={`TaskPainel${isQuizMode ? '' : ' TaskPainel--hidden'}`} style={{ display: isQuizMode ? undefined : 'none' }}>
           <PomodoroQuiz
             subjectId={selectedTask?.subjectId ?? undefined}
             subjectName={selectedTask?.title ?? studyCtx.context.current_subject}

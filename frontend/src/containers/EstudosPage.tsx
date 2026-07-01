@@ -6,6 +6,14 @@ import api from '../api/client';
 import './EstudosPage.css';
 import '../components/MindMap/MindMap.css';
 
+const DAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+function daysUntil(dateStr: string | null): number | null {
+  if (!dateStr) return null;
+  const diff = new Date(dateStr).getTime() - Date.now();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
 type UploadMode = 'edital' | 'conteudo' | 'plano' | null;
 
 interface UploadNotice {
@@ -16,7 +24,7 @@ interface UploadNotice {
 
 const EstudosPage: React.FC = () => {
   const { uploadFile, isIndexing, documents, fetchDocuments } = useDocumentStore();
-  const { context, fetchContext, updateContext } = useStudyContext();
+  const { context, fetchContext, updateContext, getTodaysSubjects } = useStudyContext();
 
   const [uploadMode, setUploadMode] = useState<UploadMode>(null);
   const [notice, setNotice] = useState<UploadNotice | null>(null);
@@ -304,6 +312,87 @@ const EstudosPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Calendário de Estudos */}
+          {context.weekly_schedule.length > 0 && (() => {
+            const todayIndex = (() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; })();
+            const todaysSubjects = getTodaysSubjects();
+            const daysLeft = daysUntil(context.exam_date);
+            return (
+              <div className="estudos-plan-section">
+                <div className="estudos-plan-header">
+                  <h3 className="estudos-plan-title">📅 Calendário de Estudos</h3>
+                  {daysLeft !== null && (
+                    <div className={`estudos-countdown ${daysLeft <= 30 ? 'estudos-countdown--urgent' : ''}`}>
+                      <span className="estudos-countdown__number">{daysLeft}</span>
+                      <span className="estudos-countdown__label">dias para a prova</span>
+                    </div>
+                  )}
+                </div>
+
+                {todaysSubjects.length > 0 && (
+                  <div className="estudos-today-subjects">
+                    <span className="estudos-today-label">📚 Hoje:</span>
+                    {todaysSubjects.map(subject => {
+                      const perf = context.performances.find(p => p.subject === subject);
+                      return (
+                        <div key={subject} className="estudos-subject-chip">
+                          <span className="subject-chip__name">{subject}</span>
+                          {perf && (
+                            <span className={`subject-chip__acc ${perf.accuracy >= 70 ? 'acc--good' : perf.accuracy >= 50 ? 'acc--mid' : 'acc--bad'}`}>
+                              {Math.round(perf.accuracy)}%
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="estudos-calendar">
+                  {context.weekly_schedule.map(slot => {
+                    const isToday = slot.day_of_week === todayIndex;
+                    const completed = slot.subjects.every(s => {
+                      const perf = context.performances.find(p => p.subject === s);
+                      return perf && perf.last_study && isToday
+                        ? new Date(perf.last_study).toDateString() === new Date().toDateString()
+                        : false;
+                    });
+                    return (
+                      <div
+                        key={slot.day_of_week}
+                        className={`calendar-day ${isToday ? 'calendar-day--today' : ''} ${completed ? 'calendar-day--done' : ''}`}
+                      >
+                        <div className="calendar-day__header">
+                          <span className="calendar-day__name">{DAY_NAMES[slot.day_of_week]}</span>
+                          {isToday && <span className="calendar-day__today-badge">HOJE</span>}
+                          {completed && <span className="calendar-day__done-icon">✓</span>}
+                        </div>
+                        <div className="calendar-day__subjects">
+                          {slot.subjects.map(s => {
+                            const perf = context.performances.find(p => p.subject === s);
+                            return (
+                              <div key={s} className="calendar-subject">
+                                <span className="calendar-subject__name">{s}</span>
+                                {perf && (
+                                  <span className={`calendar-subject__acc ${
+                                    perf.accuracy >= 70 ? 'acc--good' : perf.accuracy >= 50 ? 'acc--mid' : 'acc--bad'
+                                  }`}>
+                                    {Math.round(perf.accuracy)}%
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="calendar-day__hours">{slot.study_hours}h</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Upload grid */}
           <div className="upload-grid">

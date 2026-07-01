@@ -134,7 +134,7 @@ body {
 }
 
 /* Quando há um painel ao lado (revisão/tarefas), o relógio cede espaço para ele */
-.app-main:has(.TaskPainel) .Pomodoro {
+.app-main:has(.TaskPainel:not(.TaskPainel--hidden)) .Pomodoro {
   flex: 0 1 420px;
 }
 
