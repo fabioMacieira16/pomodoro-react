@@ -443,6 +443,10 @@ py -3.11 -m venv .venv311
 pip install -r requirements.txt
 Copy-Item ..\.env.example .env -Force
 
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload   
+
+ou
+
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 

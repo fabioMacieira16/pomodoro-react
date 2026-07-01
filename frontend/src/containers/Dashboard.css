@@ -43,6 +43,169 @@
   margin: 0;
 }
 
+/* ── Agenda de Hoje ──────────────────────────────────── */
+.dashboard__agenda {
+  background: var(--pomo-surface, #fff);
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.08));
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+}
+
+.agenda__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.agenda__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.agenda__date {
+  font-size: 0.78rem;
+  color: var(--pomo-text-muted, #888);
+}
+
+.agenda__progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.agenda__progress-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--pomo-text-muted, #888);
+  white-space: nowrap;
+}
+
+.agenda__progress-bar {
+  width: 100px;
+  height: 6px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.08));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.agenda__progress-fill {
+  height: 100%;
+  background: #667eea;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.agenda__tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.agenda-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.03));
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+.agenda-task:hover { border-color: var(--pomo-border, rgba(0,0,0,0.1)); }
+
+.agenda-task--done {
+  opacity: 0.5;
+}
+
+.agenda-task--done .agenda-task__title {
+  text-decoration: line-through;
+}
+
+.agenda-task__check {
+  background: none;
+  border: 1.5px solid var(--pomo-border, rgba(0,0,0,0.2));
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pomo-text-muted, #888);
+  transition: all 0.15s;
+}
+
+.agenda-task__check:hover { border-color: #10b981; color: #10b981; }
+.agenda-task--done .agenda-task__check { background: #10b981; border-color: #10b981; color: #fff; }
+
+.agenda-task__title {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.agenda-task__pomos {
+  font-size: 0.75rem;
+  color: var(--pomo-text-muted, #aaa);
+  white-space: nowrap;
+}
+
+.agenda__next {
+  border-top: 1px solid var(--pomo-border, rgba(0,0,0,0.06));
+  padding-top: 10px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agenda__next-day {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.agenda__next-label {
+  font-weight: 700;
+  color: var(--pomo-text-muted, #888);
+  min-width: 60px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.agenda__next-subjects {
+  color: var(--pomo-text-muted, #999);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agenda__plano-link {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.agenda__plano-link:hover { opacity: 0.75; }
+
 .dashboard__stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

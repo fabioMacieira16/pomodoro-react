@@ -38,7 +38,8 @@
       "Bash(echo \"TSC_EXIT:$?\")",
       "PowerShell(cd C:\\\\Projetos\\\\pomodoro-react\\\\frontend; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"Tasks/Task\" } | Select-Object -First 20)",
       "PowerShell(cd C:\\\\Projetos\\\\pomodoro-react\\\\frontend; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"Tasks/Task\" } | Select-Object -First 30)",
-      "Bash(python -c \"from app.api.routers import anki_flashcards; print\\([r.path for r in anki_flashcards.router.routes]\\)\")"
+      "Bash(python -c \"from app.api.routers import anki_flashcards; print\\([r.path for r in anki_flashcards.router.routes]\\)\")",
+      "PowerShell(npm list *)"
     ]
   }
 }

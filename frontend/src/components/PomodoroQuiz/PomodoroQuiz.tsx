@@ -336,23 +336,31 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
     return (
       <div className="pq-panel pq-panel--no-content">
         <div className="pq-no-content-icon">📂</div>
-        <h3 className="pq-no-content-title">Sem questões disponíveis</h3>
+        <h3 className="pq-no-content-title">Sem material disponível</h3>
         {subjectName ? (
-          <p className="pq-no-content-msg">
-            Nenhuma questão encontrada para <strong>{subjectName}</strong>.
-            {errorMsg && <span className="pq-no-content-detail"> {errorMsg}</span>}
-          </p>
+          <>
+            <p className="pq-no-content-msg">
+              Não existe material suficiente para gerar questões de{' '}
+              <strong>{subjectName}</strong>.
+            </p>
+            <p className="pq-no-content-hint">
+              Importe um PDF desta matéria na tela de{' '}
+              <strong>Estudos → Importar Conteúdo</strong> para habilitar o
+              Pomodoro com Questões.
+            </p>
+            <p className="pq-no-content-hint">
+              Alternativamente, importe abaixo um PDF de prova anterior para gerar
+              questões diretamente a partir dele.
+            </p>
+          </>
         ) : (
           <p className="pq-no-content-msg">
-            Selecione uma disciplina ao iniciar o Pomodoro, ou importe um PDF com uma prova.
+            Selecione uma disciplina ao iniciar o Pomodoro para usar questões.
           </p>
         )}
-        <p className="pq-no-content-hint">
-          Importe o PDF de uma prova anterior para gerar questões de múltipla escolha diretamente a partir dela.
-        </p>
         <div className="pq-no-content-actions">
           <button className="pq-btn pq-btn--primary" onClick={() => pdfInputRef.current?.click()}>
-            📎 Importar PDF
+            📎 Importar PDF de prova
           </button>
           <div className="pq-no-content-secondary">
             <button className="pq-btn pq-btn--secondary" onClick={loadQuiz}>

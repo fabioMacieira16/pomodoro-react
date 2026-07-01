@@ -630,6 +630,71 @@
 .acc--mid  { background: rgba(245,158,11,0.15);  color: #d97706; }
 .acc--bad  { background: rgba(239,68,68,0.15);   color: #dc2626; }
 
+.estudos-plan-empty {
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--pomo-surface, #fff);
+  border-radius: 14px;
+  border: 2px dashed var(--pomo-border, rgba(0,0,0,0.12));
+}
+
+.estudos-plan-empty p {
+  color: var(--pomo-text-muted, #888);
+  font-size: 0.95rem;
+  margin: 0 0 20px;
+}
+
+.estudos-plan-empty-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.estudos-plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.estudos-plan-view-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.estudos-plan-view-btn:hover { opacity: 0.9; }
+
+.estudos-plan-regen {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--pomo-border, rgba(0,0,0,0.15));
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted, #888);
+  margin-top: 12px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.estudos-plan-regen:hover:not(:disabled) {
+  background: var(--pomo-surface-alt, rgba(0,0,0,0.05));
+  color: var(--pomo-text, #1a1a2e);
+}
+
+.estudos-plan-regen:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .estudos-calendar {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

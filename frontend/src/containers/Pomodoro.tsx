@@ -269,9 +269,16 @@ const Pomodoro: React.FC = () => {
           <button
             className="icon-btn"
             onClick={() => navigate('/estudos')}
-            title="Plano de Estudos"
+            title="Estudos"
           >
             📚
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => navigate('/plano')}
+            title="Plano de Estudos"
+          >
+            📋
           </button>
           <button
             className={`icon-btn ${isFullscreen ? 'active' : ''}`}

@@ -4,6 +4,7 @@ import { useDashboardStore } from '../store/dashboardStore';
 import { useStudyContext } from '../store/studyContextStore';
 import { useAnkiStore } from '../store/ankiStore';
 import { useAchievementStore } from '../store/achievementStore';
+import { usePlanTaskStore, getTodayDayOfWeek, DAY_NAMES } from '../store/planTaskStore';
 import StatCard from '../components/Dashboard/StatCard';
 import ConsistencyBar from '../components/Dashboard/ConsistencyBar';
 import WeeklyChart from '../components/Dashboard/WeeklyChart';
@@ -69,6 +70,15 @@ const Dashboard: React.FC = () => {
   const weakSubjects = getWeakSubjects();
   const pendingReviews = getPendingReviews();
 
+  // Plan tasks agenda
+  const { tasks: planTasks, toggleComplete: togglePlanTask } = usePlanTaskStore();
+  const todayDow = getTodayDayOfWeek();
+  const todayTasks = planTasks.filter(t => t.day_of_week === todayDow).sort((a, b) => a.position - b.position);
+  const nextDays = [1, 2].map(offset => {
+    const dow = (todayDow + offset) % 7;
+    return { name: DAY_NAMES[dow], tasks: planTasks.filter(t => t.day_of_week === dow).sort((a, b) => a.position - b.position) };
+  }).filter(d => d.tasks.length > 0);
+
   // Computed metrics from context performances
   const totalQuestions = context.performances.reduce(
     (sum, p) => sum + p.correct_answers + p.wrong_answers,
@@ -87,8 +97,68 @@ const Dashboard: React.FC = () => {
 
   const statsLoading = isLoading || (!data && !error);
 
+  const todayStr = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  const todayDoneCount = todayTasks.filter(t => t.completed).length;
+
   return (
     <div className="dashboard">
+
+      {/* ── Agenda de Hoje ─────────────────────────────── */}
+      {todayTasks.length > 0 && (
+        <section className="dashboard__agenda">
+          <div className="agenda__header">
+            <div>
+              <h2 className="agenda__title">📅 Hoje</h2>
+              <span className="agenda__date">{todayStr.charAt(0).toUpperCase() + todayStr.slice(1)}</span>
+            </div>
+            <div className="agenda__progress-wrap">
+              <span className="agenda__progress-label">{todayDoneCount}/{todayTasks.length}</span>
+              <div className="agenda__progress-bar">
+                <div
+                  className="agenda__progress-fill"
+                  style={{ width: `${todayTasks.length > 0 ? (todayDoneCount / todayTasks.length) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="agenda__tasks">
+            {todayTasks.map(task => (
+              <div key={task.id} className={`agenda-task ${task.completed ? 'agenda-task--done' : ''}`}>
+                <button
+                  className="agenda-task__check"
+                  onClick={() => togglePlanTask(task.id)}
+                  title={task.completed ? 'Desmarcar' : 'Concluir'}
+                >
+                  {task.completed ? '✓' : '○'}
+                </button>
+                <span className="agenda-task__title">{task.title}</span>
+                <span className="agenda-task__pomos">
+                  {task.pomodoros_done}/{task.pomodoros_est} 🍅
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {nextDays.length > 0 && (
+            <div className="agenda__next">
+              {nextDays.map(({ name, tasks }) => (
+                <div key={name} className="agenda__next-day">
+                  <span className="agenda__next-label">{name}</span>
+                  <span className="agenda__next-subjects">
+                    {tasks.map(t => t.title).join(' · ')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button className="agenda__plano-link" onClick={() => navigate('/plano')}>
+            📋 Ver plano completo →
+          </button>
+        </section>
+      )}
+
       {/* ── Stats de Estudo ────────────────────────────── */}
       {statsLoading ? (
         <section className="dashboard__section">

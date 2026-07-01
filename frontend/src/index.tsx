@@ -62,7 +62,7 @@ function AppRoutes() {
         <Route path="/anki" element={<AnkiPage />} />
         <Route path="/estudos" element={<EstudosPage />} />
         <Route path="/quiz" element={<QuizPage />} />
-<Route path="/scheduler" element={<Navigate to="/estudos" replace />} />
+        <Route path="/scheduler" element={<Navigate to="/estudos" replace />} />
         <Route path="/study-planner" element={<Navigate to="/estudos" replace />} />
       </Routes>
     </>
