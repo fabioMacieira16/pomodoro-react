@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Brain, Zap, ChevronRight, Layers, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Brain, Zap, ChevronRight, Layers, Upload, Search } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { FlashcardForm } from './FlashcardForm';
 import { AIGenerator } from './AIGenerator';
@@ -53,6 +53,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
   const [showImport, setShowImport] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [selectedAssunto, setSelectedAssunto] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchFlashcards(deck.id);
@@ -75,12 +76,30 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(card);
   }
-  const baralhos: Baralho[] = Array.from(groups.entries())
+  
+  const allBaralhos: Baralho[] = Array.from(groups.entries())
     .map(([key, cards]) => ({ key, label: key === '__none__' ? 'Sem assunto' : key, cards }))
     .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
 
-  const currentBaralho = selectedAssunto ? baralhos.find((b) => b.key === selectedAssunto) ?? null : null;
-  const visibleCards = currentBaralho ? currentBaralho.cards : [];
+  // Filtrar baralhos pela busca
+  const normalizedSearch = searchQuery.toLowerCase().trim();
+  const baralhos = normalizedSearch
+    ? allBaralhos.filter((b) => 
+        b.label.toLowerCase().includes(normalizedSearch) ||
+        b.cards.some((c) => c.front.toLowerCase().includes(normalizedSearch))
+      )
+    : allBaralhos;
+
+  const currentBaralho = selectedAssunto ? allBaralhos.find((b) => b.key === selectedAssunto) ?? null : null;
+  
+  // Filtrar cartões pela busca
+  const allCardsInBaralho = currentBaralho ? currentBaralho.cards : [];
+  const visibleCards = normalizedSearch
+    ? allCardsInBaralho.filter((c) => 
+        c.front.toLowerCase().includes(normalizedSearch) ||
+        getAssunto(c)?.toLowerCase().includes(normalizedSearch)
+      )
+    : allCardsInBaralho;
 
   return (
     <div>
@@ -147,6 +166,28 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
               </div>
             );
           })()}
+        </div>
+      </div>
+
+      {/* ── Campo de pesquisa ─────────────────────────────────────────────────── */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por assunto ou pergunta..."
+            className="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 

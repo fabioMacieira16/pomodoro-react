@@ -136,7 +136,7 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         front: front.trim(),
         back: effectiveBack,
         hint: hint.trim() || undefined,
-        explanation: cardType === 'true_false' ? (explanation.trim() || undefined) : undefined,
+        explanation: (cardType === 'true_false' || cardType === 'multiple_choice') ? (explanation.trim() || undefined) : undefined,
         difficulty,
         tags: buildTags(),
         options:
@@ -327,6 +327,22 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Explicação (para múltipla escolha) */}
+          {cardType === 'multiple_choice' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Justificativa <span className="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <textarea
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                rows={2}
+                placeholder="Explique por que esta é a resposta correta..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
             </div>
           )}
 

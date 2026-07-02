@@ -213,6 +213,20 @@ export function ReviewSession() {
                       );
                     })}
                   </div>
+                  {isFlipped && (
+                    <div className="mt-5 max-w-md mx-auto text-center">
+                      <p className={`text-sm font-semibold ${selectedOptionPos !== null && card.options?.find(o => o.position === selectedOptionPos)?.is_correct ? 'text-green-600' : 'text-red-600'}`}>
+                        {selectedOptionPos !== null && card.options?.find(o => o.position === selectedOptionPos)?.is_correct 
+                          ? 'Você acertou!' 
+                          : 'Você errou.'}
+                      </p>
+                      {card.explanation && (
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                          <strong>Por que é a alternativa correta:</strong> {card.explanation}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : card.card_type === 'true_false' ? (
                 /* Verdadeiro/Falso: mostra afirmação + botões V/F */

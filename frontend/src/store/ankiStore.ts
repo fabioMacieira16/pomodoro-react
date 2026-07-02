@@ -3,6 +3,38 @@ import type { Deck, Flashcard, AnkiStats, AIGenerateRequest } from '../types';
 import * as ankiApi from '../api/anki';
 import type { AIGenerateFromPDFResult } from '../api/anki';
 
+const REVIEW_SESSION_KEY = 'anki_review_session';
+
+interface PersistedReviewSession {
+  reviewQueue: Flashcard[];
+  currentCardIndex: number;
+  sessionCorrect: number;
+  sessionTotal: number;
+  reviewStartTime: number | null;
+}
+
+function saveReviewSession(data: PersistedReviewSession) {
+  sessionStorage.setItem(REVIEW_SESSION_KEY, JSON.stringify(data));
+}
+
+function loadReviewSession(): (PersistedReviewSession & { isReviewing: true }) | null {
+  try {
+    const raw = sessionStorage.getItem(REVIEW_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedReviewSession;
+    if (!parsed.reviewQueue?.length) return null;
+    return { ...parsed, isReviewing: true };
+  } catch {
+    return null;
+  }
+}
+
+function clearReviewSession() {
+  sessionStorage.removeItem(REVIEW_SESSION_KEY);
+}
+
+const savedSession = loadReviewSession();
+
 interface AnkiState {
   // Decks
   decks: Deck[];
@@ -70,12 +102,12 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
   isLoadingDecks: false,
   flashcards: [],
   isLoadingCards: false,
-  reviewQueue: [],
-  currentCardIndex: 0,
-  isReviewing: false,
-  reviewStartTime: null,
-  sessionCorrect: 0,
-  sessionTotal: 0,
+  reviewQueue: savedSession?.reviewQueue ?? [],
+  currentCardIndex: savedSession?.currentCardIndex ?? 0,
+  isReviewing: savedSession?.isReviewing ?? false,
+  reviewStartTime: savedSession?.reviewStartTime ?? null,
+  sessionCorrect: savedSession?.sessionCorrect ?? 0,
+  sessionTotal: savedSession?.sessionTotal ?? 0,
   stats: null,
   isLoadingStats: false,
   isGenerating: false,
@@ -158,14 +190,9 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
           return assunto === '__none__' ? !cardAssunto : cardAssunto === assunto;
         })
       : queue;
-    set({
-      reviewQueue: filteredQueue,
-      currentCardIndex: 0,
-      isReviewing: true,
-      reviewStartTime: Date.now(),
-      sessionCorrect: 0,
-      sessionTotal: 0,
-    });
+    const reviewStartTime = Date.now();
+    saveReviewSession({ reviewQueue: filteredQueue, currentCardIndex: 0, sessionCorrect: 0, sessionTotal: 0, reviewStartTime });
+    set({ reviewQueue: filteredQueue, currentCardIndex: 0, isReviewing: true, reviewStartTime, sessionCorrect: 0, sessionTotal: 0 });
   },
 
   startReviewAll: async (deckId, assunto) => {
@@ -177,14 +204,9 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
           return assunto === '__none__' ? !cardAssunto : cardAssunto === assunto;
         })
       : queue;
-    set({
-      reviewQueue: filteredQueue,
-      currentCardIndex: 0,
-      isReviewing: true,
-      reviewStartTime: Date.now(),
-      sessionCorrect: 0,
-      sessionTotal: 0,
-    });
+    const reviewStartTime = Date.now();
+    saveReviewSession({ reviewQueue: filteredQueue, currentCardIndex: 0, sessionCorrect: 0, sessionTotal: 0, reviewStartTime });
+    set({ reviewQueue: filteredQueue, currentCardIndex: 0, isReviewing: true, reviewStartTime, sessionCorrect: 0, sessionTotal: 0 });
   },
 
   submitReview: async (quality) => {
@@ -196,23 +218,33 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
     await ankiApi.submitReview(card.id, quality, responseTimeMs);
 
     const isCorrect = quality >= 3;
-    set((s) => ({
-      // "De Novo" (quality 0): card volta para o fim da fila para ser revisado de novo na mesma sessão
-      reviewQueue: quality === 0 ? [...s.reviewQueue, card] : s.reviewQueue,
-      sessionCorrect: s.sessionCorrect + (isCorrect ? 1 : 0),
-      sessionTotal: s.sessionTotal + 1,
-      currentCardIndex: s.currentCardIndex + 1,
-      reviewStartTime: Date.now(),
-    }));
+    const now = Date.now();
+    set((s) => {
+      const nextQueue = quality === 0 ? [...s.reviewQueue, card] : s.reviewQueue;
+      const nextIndex = s.currentCardIndex + 1;
+      const nextCorrect = s.sessionCorrect + (isCorrect ? 1 : 0);
+      const nextTotal = s.sessionTotal + 1;
+      saveReviewSession({ reviewQueue: nextQueue, currentCardIndex: nextIndex, sessionCorrect: nextCorrect, sessionTotal: nextTotal, reviewStartTime: now });
+      return {
+        // "De Novo" (quality 0): card volta para o fim da fila para ser revisado de novo na mesma sessão
+        reviewQueue: nextQueue,
+        sessionCorrect: nextCorrect,
+        sessionTotal: nextTotal,
+        currentCardIndex: nextIndex,
+        reviewStartTime: now,
+      };
+    });
   },
 
   endReview: () => {
+    clearReviewSession();
     set({ isReviewing: false, reviewQueue: [], currentCardIndex: 0 });
     get().fetchDecks();
     get().fetchStats();
   },
 
   cancelReview: () => {
+    clearReviewSession();
     set({ isReviewing: false, reviewQueue: [], currentCardIndex: 0 });
   },
 
