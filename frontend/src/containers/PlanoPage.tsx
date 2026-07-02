@@ -178,7 +178,6 @@ interface CalendarViewProps {
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ tasks, weekStart, selectedId, onSelect }) => {
-  const today = new Date().toISOString().split('T')[0];
   const todayDow = getTodayDayOfWeek();
 
   const activeDays = DAY_NAMES.map((name, idx) => {

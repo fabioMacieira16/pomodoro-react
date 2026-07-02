@@ -459,21 +459,21 @@ const Pomodoro: React.FC = () => {
               </button>
 
               <button
-                className="study-mode-btn study-mode-btn--questions"
-                onClick={() => handleStudyModeSelect('with_questions')}
-              >
-                <span className="study-mode-btn__icon">📝</span>
-                <span className="study-mode-btn__title">Pomodoro com Questões</span>
-                <span className="study-mode-btn__desc">Quiz durante a sessão para fixar conteúdo</span>
-              </button>
-
-              <button
                 className="study-mode-btn study-mode-btn--review"
                 onClick={() => handleStudyModeSelect('review')}
               >
                 <span className="study-mode-btn__icon">🧠</span>
                 <span className="study-mode-btn__title">Modo Revisão</span>
                 <span className="study-mode-btn__desc">Revisar flashcards e conteúdos anteriores</span>
+              </button>
+
+               <button
+                className="study-mode-btn study-mode-btn--questions"
+                onClick={() => handleStudyModeSelect('with_questions')}
+              >
+                <span className="study-mode-btn__icon">📝</span>
+                <span className="study-mode-btn__title">Pomodoro com Questões</span>
+                <span className="study-mode-btn__desc">Quiz durante a sessão para fixar conteúdo</span>
               </button>
             </div>
 

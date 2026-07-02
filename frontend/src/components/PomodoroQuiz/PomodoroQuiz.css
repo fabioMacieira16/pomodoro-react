@@ -367,6 +367,16 @@
   margin-bottom: 16px;
 }
 
+.pq-error-msg {
+  color: #dc2626;
+  font-size: 0.9rem;
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 8px;
+}
+
 /* ── No content state ───────────────────────────────────────────────────── */
 .pq-panel--no-content {
   text-align: center;
@@ -483,6 +493,16 @@
 .pq-idle-btn--pdf:hover {
   background: rgba(16, 185, 129, 0.15);
   border-color: rgba(16, 185, 129, 0.55);
+}
+
+.pq-idle-btn--bank {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.pq-idle-btn--bank:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.55);
 }
 
 .pq-idle-btn__icon {

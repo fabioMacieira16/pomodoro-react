@@ -7,7 +7,7 @@
  * Se não houver conteúdo indexado para a disciplina, oferece importar um PDF
  * (ex: uma prova) para gerar as questões diretamente a partir dele.
  */
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import api from '../../api/client';
 import { useStudyContext } from '../../store/studyContextStore';
 import { EliminateButton } from '../EliminateButton';
@@ -142,6 +142,51 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
       setState('no_content');
       if (!isNoContentError(detail) && detail) setErrorMsg(detail);
+    }
+  }, [subjectId, subjectName, pomodoroNumber]);
+
+  // Busca questões já geradas no banco de dados (sem gerar novas)
+  const loadQuizFromBank = useCallback(async () => {
+    setState('loading');
+    setErrorMsg(null);
+    setPdfFileName(null);
+
+    if (!subjectId && !subjectName) {
+      setErrorMsg('Nenhuma disciplina selecionada.');
+      setState('no_content');
+      return;
+    }
+
+    try {
+      const payload: Record<string, unknown> = {
+        num_questions: 5,
+        pomodoro_number: pomodoroNumber,
+      };
+      if (subjectId) payload.subject_id = subjectId;
+      if (subjectName) payload.subject_name = subjectName;
+
+      const res = await api.post('/quiz/bank', payload);
+      const data = res.data as QuizSession;
+
+      if (!data.questions || data.questions.length === 0) {
+        setErrorMsg('Nenhuma questão encontrada no banco para esta disciplina. Gere novas questões com IA ou importe um PDF.');
+        setState('no_content');
+        return;
+      }
+
+      setSession(data);
+      setCurrentIdx(0);
+      setSelected(null);
+      setResult(null);
+      setScore(0);
+      setTotalAnswered(0);
+      setAnswers({});
+      setIsReviewing(false);
+      setState('question');
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
+      setErrorMsg(detail || 'Nenhuma questão encontrada no banco para esta disciplina. Gere novas questões com IA ou importe um PDF.');
+      setState('no_content');
     }
   }, [subjectId, subjectName, pomodoroNumber]);
 
@@ -303,7 +348,18 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
             <span className="pq-idle-btn__title">Importar PDF</span>
             <span className="pq-idle-btn__desc">Gerar questões a partir de uma prova ou apostila</span>
           </button>
+          <button
+            className="pq-idle-btn pq-idle-btn--bank"
+            onClick={loadQuizFromBank}
+          >
+            <span className="pq-idle-btn__icon">💾</span>
+            <span className="pq-idle-btn__title">Banco de Questões</span>
+            <span className="pq-idle-btn__desc">Revisar questões já geradas para esta disciplina</span>
+          </button>
         </div>
+        {errorMsg && (
+          <p className="pq-error-msg">{errorMsg}</p>
+        )}
         <button className="pq-btn pq-btn--ghost" onClick={onClose}>
           Continuar sem questões
         </button>
@@ -336,36 +392,31 @@ const PomodoroQuiz: React.FC<PomodoroQuizProps> = ({
     return (
       <div className="pq-panel pq-panel--no-content">
         <div className="pq-no-content-icon">📂</div>
-        <h3 className="pq-no-content-title">Sem material disponível</h3>
-        {subjectName ? (
-          <>
-            <p className="pq-no-content-msg">
-              Não existe material suficiente para gerar questões de{' '}
-              <strong>{subjectName}</strong>.
-            </p>
-            <p className="pq-no-content-hint">
-              Importe um PDF desta matéria na tela de{' '}
-              <strong>Estudos → Importar Conteúdo</strong> para habilitar o
-              Pomodoro com Questões.
-            </p>
-            <p className="pq-no-content-hint">
-              Alternativamente, importe abaixo um PDF de prova anterior para gerar
-              questões diretamente a partir dele.
-            </p>
-          </>
-        ) : (
+        <h3 className="pq-no-content-title">Como deseja gerar as questões?</h3>
+        {subjectName && (
           <p className="pq-no-content-msg">
-            Selecione uma disciplina ao iniciar o Pomodoro para usar questões.
+            Disciplina: <strong>{subjectName}</strong>
+          </p>
+        )}
+        {errorMsg && (
+          <p className="pq-error-msg">{errorMsg}</p>
+        )}
+        {!errorMsg && (
+          <p className="pq-no-content-hint">
+            Escolha uma das opções abaixo para gerar questões sobre a disciplina:
           </p>
         )}
         <div className="pq-no-content-actions">
+          <button className="pq-btn pq-btn--primary" onClick={loadQuiz}>
+            🤖 Gerar com IA
+          </button>
           <button className="pq-btn pq-btn--primary" onClick={() => pdfInputRef.current?.click()}>
-            📎 Importar PDF de prova
+            📎 Importar PDF
+          </button>
+          <button className="pq-btn pq-btn--primary" onClick={loadQuizFromBank}>
+            💾 Banco de Questões
           </button>
           <div className="pq-no-content-secondary">
-            <button className="pq-btn pq-btn--secondary" onClick={loadQuiz}>
-              ↻ Tentar novamente
-            </button>
             <button className="pq-btn pq-btn--ghost" onClick={onClose}>
               Continuar sem questões
             </button>

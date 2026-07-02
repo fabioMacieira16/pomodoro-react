@@ -332,6 +332,7 @@ body {
 .study-mode-btn--normal:hover  { border-color: #ef4444; background: rgba(239,68,68,0.06); }
 .study-mode-btn--questions:hover { border-color: #667eea; background: rgba(102,126,234,0.06); }
 .study-mode-btn--review:hover  { border-color: #10b981; background: rgba(16,185,129,0.06); }
+.study-mode-btn--bank:hover    { border-color: #f59e0b; background: rgba(245,158,11,0.06); }
 
 .study-mode-modal__subject-row {
   display: flex;

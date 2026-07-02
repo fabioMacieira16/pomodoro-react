@@ -244,8 +244,9 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
   },
 
   cancelReview: () => {
-    clearReviewSession();
-    set({ isReviewing: false, reviewQueue: [], currentCardIndex: 0 });
+    // Apenas fecha a overlay, mas mantém a sessão salva no sessionStorage
+    // para permitir continuar depois (ex: após F5)
+    set({ isReviewing: false });
   },
 
   // ── Stats ──────────────────────────────────────────────────────────────────────

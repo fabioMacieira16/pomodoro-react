@@ -61,6 +61,75 @@ class QuizService:
 
     # ── Generate quiz ────────────────────────────────────────────────────
 
+    def get_question_bank(self, req: QuizGenerateRequest, pomodoro_session_id: Optional[int] = None) -> QuizSessionOut:
+        """
+        Busca questões existentes no banco de dados sem gerar novas.
+        Usado para o modo "Banco de Questões".
+        """
+        subject_id = req.subject_id
+
+        # Resolve subject by name when no ID provided
+        if not subject_id and req.subject_name:
+            subject = (
+                self.db.query(Subject)
+                .filter(func.lower(Subject.name) == req.subject_name.strip().lower())
+                .first()
+            )
+            if not subject:
+                # Nenhuma matéria encontrada = sem questões
+                raise ValueError(f"Nenhuma disciplina encontrada com o nome '{req.subject_name}'")
+            subject_id = subject.id
+
+        if not subject_id:
+            raise ValueError("É necessário especificar uma disciplina para buscar questões do banco")
+
+        difficulty = req.difficulty or self._auto_difficulty(subject_id)
+
+        # Busca apenas questões existentes (NÃO gera novas)
+        exercises: List[Exercise] = (
+            self.db.query(Exercise)
+            .filter_by(subject_id=subject_id)
+            .filter(Exercise.difficulty == difficulty)
+            .order_by(func.random())
+            .limit(req.num_questions)
+            .all()
+        )
+
+        # Fallback: any difficulty for this subject
+        if len(exercises) < req.num_questions:
+            exercises = (
+                self.db.query(Exercise)
+                .filter_by(subject_id=subject_id)
+                .order_by(func.random())
+                .limit(req.num_questions)
+                .all()
+            )
+
+        if len(exercises) == 0:
+            raise ValueError(f"Nenhuma questão encontrada no banco para a disciplina '{req.subject_name or subject_id}'. Use o modo 'Pomodoro com Questões' para gerar novas questões.")
+
+        session = QuizSession(
+            user_id=self.user_id,
+            pomodoro_session_id=pomodoro_session_id,
+            subject_id=subject_id,
+            total_questions=len(exercises),
+            difficulty_level=difficulty,
+            session_mode="question_bank",
+        )
+        self.db.add(session)
+        self.db.commit()
+        self.db.refresh(session)
+
+        questions = [self._to_question_out(e, hide_answer=True) for e in exercises]
+        return QuizSessionOut(
+            session_id=session.id,
+            subject_id=subject_id,
+            questions=questions,
+            total_questions=len(exercises),
+            difficulty_level=difficulty,
+            session_mode=session.session_mode,
+        )
+
     def generate_quiz(self, req: QuizGenerateRequest, pomodoro_session_id: Optional[int] = None) -> QuizSessionOut:
         subject_id = req.subject_id
 

@@ -41,6 +41,22 @@ def generate_quiz(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/bank", response_model=QuizSessionOut, summary="Get existing questions from question bank (no generation)")
+def get_question_bank(
+    req: QuizGenerateRequest,
+    pomodoro_session_id: Optional[int] = None,
+    svc: QuizService = Depends(_svc),
+):
+    """
+    Busca questões já geradas/armazenadas no banco de dados para a disciplina.
+    Diferente do /generate, este endpoint NÃO gera novas questões via IA.
+    """
+    try:
+        return svc.get_question_bank(req, pomodoro_session_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post(
     "/generate-from-pdf",
     response_model=QuizSessionOut,
