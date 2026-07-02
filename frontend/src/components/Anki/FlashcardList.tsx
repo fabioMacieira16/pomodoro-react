@@ -189,6 +189,14 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
             </button>
           )}
         </div>
+        {normalizedSearch && !isLoadingCards && (
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {currentBaralho 
+              ? `${visibleCards.length} cartão(ões) encontrado(s)`
+              : `${baralhos.length} assunto(s) encontrado(s)`
+            }
+          </p>
+        )}
       </div>
 
       {isLoadingCards ? (
@@ -200,6 +208,12 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
           <p className="text-5xl mb-4">🃏</p>
           <p className="font-medium">Nenhum cartão neste deck</p>
           <p className="text-sm mt-1">Crie manualmente ou use a IA para gerar cartões</p>
+        </div>
+      ) : baralhos.length === 0 && normalizedSearch ? (
+        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
+          <p className="text-5xl mb-4">🔍</p>
+          <p className="font-medium">Nenhum resultado encontrado</p>
+          <p className="text-sm mt-1">Tente buscar por outro termo</p>
         </div>
       ) : !currentBaralho ? (
         /* ── Lista de baralhos por assunto ──────────────────── */
@@ -249,7 +263,15 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
 
           {visibleCards.length === 0 ? (
             <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-              <p className="font-medium">Nenhum cartão neste baralho</p>
+              {normalizedSearch ? (
+                <>
+                  <p className="text-5xl mb-4">🔍</p>
+                  <p className="font-medium">Nenhum resultado encontrado</p>
+                  <p className="text-sm mt-1">Tente buscar por outro termo</p>
+                </>
+              ) : (
+                <p className="font-medium">Nenhum cartão neste baralho</p>
+              )}
             </div>
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
