@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { AchievementSummary, AchievementUnlock, AchievementStats } from '../../../types';
 import { useAchievementStore } from '../../../store/achievementStore';
 import './AchievementsCard.css';
@@ -21,11 +21,30 @@ const CATEGORY_ORDER = ['pomodoro', 'quiz', 'flashcards', 'horas', 'consistencia
 
 const AchievementsCard: React.FC<Props> = ({ summary, recent, stats }) => {
   const { allAchievements } = useAchievementStore();
+  const [isRecentExpanded, setIsRecentExpanded] = useState(false);
+  const [isGoalsExpanded, setIsGoalsExpanded] = useState(true);
+  const [isStatsExpanded, setIsStatsExpanded] = useState(true);
+  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
+
+  const toggleCardFlip = (code: string) => {
+    setFlippedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
+      }
+      return next;
+    });
+  };
 
   const grouped = CATEGORY_ORDER.reduce<Record<string, typeof allAchievements>>((acc, cat) => {
     acc[cat] = allAchievements.filter(a => a.category === cat);
     return acc;
   }, {});
+
+  const RECENT_LIMIT = 10;
+  const visibleRecent = isRecentExpanded ? recent : recent.slice(0, RECENT_LIMIT);
 
   const rewards = [
     { icon: '⭐', label: 'Estrelas',  value: summary.total_stars },
@@ -77,75 +96,152 @@ const AchievementsCard: React.FC<Props> = ({ summary, recent, stats }) => {
       {/* ── Metas por categoria ───────────────────────── */}
       {allAchievements.length > 0 && (
         <div className="ach-card__goals">
-          <p className="ach-card__goals-title">🎯 Metas de Conquista</p>
-          {CATEGORY_ORDER.map(cat => {
-            const items = grouped[cat];
-            if (!items || items.length === 0) return null;
-            const meta = CATEGORY_META[cat] ?? { label: cat, icon: '🎯' };
-            return (
-              <div key={cat} className="ach-goals-group">
-                <span className="ach-goals-group__label">
-                  {meta.icon} {meta.label}
-                </span>
-                <div className="ach-goals-group__pills">
-                  {items.map(a => (
-                    <div
-                      key={a.code}
-                      className={`ach-pill ${a.unlocked ? 'ach-pill--unlocked' : 'ach-pill--locked'}`}
-                      title={
-                        a.unlocked
-                          ? a.title
-                          : `${a.title} — ${a.progress}/${a.threshold}`
-                      }
-                    >
-                      {a.unlocked ? (
-                        <>
-                          <span className="ach-pill__icon">{a.icon ?? '⭐'}</span>
-                          <span className="ach-pill__name">{a.title}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="ach-pill__icon">🔒</span>
-                          <span className="ach-pill__progress">
-                            {a.progress}/{a.threshold}
-                          </span>
-                        </>
-                      )}
+          <div className="ach-card__section-header">
+            <p className="ach-card__goals-title">🎯 Metas de Conquista</p>
+            <button
+              onClick={() => setIsGoalsExpanded(!isGoalsExpanded)}
+              className="ach-card__section-toggle"
+            >
+              {isGoalsExpanded ? '▲' : '▼'}
+            </button>
+          </div>
+          {isGoalsExpanded && (
+            <div className="ach-card__goals-content">
+              {CATEGORY_ORDER.map(cat => {
+                const items = grouped[cat];
+                if (!items || items.length === 0) return null;
+                const meta = CATEGORY_META[cat] ?? { label: cat, icon: '🎯' };
+                return (
+                  <div key={cat} className="ach-goals-group">
+                    <span className="ach-goals-group__label">
+                      {meta.icon} {meta.label}
+                    </span>
+                    <div className="ach-goals-group__pills">
+                      {items.map(a => (
+                        <div
+                          key={a.code}
+                          className={`ach-pill ${a.unlocked ? 'ach-pill--unlocked' : 'ach-pill--locked'}`}
+                          title={
+                            a.unlocked
+                              ? a.title
+                              : `${a.title} — ${a.progress}/${a.threshold}`
+                          }
+                        >
+                          {a.unlocked ? (
+                            <>
+                              <span className="ach-pill__icon">{a.icon ?? '⭐'}</span>
+                              <span className="ach-pill__name">{a.title}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="ach-pill__icon">🔒</span>
+                              <span className="ach-pill__progress">
+                                {a.progress}/{a.threshold}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Últimas conquistas ────────────────────────── */}
       {recent.length > 0 && (
         <div className="ach-card__recent">
-          <p className="ach-card__recent-title">Últimas conquistas</p>
-          <ul className="ach-card__recent-list">
-            {recent.map((u) => (
-              <li key={u.code} className="ach-card__recent-item">
-                <span className="ach-card__recent-icon">{u.icon ?? '⭐'}</span>
-                <span className="ach-card__recent-name">{u.title}</span>
-              </li>
-            ))}
+          <div className="ach-card__section-header">
+            <p className="ach-card__recent-title">🏆 Últimas conquistas</p>
+            <button
+              onClick={() => setIsRecentExpanded(!isRecentExpanded)}
+              className="ach-card__section-toggle"
+            >
+              {isRecentExpanded ? '▲' : '▼'}
+            </button>
+          </div>
+          {isRecentExpanded && (
+            <ul className="ach-card__recent-list">
+              {visibleRecent.map((u) => {
+              const isFlipped = flippedCards.has(u.code);
+              const achievement = allAchievements.find(a => a.code === u.code);
+              const categoryMeta = CATEGORY_META[u.category] ?? { label: u.category, icon: '🎯' };
+              const unlockedDate = new Date(u.unlocked_at).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+
+              return (
+                <li 
+                  key={u.code} 
+                  className={`ach-card__recent-item ${isFlipped ? 'ach-card__recent-item--flipped' : ''}`}
+                  onClick={() => toggleCardFlip(u.code)}
+                  title={isFlipped ? "Clique para voltar" : "Clique para ver detalhes"}
+                >
+                  {!isFlipped ? (
+                    <>
+                      <span className="ach-card__recent-icon">{u.icon ?? '⭐'}</span>
+                      <span className="ach-card__recent-name">{u.title}</span>
+                      <span className="ach-card__recent-flip-hint">🔄</span>
+                    </>
+                  ) : (
+                    <div className="ach-card__recent-back">
+                      <div className="ach-card__recent-back-title">
+                        {u.icon ?? '⭐'} {u.title}
+                      </div>
+                      <div className="ach-card__recent-back-row">
+                        <span className="ach-card__recent-back-label">Categoria:</span>
+                        <span className="ach-card__recent-back-value">
+                          {categoryMeta.icon} {categoryMeta.label}
+                        </span>
+                      </div>
+                      <div className="ach-card__recent-back-row">
+                        <span className="ach-card__recent-back-label">Desbloqueado:</span>
+                        <span className="ach-card__recent-back-value">{unlockedDate}</span>
+                      </div>
+                      {achievement?.threshold && (
+                        <div className="ach-card__recent-back-row">
+                          <span className="ach-card__recent-back-label">Meta:</span>
+                          <span className="ach-card__recent-back-value">{achievement.threshold}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
+          )}
         </div>
       )}
 
       {/* ── Stats de desempenho ───────────────────────── */}
       <div className="ach-card__stats">
-        <p className="ach-card__stats-title">📊 Desempenho acumulado</p>
-        <div className="ach-card__stats-grid">
-          {statItems.map((s) => (
-            <div key={s.label} className="ach-stat">
-              <span className="ach-stat__value">{s.value}</span>
-              <span className="ach-stat__label">{s.label}</span>
-            </div>
-          ))}
+        <div className="ach-card__section-header">
+          <p className="ach-card__stats-title">📊 Desempenho acumulado</p>
+          <button
+            onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+            className="ach-card__section-toggle"
+          >
+            {isStatsExpanded ? '▲' : '▼'}
+          </button>
         </div>
+        {isStatsExpanded && (
+          <div className="ach-card__stats-grid">
+            {statItems.map((s) => (
+              <div key={s.label} className="ach-stat">
+                <span className="ach-stat__value">{s.value}</span>
+                <span className="ach-stat__label">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

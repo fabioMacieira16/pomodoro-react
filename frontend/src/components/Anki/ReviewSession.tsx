@@ -135,7 +135,11 @@ export function ReviewSession() {
           {/* Card */}
           <div
             className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 flex-1 min-h-[26rem] flex flex-col ${card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' ? 'cursor-pointer select-none' : ''}`}
-            onClick={() => card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' && !isFlipped && setIsFlipped(true)}
+            onClick={() => {
+              if (card.card_type !== 'multiple_choice' && card.card_type !== 'true_false') {
+                setIsFlipped(!isFlipped);
+              }
+            }}
           >
             {deck && (
               <div className="flex items-center justify-center gap-2 px-6 py-3 border-b border-gray-100 dark:border-gray-700">
@@ -312,6 +316,7 @@ export function ReviewSession() {
                 <div className="text-center w-full">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-4">Resposta</p>
                   <p className="text-xl font-medium text-gray-900 dark:text-white whitespace-pre-wrap">{card.back}</p>
+                  <p className="mt-6 text-sm text-gray-400">Clique para ver a pergunta novamente</p>
                 </div>
               )}
             </div>
@@ -320,10 +325,28 @@ export function ReviewSession() {
             {!isFlipped && card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' && (
               <div className="p-4 border-t border-gray-100 dark:border-gray-700 text-center">
                 <button
-                  onClick={() => setIsFlipped(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsFlipped(true);
+                  }}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
                   Mostrar resposta
+                </button>
+              </div>
+            )}
+            
+            {/* "Ver pergunta" quando está no verso */}
+            {isFlipped && card.card_type !== 'multiple_choice' && card.card_type !== 'true_false' && (
+              <div className="p-4 border-t border-gray-100 dark:border-gray-700 text-center">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsFlipped(false);
+                  }}
+                  className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium"
+                >
+                  ← Ver pergunta
                 </button>
               </div>
             )}
