@@ -80,6 +80,7 @@ interface AnkiState {
   submitReview: (quality: number) => Promise<void>;
   endReview: () => void;
   cancelReview: () => void;
+  resumeReview: () => void;
 
   // Stats actions
   fetchStats: () => Promise<void>;
@@ -244,9 +245,11 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
   },
 
   cancelReview: () => {
-    // Apenas fecha a overlay, mas mantém a sessão salva no sessionStorage
-    // para permitir continuar depois (ex: após F5)
     set({ isReviewing: false });
+  },
+
+  resumeReview: () => {
+    set({ isReviewing: true });
   },
 
   // ── Stats ──────────────────────────────────────────────────────────────────────

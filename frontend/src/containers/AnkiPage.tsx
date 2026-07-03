@@ -11,7 +11,7 @@ import type { Deck } from '../types';
 type AnkiView = 'decks' | 'flashcards' | 'dashboard';
 
 const AnkiPage: React.FC = () => {
-  const { startReview, isReviewing, decks } = useAnkiStore();
+  const { startReview, isReviewing, resumeReview, reviewQueue, currentCardIndex, sessionCorrect, sessionTotal, decks } = useAnkiStore();
   const { context } = useStudyContext();
   const { subjects: subjectList } = useSubjectStore();
 
@@ -20,6 +20,7 @@ const AnkiPage: React.FC = () => {
   const [disciplineFilter, setDisciplineFilter] = useState<string>('');
 
   const canOpenCards = selectedDeck !== null;
+  const hasPausedSession = !isReviewing && reviewQueue.length > 0 && currentCardIndex < reviewQueue.length;
 
   // All available discipline names for filter dropdown
   const allDisciplines = Array.from(
@@ -145,6 +146,27 @@ const AnkiPage: React.FC = () => {
           </div>
         )}
       </header>
+
+      {/* Paused session banner */}
+      {hasPausedSession && (
+        <div className="max-w-6xl mx-auto px-6 pt-4">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/20 px-4 py-3">
+            <div className="flex items-center gap-3 text-sm text-yellow-800 dark:text-yellow-200">
+              <span className="text-base">⏸</span>
+              <span>
+                Sessão pausada — <strong>{currentCardIndex}/{reviewQueue.length}</strong> cards respondidos
+                {sessionTotal > 0 && <span className="ml-1">({sessionCorrect}/{sessionTotal} acertos)</span>}
+              </span>
+            </div>
+            <button
+              onClick={resumeReview}
+              className="shrink-0 px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
