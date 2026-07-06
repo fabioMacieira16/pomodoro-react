@@ -10,11 +10,9 @@ import {
   type PlanTask,
 } from '../store/planTaskStore';
 import { useSelectedTask } from '../store/selectedTaskStore';
-import MindMap, { MindMapNodeData } from '../components/MindMap/MindMap';
 import api from '../api/client';
 import './EstudosPage.css';
 import './PlanoPage.css';
-import '../components/MindMap/MindMap.css';
 
 function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -22,7 +20,7 @@ function daysUntil(dateStr: string | null): number | null {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-type UploadMode = 'edital' | 'conteudo' | 'plano' | null;
+type UploadMode = 'edital' | 'plano' | null;
 type PlanView = 'kanban' | 'calendar';
 
 interface UploadNotice {
@@ -180,7 +178,6 @@ interface CalendarViewProps {
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ tasks, weekStart, selectedId, onSelect }) => {
-  const today = new Date().toISOString().split('T')[0];
   const todayDow = getTodayDayOfWeek();
   const activeDays = DAY_NAMES.map((name, idx) => {
     const dayDate = getDateForDayOfWeek(idx, weekStart);
@@ -256,8 +253,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, weekStart, selectedI
 
 const EstudosPage: React.FC = () => {
   const navigate = useNavigate();
-  const { uploadFile, isIndexing, documents, fetchDocuments } = useDocumentStore();
-  const { context, fetchContext, updateContext, getTodaysSubjects } = useStudyContext();
+  const { uploadFile, isIndexing } = useDocumentStore();
+  const { context, fetchContext, updateContext } = useStudyContext();
   const {
     tasks,
     weekStart,
@@ -272,21 +269,15 @@ const EstudosPage: React.FC = () => {
   const [notice, setNotice] = useState<UploadNotice | null>(null);
   const [selectedCargo, setSelectedCargo] = useState<string | null>(null);
   const [showCargoSelection, setShowCargoSelection] = useState(false);
-  const [mindMapData, setMindMapData] = useState<{ root: MindMapNodeData; subject: string; totalNodes: number } | null>(null);
-  const [mindMapLoading, setMindMapLoading] = useState<string | null>(null);
-  const [mindMapError, setMindMapError] = useState<string | null>(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any | null>(null);
   const [autoGeneratePlan, setAutoGeneratePlan] = useState(false);
-  const [newSubjectInput, setNewSubjectInput] = useState('');
-  const [showAddSubject, setShowAddSubject] = useState(false);
   const [planView, setPlanView] = useState<PlanView>('kanban');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchContext();
-    fetchDocuments();
-  }, [fetchContext, fetchDocuments]);
+  }, [fetchContext]);
 
   useEffect(() => {
     if (context.available_cargos.length > 1 && !context.cargo) {
@@ -339,15 +330,6 @@ const EstudosPage: React.FC = () => {
         } else {
           showNotice({ type: 'success', message: '✅ Edital importado. Verifique os dados acima.' });
         }
-      } else if (uploadMode === 'conteudo') {
-        const indexing = result?.indexing;
-        const disciplina = indexing?.disciplina || indexing?.filename?.replace('.pdf', '');
-        showNotice({
-          type: 'success',
-          message: `✅ Conteúdo indexado: ${disciplina || file.name}`,
-          detail: indexing?.message || 'Arquivo processado com sucesso',
-        });
-        await fetchDocuments();
       } else if (uploadMode === 'plano') {
         showNotice({ type: 'success', message: '✅ Plano de estudo importado!' });
         await fetchContext();
@@ -382,29 +364,6 @@ const EstudosPage: React.FC = () => {
       detail: 'Gerando plano de estudos personalizado...' 
     }, 3000);
     setTimeout(() => setAutoGeneratePlan(true), 500);
-  };
-
-  const handleGenerateMindMap = async (subjectName: string) => {
-    setMindMapLoading(subjectName);
-    setMindMapError(null);
-    try {
-      const res = await api.post('/mindmap/generate', { subject_name: subjectName, depth: 3 });
-      setMindMapData({ root: res.data.root, subject: res.data.subject, totalNodes: res.data.total_nodes });
-    } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setMindMapError(detail || 'Erro ao gerar mapa mental. Verifique se há um provedor de IA configurado.');
-    } finally {
-      setMindMapLoading(null);
-    }
-  };
-
-  const handleAddSubject = async () => {
-    const name = newSubjectInput.trim();
-    if (!name) return;
-    const updated = [...context.subjects.filter(s => s !== name), name];
-    await updateContext({ subjects: updated });
-    setNewSubjectInput('');
-    setShowAddSubject(false);
   };
 
   const handleGenerateAIPlan = async () => {
@@ -460,7 +419,7 @@ const EstudosPage: React.FC = () => {
       if (schedule.length > 0) {
         generateFromSchedule(schedule, performances, plan.concurso ?? context.concurso);
         // Conta quantas tarefas foram criadas
-        tasksCreated = schedule.reduce((acc, s) => acc + (s.subjects?.length || 0), 0);
+        tasksCreated = schedule.reduce((acc: number, s: { subjects?: unknown[] }) => acc + (s.subjects?.length || 0), 0);
       }
 
       if (plan.weekly_schedule) {
@@ -523,7 +482,7 @@ const EstudosPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  const renderUploadZone = (mode: 'edital' | 'conteudo', title: string, description: string, icon: string) => {
+  const renderUploadZone = (mode: 'edital', title: string, description: string, icon: string) => {
     const active = isIndexing && uploadMode === mode;
     return (
       <div className="upload-card">
@@ -565,7 +524,6 @@ const EstudosPage: React.FC = () => {
     );
   }
 
-  const contentDocs = documents.filter(d => d.doc_type === 'conteudo' || d.doc_type === 'material');
   const daysLeft = daysUntil(context.exam_date);
   const todayDow = getTodayDayOfWeek();
   const todayTasks = tasks.filter(t => t.day_of_week === todayDow);
@@ -781,16 +739,6 @@ const EstudosPage: React.FC = () => {
             )}
           </div>
 
-          {/* Upload de conteúdo */}
-          <div className="upload-grid">
-            {renderUploadZone(
-              'conteudo',
-              'Importar Conteúdo',
-              'PDF de matéria/disciplina. A IA detecta automaticamente a disciplina e assunto.',
-              '📖'
-            )}
-          </div>
-
           {/* Plano gerado (feedback pós-geração) */}
           {generatedPlan && (
             <div className="generated-plan">
@@ -813,110 +761,6 @@ const EstudosPage: React.FC = () => {
             </div>
           )}
 
-          {/* Conteúdos indexados */}
-          {contentDocs.length > 0 && (
-            <div className="indexed-docs">
-              <h3>📁 Conteúdos Indexados</h3>
-              <div className="docs-list">
-                {contentDocs.map(doc => (
-                  <div key={doc.id} className="doc-item">
-                    <span className="doc-icon">📄</span>
-                    <div className="doc-info">
-                      <span className="doc-name">{doc.filename}</span>
-                      {doc.disciplina && <span className="doc-disciplina">{doc.disciplina}</span>}
-                    </div>
-                    {doc.disciplina && context.subjects.includes(doc.disciplina) && (
-                      <span className="doc-badge doc-badge--match">✓ Na grade</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Disciplinas */}
-          <div className="subjects-section">
-            <div className="subjects-section__header">
-              <h3>📚 Disciplinas</h3>
-              <button
-                className="subjects-section__add-btn"
-                onClick={() => setShowAddSubject(v => !v)}
-                title="Adicionar disciplina"
-              >
-                + Disciplina
-              </button>
-            </div>
-
-            {showAddSubject && (
-              <div className="subject-add-row">
-                <input
-                  className="subject-add-input"
-                  value={newSubjectInput}
-                  onChange={e => setNewSubjectInput(e.target.value)}
-                  placeholder="Ex: Direito Administrativo"
-                  onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
-                  autoFocus
-                />
-                <button
-                  className="subject-add-confirm"
-                  onClick={handleAddSubject}
-                  disabled={!newSubjectInput.trim()}
-                >
-                  Adicionar
-                </button>
-                <button className="subject-add-cancel" onClick={() => { setShowAddSubject(false); setNewSubjectInput(''); }}>
-                  ✕
-                </button>
-              </div>
-            )}
-
-            {mindMapError && <div className="mindmap-error">⚠️ {mindMapError}</div>}
-
-            {context.subjects.length === 0 && !showAddSubject && (
-              <p className="subjects-empty">Nenhuma disciplina. Importe um edital ou adicione manualmente.</p>
-            )}
-
-            <div className="subjects-grid">
-              {context.subjects.map(subject => {
-                const perf = context.performances.find(p => p.subject === subject);
-                return (
-                  <div key={subject} className={`subject-card priority-${perf?.priority || 3}`}>
-                    <div className="subject-name">{subject}</div>
-                    {perf && (
-                      <div className="subject-stats">
-                        <span className="accuracy">{perf.accuracy.toFixed(0)}%</span>
-                        <span className="hours">{perf.study_hours}h</span>
-                        <span className={`difficulty diff-${perf.difficulty_level}`}>
-                          {perf.difficulty_level === 'easy' ? '😊' : perf.difficulty_level === 'medium' ? '😐' : '😰'}
-                        </span>
-                      </div>
-                    )}
-                    <button
-                      className="subject-mindmap-btn"
-                      onClick={() => { setMindMapError(null); handleGenerateMindMap(subject); }}
-                      disabled={!!mindMapLoading}
-                      title="Gerar mapa mental com IA"
-                    >
-                      {mindMapLoading === subject ? '⏳' : '🗺 Mapa Mental'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {mindMapData && (
-        <div className="mm-overlay" onClick={() => setMindMapData(null)}>
-          <div onClick={e => e.stopPropagation()}>
-            <MindMap
-              root={mindMapData.root}
-              subject={mindMapData.subject}
-              totalNodes={mindMapData.totalNodes}
-              onClose={() => setMindMapData(null)}
-            />
-          </div>
         </div>
       )}
     </div>
