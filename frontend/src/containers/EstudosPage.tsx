@@ -315,12 +315,27 @@ const EstudosPage: React.FC = () => {
       if (uploadMode === 'edital') {
         await fetchContext();
         const edital = result?.edital_info;
+        const requiresCargo = result?.requires_cargo_selection;
+        
         if (edital?.concurso) {
           showNotice({
             type: 'success',
             message: `✅ Edital importado: ${edital.concurso}`,
             detail: `${edital.cargos?.length || 0} cargos · ${Object.keys(edital.disciplinas || {}).length} disciplinas detectadas`,
           }, 8000);
+          
+          // Se requer seleção de cargo, mostrar tela de seleção
+          if (requiresCargo) {
+            setShowCargoSelection(true);
+          } else {
+            // Cargo único, gerar plano automaticamente após breve pausa
+            showNotice({ 
+              type: 'success', 
+              message: '🎯 Gerando plano de estudos personalizado...', 
+              detail: 'Aguarde enquanto preparamos seu cronograma' 
+            }, 3000);
+            setTimeout(() => setAutoGeneratePlan(true), 500);
+          }
         } else {
           showNotice({ type: 'success', message: '✅ Edital importado. Verifique os dados acima.' });
         }
@@ -361,8 +376,12 @@ const EstudosPage: React.FC = () => {
     await updateContext({ cargo });
     await fetchContext();
     setShowCargoSelection(false);
-    showNotice({ type: 'success', message: `✅ Cargo selecionado: ${cargo}. Gerando plano de estudos...` }, 3000);
-    setTimeout(() => setAutoGeneratePlan(true), 300);
+    showNotice({ 
+      type: 'success', 
+      message: `✅ Cargo selecionado: ${cargo}`, 
+      detail: 'Gerando plano de estudos personalizado...' 
+    }, 3000);
+    setTimeout(() => setAutoGeneratePlan(true), 500);
   };
 
   const handleGenerateMindMap = async (subjectName: string) => {
@@ -436,8 +455,12 @@ const EstudosPage: React.FC = () => {
       const updatedCtx = await api.get('/study-context').then(r => r.data).catch(() => null);
       const schedule = updatedCtx?.weekly_schedule ?? [];
       const performances = updatedCtx?.performances ?? [];
+      
+      let tasksCreated = 0;
       if (schedule.length > 0) {
         generateFromSchedule(schedule, performances, plan.concurso ?? context.concurso);
+        // Conta quantas tarefas foram criadas
+        tasksCreated = schedule.reduce((acc, s) => acc + (s.subjects?.length || 0), 0);
       }
 
       if (plan.weekly_schedule) {
@@ -451,12 +474,30 @@ const EstudosPage: React.FC = () => {
           if (idx >= 0) stored[idx] = tpl; else stored.push(tpl);
         }
         localStorage.setItem('pomodoro-task-templates', JSON.stringify(stored));
-        showNotice({ type: 'success', message: `✅ Plano gerado! Templates criados por dia para "${concursoLabel}".` }, 6000);
+        
+        showNotice({ 
+          type: 'success', 
+          message: `✅ Plano gerado com sucesso!`, 
+          detail: `${tasksCreated} tarefas criadas para "${concursoLabel}". Role para baixo para ver o cronograma semanal.` 
+        }, 8000);
+        
+        // Scroll suave para a seção de tarefas após um pequeno delay
+        setTimeout(() => {
+          const planSection = document.querySelector('.estudos-plan-section');
+          if (planSection) {
+            planSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 500);
       } else {
         showNotice({ type: 'success', message: '✅ Plano de estudos gerado com IA!' }, 5000);
       }
-    } catch {
-      showNotice({ type: 'error', message: '❌ Erro ao gerar plano. Verifique o edital ativo.' });
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      showNotice({ 
+        type: 'error', 
+        message: '❌ Erro ao gerar plano', 
+        detail: detail || 'Verifique se o edital está ativo e se há um provedor de IA configurado.' 
+      });
     } finally {
       setAiPlanLoading(false);
     }
@@ -544,6 +585,17 @@ const EstudosPage: React.FC = () => {
         <div className={`upload-notice upload-notice--${notice.type}`}>
           <strong>{notice.message}</strong>
           {notice.detail && <span>{notice.detail}</span>}
+        </div>
+      )}
+
+      {aiPlanLoading && (
+        <div className="upload-notice upload-notice--info" style={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          animation: 'pulse 2s ease-in-out infinite'
+        }}>
+          <strong>🤖 Gerando plano de estudos com IA...</strong>
+          <span>Analisando edital, disciplinas e criando cronograma personalizado</span>
         </div>
       )}
 

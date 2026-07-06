@@ -8,7 +8,6 @@ import Pomodoro from './containers/Pomodoro';
 import Dashboard from './containers/Dashboard';
 import AnkiPage from './containers/AnkiPage';
 import EstudosPage from './containers/EstudosPage';
-import QuizPage from './containers/QuizPage';
 import FixedMenu from './components/FixedMenu';
 import AchievementCelebration from './components/AchievementCelebration';
 import { usePomodoroSettings } from './store/pomodoroSettingsStore';
@@ -61,7 +60,6 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/anki" element={<AnkiPage />} />
         <Route path="/estudos" element={<EstudosPage />} />
-        <Route path="/quiz" element={<QuizPage />} />
         <Route path="/scheduler" element={<Navigate to="/estudos" replace />} />
         <Route path="/study-planner" element={<Navigate to="/estudos" replace />} />
       </Routes>

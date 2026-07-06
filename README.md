@@ -4,6 +4,29 @@
 
 ---
 
+## 🧭 Navegação Simplificada
+
+O app tem **4 páginas principais**, cada uma com propósito único:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│   🍅 Pomodoro   📊 Dashboard   🧠 Anki   📚 Estudos   ⛶    │
+└─────────────────────────────────────────────────────────────┘
+      FOCO         PROGRESSO      REVISÃO    PLANEJAMENTO
+     (agora)       (passado)    (repetição)   (futuro)
+```
+
+| Página | Função Principal |
+|--------|------------------|
+| 🍅 **Pomodoro** | Timer de foco com técnica Pomodoro |
+| 📊 **Dashboard** | Métricas, heatmap, conquistas, evolução |
+| 🧠 **Anki** | Sistema de revisão espaçada (Spaced Repetition) |
+| 📚 **Estudos** | Hub completo: editais, planos, Kanban, mapas mentais, quizzes |
+
+> 📖 **Detalhes completos:** Veja [ESTRUTURA_NAVEGACAO.md](./docs/ESTRUTURA_NAVEGACAO.md)
+
+---
+
 ## 🏛️ Os 5 Pilares
 
 | Pilar | O que faz | Por que importa |
@@ -13,6 +36,48 @@
 | 📊 **Central de Desempenho** | Heatmap, conquistas, streak, ranking pessoal | Transforma esforço invisível em dados visíveis — e recompensa |
 | 🧠 **Sistema Anki + IA** | Revisão espaçada gerada a partir de PDFs, vídeos, erros e questões | **O diferencial absurdo** — memória de longo prazo automática |
 | 🏆 **Sistema de Conquistas** | Gamificação integrada ao Dashboard — sem telas extras | Mantém a motivação com progressão real e recompensas visíveis |
+
+---
+
+## ✨ Features Destacadas
+
+### 🗺️ Mapas Mentais com IA
+
+Gere mapas mentais hierárquicos para qualquer disciplina com um clique!
+
+**Como usar:**
+1. Acesse **Estudos** → seção **Disciplinas**
+2. Clique em **"🗺 Mapa Mental"** em qualquer disciplina
+3. A IA gera automaticamente a estrutura hierárquica de tópicos
+4. Navegue expandindo/colapsando branches
+
+**Recursos:**
+- ✅ Profundidade de até 4 níveis
+- ✅ Colorização automática por nível
+- ✅ Indicadores de importância (tópicos mais cobrados)
+- ✅ Expansão/colapso interativo
+- ✅ Modal responsivo
+
+### 📋 Kanban de Dias de Estudos
+
+Visualize sua semana de estudos em formato Kanban - cada dia é uma coluna com suas tarefas!
+
+**Como usar:**
+1. Acesse **Estudos** → importe um edital PDF
+2. Gere um plano de estudos com IA
+3. Na seção **"📅 Semana de Estudos"**, visualize o Kanban
+4. Toggle entre **Kanban** (colunas por dia) e **Calendar** (grade)
+
+**Recursos:**
+- ✅ 7 colunas (segunda a domingo)
+- ✅ Badge "HOJE" destacando o dia atual
+- ✅ Cards com tipo (📚 estudo, 🔄 revisão, ❓ quiz)
+- ✅ Prioridade visual (dot colorido)
+- ✅ Pomodoros estimados vs concluídos
+- ✅ Click para selecionar no timer
+- ✅ Checkbox para marcar como concluído
+
+> 📖 **Guia completo:** Veja [FEATURES_IMPLEMENTADAS.md](./FEATURES_IMPLEMENTADAS.md) para detalhes técnicos e troubleshooting.
 
 ---
 
@@ -38,11 +103,19 @@ pomodoro-react/
 frontend/
 ├── src/
 │   ├── components/            # UI atômicos reutilizáveis
-│   ├── pages/                 # Rotas: Timer, Anki, Dashboard, Agenda, Settings
+│   │   ├── FixedMenu.tsx      # Menu de navegação (4 páginas)
+│   │   ├── MindMap/           # Componente de mapas mentais
+│   │   └── ...
+│   ├── containers/            # Páginas principais
+│   │   ├── Pomodoro.tsx       # 🍅 Timer de foco
+│   │   ├── Dashboard.tsx      # 📊 Métricas e conquistas
+│   │   ├── AnkiPage.tsx       # 🧠 Revisão espaçada
+│   │   └── EstudosPage.tsx    # 📚 Hub de estudos (editais, planos, mapas)
 │   ├── store/                 # Zustand — estado global por domínio
 │   │   ├── useTimerStore.ts
 │   │   ├── useAnkiStore.ts
 │   │   ├── useDashboardStore.ts
+│   │   ├── planTaskStore.ts   # Estado do Kanban semanal
 │   │   └── useSettingsStore.ts
 │   ├── hooks/                 # Custom hooks (usePomodoro, useSM2, useAI…)
 │   ├── services/              # Camada HTTP (axios/fetch) por recurso
@@ -50,6 +123,8 @@ frontend/
 ```
 
 **Stack:** React 18 · TypeScript · Zustand · Recharts · Tailwind CSS · Vite
+
+**Navegação:** 4 páginas principais (🍅 Pomodoro, 📊 Dashboard, 🧠 Anki, 📚 Estudos)
 
 ---
 
