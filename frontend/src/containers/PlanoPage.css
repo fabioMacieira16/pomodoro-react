@@ -212,8 +212,8 @@
 }
 
 .kanban-col {
-  flex: 0 0 200px;
-  min-width: 180px;
+  flex: 0 0 220px;
+  min-width: 200px;
   display: flex;
   flex-direction: column;
   background: var(--pomo-surface, #fff);
@@ -245,11 +245,13 @@
 }
 
 .kanban-col__name {
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--pomo-text-muted, #888);
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .kanban-col--today .kanban-col__name { color: #667eea; }

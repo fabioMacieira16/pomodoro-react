@@ -83,3 +83,19 @@ class QuickPlanRequest(BaseModel):
     exam_date: Optional[date] = None
     daily_hours: Optional[float] = Field(default=4.0, ge=0.5, le=16)
     available_days: Optional[List[int]] = Field(default=[0, 1, 2, 3, 4])
+
+
+class EditalFromInput(BaseModel):
+    """Gera plano diretamente a partir da análise do edital — sem wizard completo."""
+    concurso: str = Field(..., description="Nome do concurso")
+    cargo: str = Field(..., description="Cargo selecionado pelo usuário")
+    banca: Optional[str] = Field(default=None)
+    exam_date: date = Field(..., description="Data da prova")
+    daily_hours: float = Field(default=4.0, ge=0.5, le=16)
+    available_days: List[int] = Field(default=[0, 1, 2, 3, 4])
+    disciplinas: Dict[str, float] = Field(
+        default={},
+        description="Mapa disciplina → pontuacao_max extraído do edital"
+    )
+    strong_subjects: List[str] = Field(default=[])
+    weak_subjects: List[str] = Field(default=[])

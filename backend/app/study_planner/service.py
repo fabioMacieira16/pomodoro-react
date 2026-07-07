@@ -14,7 +14,8 @@ from app.domain.models import (
     Exam, ExamTopic, StudyPlanConfig, StudyPlanItem, Subject, DocumentIndex
 )
 from app.study_planner.schemas import (
-    WizardInput, PlanOutput, TopicPlan, MultiEditalComparison, QuickPlanRequest
+    WizardInput, PlanOutput, TopicPlan, MultiEditalComparison, QuickPlanRequest,
+    EditalFromInput,
 )
 from app.ai.factory import get_provider
 from app.core.config import settings
@@ -83,6 +84,52 @@ class StudyPlannerService:
             pass
 
         return plan_output
+
+    def generate_plan_from_edital(self, edital: EditalFromInput) -> PlanOutput:
+        """Gera plano diretamente dos dados do edital — sem wizard de 9 perguntas."""
+        wizard = WizardInput(
+            concurso=edital.concurso,
+            cargo=edital.cargo,
+            banca=edital.banca or "Não informada",
+            exam_date=edital.exam_date,
+            daily_hours=edital.daily_hours,
+            available_days=edital.available_days,
+            strong_subjects=edital.strong_subjects,
+            weak_subjects=edital.weak_subjects,
+            previous_experience="none",
+            has_studied_edital=True,
+        )
+
+        if edital.disciplinas:
+            exam = self._upsert_exam(wizard)
+            # Remove tópicos anteriores para recriar a partir do edital
+            self.db.query(ExamTopic).filter_by(exam_id=exam.id).delete()
+            self.db.commit()
+
+            max_pont = max(edital.disciplinas.values(), default=1.0) or 1.0
+            sorted_discs = sorted(edital.disciplinas.items(), key=lambda x: -x[1])
+            num_discs = len(sorted_discs) or 1
+
+            for i, (disc, pont) in enumerate(sorted_discs, 1):
+                peso = max(1.0, min(3.0, round(pont / max_pont * 3, 1)))
+                hours = round(max(0.5, wizard.daily_hours * peso / num_discs), 1)
+                incid = round(min(0.95, 0.4 + pont / max_pont * 0.55), 2)
+                priority = min(i, 5)
+                diff = "Hard" if disc.lower() in {s.lower() for s in edital.weak_subjects} \
+                    else "Easy" if disc.lower() in {s.lower() for s in edital.strong_subjects} \
+                    else "Medium"
+                self.db.add(ExamTopic(
+                    exam_id=exam.id,
+                    name=disc,
+                    estimated_hours=hours,
+                    priority=priority,
+                    peso=peso,
+                    incidencia=incid,
+                    personal_difficulty=diff,
+                ))
+            self.db.commit()
+
+        return self.generate_plan(wizard)
 
     def generate_plan_from_prompt(self, body: QuickPlanRequest) -> PlanOutput:
         parsed = self._parse_prompt_to_wizard(body.prompt)

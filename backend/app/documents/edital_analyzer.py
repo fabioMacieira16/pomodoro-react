@@ -18,25 +18,49 @@ from pathlib import Path
 from app.ai.factory import get_provider
 
 
+class DisciplinaDetalhe:
+    """Linha da tabela de conteúdo do edital"""
+    def __init__(self, area: str, disciplina: str, num_questoes: int = 0,
+                 peso: float = 1.0, pontuacao_max: float = 0.0):
+        self.area = area
+        self.disciplina = disciplina
+        self.num_questoes = num_questoes
+        self.peso = peso
+        self.pontuacao_max = pontuacao_max
+
+    def to_dict(self) -> dict:
+        return {
+            "area": self.area,
+            "disciplina": self.disciplina,
+            "num_questoes": self.num_questoes,
+            "peso": self.peso,
+            "pontuacao_max": self.pontuacao_max,
+        }
+
+
 class EditalInfo:
     """Informações extraídas do edital"""
     def __init__(self):
         self.concurso: Optional[str] = None
         self.banca: Optional[str] = None
         self.cargos: List[str] = []
-        self.disciplinas: Dict[str, float] = {}  # {disciplina: peso}
+        self.disciplinas: Dict[str, float] = {}  # {disciplina: pontuacao_max} para backwards compat
+        self.disciplinas_detalhadas: List[DisciplinaDetalhe] = []  # tabela completa
+        self.programa_por_cargo: Dict[str, List[str]] = {}  # {cargo: [topicos]}
         self.data_prova: Optional[datetime] = None
         self.orgao: Optional[str] = None
         self.vagas: Optional[int] = None
         self.salario: Optional[str] = None
         self.requisitos: Dict[str, str] = {}  # {cargo: requisito}
-        
+
     def to_dict(self) -> dict:
         return {
             "concurso": self.concurso,
             "banca": self.banca,
             "cargos": self.cargos,
             "disciplinas": self.disciplinas,
+            "disciplinas_detalhadas": [d.to_dict() for d in self.disciplinas_detalhadas],
+            "programa_por_cargo": self.programa_por_cargo,
             "data_prova": self.data_prova.isoformat() if self.data_prova else None,
             "orgao": self.orgao,
             "vagas": self.vagas,
@@ -79,9 +103,43 @@ class EditalAnalyzer:
             try:
                 ai_info = await self._extract_with_ai(text)
                 info.cargos = ai_info.get("cargos", [])
-                info.disciplinas = ai_info.get("disciplinas", {})
                 info.requisitos = ai_info.get("requisitos", {})
-                
+                info.programa_por_cargo = ai_info.get("programa_por_cargo", {})
+
+                # Processa tabela de disciplinas detalhada
+                tabela = ai_info.get("disciplinas_tabela", [])
+                if tabela:
+                    for row in tabela:
+                        if not isinstance(row, dict):
+                            continue
+                        disc = str(row.get("disciplina") or "").strip()
+                        if not disc:
+                            continue
+                        area = str(row.get("area") or "Conhecimentos Gerais").strip()
+                        try:
+                            num_q = int(row.get("num_questoes") or 0)
+                        except (ValueError, TypeError):
+                            num_q = 0
+                        try:
+                            peso = float(row.get("peso") or 1.0)
+                        except (ValueError, TypeError):
+                            peso = 1.0
+                        try:
+                            pont = float(row.get("pontuacao_max") or num_q * peso)
+                        except (ValueError, TypeError):
+                            pont = num_q * peso
+
+                        info.disciplinas_detalhadas.append(
+                            DisciplinaDetalhe(area=area, disciplina=disc,
+                                              num_questoes=num_q, peso=peso,
+                                              pontuacao_max=pont)
+                        )
+                    # Constrói dicionário backwards-compat: {disciplina: pontuacao_max}
+                    info.disciplinas = {d.disciplina: d.pontuacao_max for d in info.disciplinas_detalhadas}
+                else:
+                    # Fallback: campo legado
+                    info.disciplinas = ai_info.get("disciplinas", {})
+
                 # IA pode corrigir detecções por regex
                 if ai_info.get("concurso") and len(ai_info["concurso"]) > 3:
                     info.concurso = ai_info["concurso"]
@@ -240,34 +298,49 @@ class EditalAnalyzer:
     
     async def _extract_with_ai(self, text: str) -> dict:
         """Extração inteligente com IA"""
-        sample = text[:24000]  # primeiras ~10 páginas
-        
+        # Envia mais texto para capturar tabelas que aparecem após a introdução
+        sample = text[:32000]
+
         prompt = f"""
-Você é um especialista em análise de editais de concursos públicos.
+Você é um especialista em análise de editais de concursos públicos brasileiros.
 
-Analise o edital abaixo e extraia as seguintes informações em formato JSON:
+Analise o edital abaixo e extraia as informações em JSON. Preste MUITA atenção à tabela de disciplinas.
 
-1. concurso: nome completo do concurso
-2. banca: banca organizadora
-3. cargos: lista de TODOS os cargos disponíveis
-4. disciplinas: objeto com disciplinas e seus pesos (1-5, onde 5 é mais importante)
-5. requisitos: objeto mapeando cada cargo para seus requisitos de formação
+REGRAS:
+1. Para "disciplinas_tabela": encontre TODAS as tabelas com colunas de matérias/disciplinas.
+   Nomes comuns das colunas: "Área de Conhecimento", "Disciplina", "Número de Questões", "Peso por Questão", "Pontuação Máxima"
+   - "area": valor da coluna "Área de Conhecimento" (ex: "Conhecimentos Gerais", "Conhecimentos Específicos")
+   - "disciplina": nome da matéria
+   - "num_questoes": número de questões (inteiro)
+   - "peso": peso por questão (número)
+   - "pontuacao_max": pontuação máxima = num_questoes × peso
 
-Exemplo de resposta:
+2. Para "programa_por_cargo": encontre o conteúdo programático específico de cada cargo.
+   Procure seções como "CONTEÚDO PROGRAMÁTICO", "PROGRAMA", "EIXOS TEMÁTICOS".
+   Liste os tópicos/assuntos específicos (ex: SQL, Banco de Dados, Redes).
+
+3. Para "cargos": liste TODOS os cargos disponíveis com seus nomes completos.
+
+EXEMPLO DE SAÍDA ESPERADA:
 {{
-  "concurso": "SEFAZ-CE 2024",
-  "banca": "CESPE",
-  "cargos": ["Auditor Fiscal", "Analista de TI", "Fiscal de Tributos"],
-  "disciplinas": {{
-    "Português": 4,
-    "Direito Constitucional": 5,
-    "Direito Tributário": 5,
-    "Contabilidade": 4,
-    "Informática": 3
+  "concurso": "ALECE 2024",
+  "banca": "CESPE/CEBRASPE",
+  "cargos": ["Analista Legislativo - Tecnologia da Informação", "Técnico Legislativo"],
+  "disciplinas_tabela": [
+    {{"area": "Conhecimentos Gerais", "disciplina": "Língua Portuguesa", "num_questoes": 10, "peso": 1.0, "pontuacao_max": 10.0}},
+    {{"area": "Conhecimentos Gerais", "disciplina": "Noções de Informática", "num_questoes": 5, "peso": 1.0, "pontuacao_max": 5.0}},
+    {{"area": "Conhecimentos Gerais", "disciplina": "Legislação e Ética no Serviço Público", "num_questoes": 5, "peso": 1.0, "pontuacao_max": 5.0}},
+    {{"area": "Conhecimentos Específicos", "disciplina": "Banco de Dados", "num_questoes": 15, "peso": 2.0, "pontuacao_max": 30.0}},
+    {{"area": "Conhecimentos Específicos", "disciplina": "Engenharia de Software", "num_questoes": 10, "peso": 2.0, "pontuacao_max": 20.0}}
+  ],
+  "programa_por_cargo": {{
+    "Analista Legislativo - Tecnologia da Informação": [
+      "SQL e Banco de Dados Relacional", "PostgreSQL", "Modelo Entidade-Relacionamento",
+      "Sistemas Operacionais Linux", "Redes de Computadores", "Segurança da Informação"
+    ]
   }},
   "requisitos": {{
-    "Auditor Fiscal": "Nível superior em qualquer área",
-    "Analista de TI": "Nível superior em Ciência da Computação ou áreas afins"
+    "Analista Legislativo - Tecnologia da Informação": "Nível superior em Ciência da Computação ou áreas afins"
   }}
 }}
 
@@ -276,7 +349,7 @@ EDITAL:
 
 Retorne APENAS o JSON válido, sem comentários ou texto adicional.
 """
-        
+
         try:
             result = await self.provider.complete_json(prompt)
             return result if isinstance(result, dict) else {}

@@ -41,6 +41,18 @@ export interface MultiEditalComparison {
   recommendation: string;
 }
 
+export interface EditalFromInput {
+  concurso: string;
+  cargo: string;
+  banca?: string;
+  exam_date: string;         // ISO date YYYY-MM-DD
+  daily_hours: number;
+  available_days: number[];  // 0=Seg..6=Dom
+  disciplinas: Record<string, number>; // disciplina → pontuacao_max
+  strong_subjects?: string[];
+  weak_subjects?: string[];
+}
+
 export interface WizardAnswers {
   concurso: string;
   cargo: string;
@@ -74,6 +86,7 @@ interface StudyPlannerState {
   updateWizardAnswers: (answers: Partial<WizardAnswers>) => void;
   resetWizard: () => void;
   submitWizard: (answers: WizardAnswers) => Promise<void>;
+  generateFromEdital: (input: EditalFromInput) => Promise<void>;
   fetchActivePlan: () => Promise<void>;
   editPlan: (planId: number, answers: WizardAnswers) => Promise<void>;
   compareEditais: (answers: WizardAnswers) => Promise<void>;
@@ -104,6 +117,21 @@ export const useStudyPlannerStore = create<StudyPlannerState>((set) => ({
       set({
         wizardLoading: false,
         planError: detail || 'Erro ao gerar plano. Verifique o backend.',
+      });
+    }
+  },
+
+  generateFromEdital: async (input) => {
+    set({ wizardLoading: true, planError: null });
+    try {
+      const res = await api.post('/planner/from-edital', input);
+      set({ activePlan: res.data, wizardLoading: false });
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      set({
+        wizardLoading: false,
+        planError: detail || 'Erro ao gerar plano a partir do edital.',
       });
     }
   },

@@ -86,11 +86,12 @@ interface KanbanViewProps {
   tasks: PlanTask[];
   weekStart: string | null;
   selectedId: number | null;
+  concurso?: string | null;
   onToggle: (id: number) => void;
   onSelect: (task: PlanTask) => void;
 }
 
-const KanbanView: React.FC<KanbanViewProps> = ({ tasks, weekStart, selectedId, onToggle, onSelect }) => {
+const KanbanView: React.FC<KanbanViewProps> = ({ tasks, weekStart, selectedId, concurso, onToggle, onSelect }) => {
   const today = new Date().toISOString().split('T')[0];
   const todayDow = getTodayDayOfWeek();
 
@@ -108,7 +109,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, weekStart, selectedId, o
           <div key={name} className={['kanban-col', isToday ? 'kanban-col--today' : '', isPast ? 'kanban-col--past' : ''].filter(Boolean).join(' ')}>
             <div className="kanban-col__header">
               <div className="kanban-col__title-row">
-                <span className="kanban-col__name">{name}</span>
+                <span className="kanban-col__name">
+                  {concurso ? `${concurso} — ${name}` : name}
+                </span>
                 {isToday && <span className="kanban-col__today-badge">HOJE</span>}
               </div>
               <div className="kanban-col__date-row">
@@ -400,6 +403,7 @@ const PlanoPage: React.FC = () => {
           tasks={tasks}
           weekStart={weekStart}
           selectedId={selectedTask?.id ?? null}
+          concurso={concurso}
           onToggle={toggleComplete}
           onSelect={handleSelectTask}
         />

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useStudyPlannerStore, WizardAnswers } from '../store/studyPlannerStore';
+import { useNavigate } from 'react-router-dom';
+import { useStudyPlannerStore, WizardAnswers, EditalFromInput } from '../store/studyPlannerStore';
 import { useDocumentStore } from '../store/documentStore';
 import './StudyPlannerPage.css';
 
@@ -17,42 +18,120 @@ const WIZARD_STEPS = [
   { field: 'has_studied_edital',  label: 'Você já estudou o edital?',                  placeholder: '',                              type: 'boolean' },
 ];
 
+interface EditalData {
+  concurso: string | null;
+  banca: string | null;
+  cargos: string[];
+  disciplinas: Record<string, number>;
+  disciplinas_detalhadas?: Array<{
+    area: string;
+    disciplina: string;
+    num_questoes: number;
+    peso: number;
+    pontuacao_max: number;
+  }>;
+  data_prova: string | null;
+  vagas: number | null;
+  salario: string | null;
+}
+
+type ImportStep = 'upload' | 'cargo_selection' | 'quick_setup';
+
 const StudyPlannerPage: React.FC = () => {
+  const navigate = useNavigate();
   const {
     wizardStep, wizardAnswers, wizardLoading, activePlan, planLoading, planError,
     setWizardStep, updateWizardAnswers, submitWizard, fetchActivePlan, resetWizard,
+    generateFromEdital,
   } = useStudyPlannerStore();
 
   const { uploadFile, isIndexing } = useDocumentStore();
 
+  // Wizard manual
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4]);
   const [showWizard, setShowWizard] = useState(false);
   const [localValue, setLocalValue] = useState('');
-  const [uploadSuccess, setUploadSuccess] = useState(false);
+
+  // Fluxo de importação do edital
+  const [importStep, setImportStep] = useState<ImportStep>('upload');
+  const [editalData, setEditalData] = useState<EditalData | null>(null);
+  const [selectedCargo, setSelectedCargo] = useState<string>('');
+
+  // Quick setup
+  const [quickDailyHours, setQuickDailyHours] = useState(4);
+  const [quickAvailDays, setQuickAvailDays] = useState<number[]>([0, 1, 2, 3, 4]);
+  const [quickExamDate, setQuickExamDate] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchActivePlan(); }, [fetchActivePlan]);
 
-  const currentStep = WIZARD_STEPS[wizardStep];
-
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.pdf')) {
-      await uploadFile(file);
-      setUploadSuccess(true);
-      setTimeout(() => setShowWizard(true), 1000);
-    }
+    if (file && file.name.endsWith('.pdf')) await handleUpload(file);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      await uploadFile(file);
-      setUploadSuccess(true);
-      setTimeout(() => setShowWizard(true), 1000);
+    if (file) await handleUpload(file);
+  };
+
+  const handleUpload = async (file: File) => {
+    const result = await uploadFile(file);
+    if (!result) return;
+
+    const info: EditalData | null = result.edital_info ?? null;
+    if (!info) {
+      // Sem info de edital, cai no wizard
+      setShowWizard(true);
+      return;
+    }
+
+    setEditalData(info);
+
+    // Pré-preenche data da prova se encontrada
+    if (info.data_prova) {
+      const d = new Date(info.data_prova);
+      setQuickExamDate(d.toISOString().split('T')[0]);
+    }
+
+    if (result.requires_cargo_selection && info.cargos.length > 1) {
+      setImportStep('cargo_selection');
+    } else {
+      if (info.cargos.length === 1) setSelectedCargo(info.cargos[0]);
+      setImportStep('quick_setup');
     }
   };
+
+  const handleCargoSelect = (cargo: string) => {
+    setSelectedCargo(cargo);
+    setImportStep('quick_setup');
+  };
+
+  const handleGenerateFromEdital = async () => {
+    if (!editalData) return;
+
+    const input: EditalFromInput = {
+      concurso: editalData.concurso || 'Concurso Público',
+      cargo: selectedCargo || 'Candidato',
+      banca: editalData.banca || undefined,
+      exam_date: quickExamDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      daily_hours: quickDailyHours,
+      available_days: quickAvailDays,
+      disciplinas: editalData.disciplinas,
+    };
+
+    await generateFromEdital(input);
+
+    const state = useStudyPlannerStore.getState();
+    if (state.activePlan && !state.planError) {
+      navigate('/plano');
+    }
+  };
+
+  // Wizard manual handlers
+  const currentStep = WIZARD_STEPS[wizardStep];
 
   const handleNext = () => {
     if (!currentStep) return;
@@ -72,13 +151,15 @@ const StudyPlannerPage: React.FC = () => {
     if (wizardStep < WIZARD_STEPS.length - 1) {
       setWizardStep(wizardStep + 1);
     } else {
-      // Last step: add selected days then submit
       const finalAnswers: WizardAnswers = {
         ...(wizardAnswers as WizardAnswers),
         ...updates,
         available_days: selectedDays,
       };
-      submitWizard(finalAnswers).then(() => setShowWizard(false));
+      submitWizard(finalAnswers).then(() => {
+        setShowWizard(false);
+        navigate('/plano');
+      });
     }
   };
 
@@ -92,16 +173,18 @@ const StudyPlannerPage: React.FC = () => {
 
   return (
     <div className="planner-page">
-      {!activePlan && !showWizard && (
+
+      {/* ── Upload inicial ── */}
+      {importStep === 'upload' && !showWizard && (
         <div className="planner-content">
           <div className="planner-header">
             <div className="empty-icon">📋</div>
             <h2>Importe seu Edital</h2>
-            <p>Envie o PDF do edital para a IA analisar e criar um plano personalizado</p>
+            <p>Envie o PDF do edital — a IA extrai as disciplinas e cria seu plano automaticamente</p>
           </div>
 
           <div
-            className={`drop-zone ${isIndexing ? 'indexing' : ''} ${uploadSuccess ? 'success' : ''}`}
+            className={`drop-zone ${isIndexing ? 'indexing' : ''}`}
             onDragOver={e => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
@@ -113,19 +196,154 @@ const StudyPlannerPage: React.FC = () => {
               style={{ display: 'none' }}
               onChange={handleFileSelect}
             />
-            {uploadSuccess ? (
-              '✅ Edital enviado! Aguarde...'
-            ) : isIndexing ? (
-              '⏳ Analisando edital com IA...'
-            ) : (
-              '📎 Arraste o PDF do edital ou clique para selecionar'
-            )}
+            {isIndexing
+              ? '⏳ Analisando edital com IA...'
+              : '📎 Arraste o PDF do edital ou clique para selecionar'}
           </div>
+
+          <div className="planner-divider">— ou —</div>
+
+          <button className="start-wizard-btn" onClick={() => setShowWizard(true)}>
+            ✏️ Criar plano manualmente
+          </button>
 
           {planError && <div className="plan-error">{planError}</div>}
         </div>
       )}
 
+      {/* ── Seleção de cargo ── */}
+      {importStep === 'cargo_selection' && editalData && (
+        <div className="planner-content">
+          <div className="edital-preview">
+            <div className="edital-preview__badge">✅ Edital analisado</div>
+            <div className="edital-preview__title">{editalData.concurso || 'Concurso'}</div>
+            {editalData.banca && (
+              <div className="edital-preview__meta">Banca: <strong>{editalData.banca}</strong></div>
+            )}
+            {editalData.data_prova && (
+              <div className="edital-preview__meta">
+                Data da prova: <strong>{new Date(editalData.data_prova).toLocaleDateString('pt-BR')}</strong>
+              </div>
+            )}
+            <div className="edital-preview__meta">
+              {Object.keys(editalData.disciplinas).length} disciplinas encontradas
+            </div>
+          </div>
+
+          <h3 className="cargo-select-title">Selecione seu cargo:</h3>
+
+          <div className="cargo-list">
+            {editalData.cargos.map(cargo => (
+              <button
+                key={cargo}
+                className="cargo-option"
+                onClick={() => handleCargoSelect(cargo)}
+              >
+                <span className="cargo-option__name">{cargo}</span>
+                <span className="cargo-option__arrow">→</span>
+              </button>
+            ))}
+          </div>
+
+          <button className="back-btn" style={{ marginTop: 16 }}
+            onClick={() => { setImportStep('upload'); setEditalData(null); }}>
+            ← Voltar
+          </button>
+        </div>
+      )}
+
+      {/* ── Quick setup ── */}
+      {importStep === 'quick_setup' && editalData && (
+        <div className="planner-content">
+          <div className="edital-preview">
+            <div className="edital-preview__badge">✅ Edital analisado</div>
+            <div className="edital-preview__title">{editalData.concurso || 'Concurso'}</div>
+            {selectedCargo && (
+              <div className="edital-preview__cargo">📌 {selectedCargo}</div>
+            )}
+            <div className="edital-preview__disc-count">
+              {Object.keys(editalData.disciplinas).length} disciplinas •{' '}
+              {editalData.banca || 'Banca não identificada'}
+            </div>
+
+            {/* Miniatura das disciplinas */}
+            {Object.keys(editalData.disciplinas).length > 0 && (
+              <div className="edital-disc-chips">
+                {Object.keys(editalData.disciplinas).slice(0, 8).map(d => (
+                  <span key={d} className="edital-disc-chip">{d}</span>
+                ))}
+                {Object.keys(editalData.disciplinas).length > 8 && (
+                  <span className="edital-disc-chip edital-disc-chip--more">
+                    +{Object.keys(editalData.disciplinas).length - 8}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="quick-setup">
+            <h3 className="quick-setup__title">Configure seu plano</h3>
+
+            <div className="quick-setup__field">
+              <label>📅 Data da prova</label>
+              <input
+                type="date"
+                className="wizard-input"
+                value={quickExamDate}
+                onChange={e => setQuickExamDate(e.target.value)}
+              />
+            </div>
+
+            <div className="quick-setup__field">
+              <label>⏰ Horas de estudo por dia</label>
+              <div className="quick-hours-row">
+                <input
+                  type="range"
+                  min={1}
+                  max={12}
+                  step={0.5}
+                  value={quickDailyHours}
+                  onChange={e => setQuickDailyHours(Number(e.target.value))}
+                  className="quick-hours-range"
+                />
+                <span className="quick-hours-value">{quickDailyHours}h</span>
+              </div>
+            </div>
+
+            <div className="quick-setup__field">
+              <label>📆 Dias de estudo por semana</label>
+              <div className="days-grid">
+                {DAYS.map((day, i) => (
+                  <button
+                    key={i}
+                    className={`day-btn ${quickAvailDays.includes(i) ? 'selected' : ''}`}
+                    onClick={() => setQuickAvailDays(prev =>
+                      prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
+                    )}
+                  >{day}</button>
+                ))}
+              </div>
+            </div>
+
+            {planError && <div className="plan-error">{planError}</div>}
+
+            <button
+              className="generate-btn"
+              onClick={handleGenerateFromEdital}
+              disabled={wizardLoading || !quickExamDate || quickAvailDays.length === 0}
+            >
+              {wizardLoading ? '⏳ Gerando plano...' : '🚀 Gerar Plano de Estudos'}
+            </button>
+
+            <button className="back-btn" style={{ marginTop: 8 }}
+              onClick={() => setImportStep(editalData.cargos.length > 1 ? 'cargo_selection' : 'upload')}>
+              ← Voltar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Wizard manual ── */}
       {showWizard && (
         <div className="wizard-overlay">
           <div className="wizard-card">
@@ -141,14 +359,10 @@ const StudyPlannerPage: React.FC = () => {
 
                 {currentStep.type === 'boolean' ? (
                   <div className="boolean-btns">
-                    <button
-                      className={`bool-btn ${localValue === 'true' ? 'selected' : ''}`}
-                      onClick={() => setLocalValue('true')}
-                    >Sim</button>
-                    <button
-                      className={`bool-btn ${localValue === 'false' ? 'selected' : ''}`}
-                      onClick={() => setLocalValue('false')}
-                    >Não</button>
+                    <button className={`bool-btn ${localValue === 'true' ? 'selected' : ''}`}
+                      onClick={() => setLocalValue('true')}>Sim</button>
+                    <button className={`bool-btn ${localValue === 'false' ? 'selected' : ''}`}
+                      onClick={() => setLocalValue('false')}>Não</button>
                   </div>
                 ) : (
                   <input
@@ -162,7 +376,6 @@ const StudyPlannerPage: React.FC = () => {
                   />
                 )}
 
-                {/* Days selector on last step */}
                 {wizardStep === WIZARD_STEPS.length - 1 && (
                   <div className="days-selector">
                     <label>Dias disponíveis:</label>
@@ -203,16 +416,16 @@ const StudyPlannerPage: React.FC = () => {
         </div>
       )}
 
-      {activePlan && (
+      {/* ── Plano ativo (após geração via wizard ou já existente) ── */}
+      {activePlan && importStep === 'upload' && !showWizard && (
         <div className="plan-view">
           <div className="plan-view__actions">
+            <button className="edit-btn" onClick={() => navigate('/plano')}>📋 Ver Kanban</button>
             <button className="edit-btn" onClick={() => setShowWizard(true)}>✏️ Editar Plano</button>
           </div>
 
           {activePlan.is_multi_edital && activePlan.multi_edital_badge && (
-            <div className="multi-edital-badge">
-              🔀 {activePlan.multi_edital_badge}
-            </div>
+            <div className="multi-edital-badge">🔀 {activePlan.multi_edital_badge}</div>
           )}
 
           <div className="plan-summary">
@@ -239,7 +452,7 @@ const StudyPlannerPage: React.FC = () => {
                 <div className="topic-name">{topic.topic_name}</div>
                 <div className="topic-meta">
                   <span>{topic.allocated_hours}h</span>
-                  <span className="topic-diff diff-{topic.difficulty.toLowerCase()}">{topic.difficulty}</span>
+                  <span>{topic.difficulty}</span>
                   <span>P{topic.priority}</span>
                 </div>
               </div>

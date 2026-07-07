@@ -10,6 +10,7 @@ from app.study_planner.schemas import (
     MultiEditalComparison,
     PlanEditRequest,
     QuickPlanRequest,
+    EditalFromInput,
 )
 from app.study_planner.service import StudyPlannerService
 
@@ -56,6 +57,14 @@ def edit_plan(
         return svc.edit_plan(plan_id, body.wizard_answers)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/from-edital", response_model=PlanOutput, summary="Generate study plan directly from edital analysis (no full wizard)")
+def plan_from_edital(
+    body: EditalFromInput,
+    svc: StudyPlannerService = Depends(_svc),
+):
+    return svc.generate_plan_from_edital(body)
 
 
 @router.post("/multi-edital", response_model=MultiEditalComparison, summary="Compare two editais and build hybrid plan")
