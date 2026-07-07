@@ -348,6 +348,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: Fla
         <CSVImporter
           deck={deck}
           tabs={['flashcards', 'questoes']}
+          defaultAssunto={selectedAssunto}
           onClose={() => {
             setShowImport(false);
             fetchFlashcards(deck.id);

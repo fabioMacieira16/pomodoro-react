@@ -116,6 +116,7 @@ def submit_answer(
 async def import_csv_questions(
     file: UploadFile = File(...),
     deck_id: Optional[int] = Form(None),
+    default_assunto: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -125,10 +126,11 @@ async def import_csv_questions(
     Colunas opcionais: disciplina, e, explicacao, dificuldade, banca, ano
 
     deck_id: quando fornecido, cria flashcards multiple_choice no deck para exibição na lista.
+    default_assunto: tag de assunto usada quando o CSV não tem coluna disciplina.
     """
     raw = await file.read()
     svc = QuizService(db=db, user_id=current_user.id)
-    result = svc.import_csv(raw, deck_id=deck_id)
+    result = svc.import_csv(raw, deck_id=deck_id, default_assunto=default_assunto)
     if result["imported"] == 0 and result["errors"]:
         raise HTTPException(status_code=400, detail=result["errors"][0])
     return result

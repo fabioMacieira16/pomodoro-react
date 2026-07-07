@@ -13,10 +13,11 @@ export interface QuizPDFResult {
   session_mode: string;
 }
 
-export const importQuizCSV = (file: File, deckId?: number | null): Promise<QuizImportResult> => {
+export const importQuizCSV = (file: File, deckId?: number | null, defaultAssunto?: string | null): Promise<QuizImportResult> => {
   const form = new FormData();
   form.append('file', file);
   if (deckId != null) form.append('deck_id', String(deckId));
+  if (defaultAssunto) form.append('default_assunto', defaultAssunto);
   return api
     .post<QuizImportResult>('/quiz/import-csv', form, {
       headers: { 'Content-Type': 'multipart/form-data' },

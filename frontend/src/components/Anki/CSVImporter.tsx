@@ -4,6 +4,7 @@ import { useAnkiStore } from '../../store/ankiStore';
 import { importQuizCSV, type QuizImportResult } from '../../api/imports';
 import { importAnkiExport, type AnkiImportResult } from '../../api/anki';
 import type { Deck } from '../../types';
+import { useSubjectStore } from '../../store/subjectStore';
 
 const QUIZ_PROMPT = `Gere 20 questões de múltipla escolha sobre [DISCIPLINA] para concursos públicos.
 
@@ -33,12 +34,15 @@ interface Props {
   tabs?: TabType[];
   /** Aba aberta ao montar. Padrão: primeira da lista. */
   defaultTab?: TabType;
+  /** Assunto/disciplina pré-selecionado (ex: sub-baralho clicado no FlashcardList). */
+  defaultAssunto?: string | null;
 }
 
 const ALL_TABS: TabType[] = ['flashcards', 'questoes', 'anki'];
 
-export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Props) {
-  const { importCSV } = useAnkiStore();
+export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab, defaultAssunto }: Props) {
+  const { importCSV, decks } = useAnkiStore();
+  const { subjects } = useSubjectStore();
 
   const visibleTabs = tabs.length > 0 ? tabs : ALL_TABS;
   const [tab, setTab] = useState<TabType>(defaultTab ?? visibleTabs[0]);
@@ -46,7 +50,8 @@ export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Prop
 
   // Flashcard CSV state
   const [flashFile, setFlashFile] = useState<File | null>(null);
-  const [assunto, setAssunto] = useState('');
+  const [assunto, setAssunto] = useState(defaultAssunto ?? '');
+  const [assuntoSuggestions, setAssuntoSuggestions] = useState<string[]>([]);
   const [flashResult, setFlashResult] = useState<{ count: number } | null>(null);
 
   // Quiz CSV state
@@ -70,6 +75,19 @@ export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Prop
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const handleAssuntoChange = (value: string) => {
+    setAssunto(value);
+    if (value.trim().length >= 3) {
+      const q = value.trim().toLowerCase();
+      const deckNames = decks.map((d) => d.name);
+      const subjectNames = subjects.map((s) => s.name);
+      const all = Array.from(new Set([...deckNames, ...subjectNames]));
+      setAssuntoSuggestions(all.filter((n) => n.toLowerCase().includes(q)).slice(0, 6));
+    } else {
+      setAssuntoSuggestions([]);
+    }
   };
 
   const handleFlashImport = async () => {
@@ -98,7 +116,7 @@ export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Prop
     setError(null);
     setQuizResult(null);
     try {
-      const result = await importQuizCSV(quizFile, deck?.id);
+      const result = await importQuizCSV(quizFile, deck?.id, defaultAssunto);
       setQuizResult(result);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -230,17 +248,33 @@ export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Prop
                   </label>
 
                   {/* Assunto */}
-                  <div>
+                  <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Assunto / Tag <span className="text-gray-400 font-normal">(opcional)</span>
                     </label>
                     <input
                       type="text"
                       value={assunto}
-                      onChange={(e) => setAssunto(e.target.value)}
+                      onChange={(e) => handleAssuntoChange(e.target.value)}
+                      onBlur={() => setTimeout(() => setAssuntoSuggestions([]), 150)}
                       placeholder="ex: Direito Penal, Matemática Financeira…"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
+                    {assuntoSuggestions.length > 0 && (
+                      <ul className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                        {assuntoSuggestions.map((s) => (
+                          <li key={s}>
+                            <button
+                              type="button"
+                              onMouseDown={() => { setAssunto(s); setAssuntoSuggestions([]); }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+                            >
+                              {s}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
                   {/* Prompt helper */}

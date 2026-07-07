@@ -636,7 +636,7 @@ Regras:
 
     # ── CSV import ───────────────────────────────────────────────────────
 
-    def import_csv(self, csv_bytes: bytes, deck_id: Optional[int] = None) -> dict:
+    def import_csv(self, csv_bytes: bytes, deck_id: Optional[int] = None, default_assunto: Optional[str] = None) -> dict:
         """Import multiple-choice questions from a UTF-8 CSV file.
 
         Required columns: enunciado, a, b, c, d, gabarito
@@ -739,9 +739,8 @@ Regras:
 
             # Also create a multiple_choice Flashcard in the deck when requested
             if deck_id is not None:
-                tags = []
-                if disciplina:
-                    tags.append(f"assunto:{disciplina}")
+                assunto_tag = disciplina or default_assunto or ""
+                tags = [f"assunto:{assunto_tag}"] if assunto_tag else []
 
                 correct_text = opt_texts.get(gabarito, "")
                 back_text = f"{gabarito}) {correct_text}"

@@ -76,6 +76,14 @@ async def import_csv_flashcards(
     text = raw.decode("utf-8-sig", errors="replace")
     extra_tag = f"assunto:{assunto.strip()}" if assunto and assunto.strip() else None
 
+    # Detectar CSV de questões (tem cabeçalho com "enunciado") e rejeitar com mensagem clara
+    first_line = text.strip().split("\n")[0].lower() if text.strip() else ""
+    if "enunciado" in first_line or "gabarito" in first_line:
+        raise HTTPException(
+            status_code=400,
+            detail="Este arquivo parece ser um CSV de questões. Use a aba 'Questões MC' para importá-lo.",
+        )
+
     created = []
     for row in csv.reader(io.StringIO(text)):
         if len(row) < 2:
