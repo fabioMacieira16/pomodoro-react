@@ -12,7 +12,7 @@ from sqlalchemy import func
 
 from app.domain.models import (
     Exercise, ExerciseAttempt, ExerciseOption,
-    QuizSession, ErrorCard, Flashcard, AnkiDeck, Subject, DocumentIndex
+    QuizSession, ErrorCard, Flashcard, FlashcardOption, AnkiDeck, Subject, DocumentIndex
 )
 from app.quiz.schemas import (
     QuizSessionOut, QuizQuestionOut, ExerciseOptionOut, AttemptHistoryItem,
@@ -636,11 +636,14 @@ Regras:
 
     # ── CSV import ───────────────────────────────────────────────────────
 
-    def import_csv(self, csv_bytes: bytes) -> dict:
+    def import_csv(self, csv_bytes: bytes, deck_id: Optional[int] = None) -> dict:
         """Import multiple-choice questions from a UTF-8 CSV file.
 
         Required columns: enunciado, a, b, c, d, gabarito
         Optional columns: disciplina, e, explicacao, dificuldade, banca, ano
+
+        When deck_id is provided, also creates multiple_choice Flashcard records
+        in that deck so questions appear in the FlashcardList.
         Returns: {"imported": N, "skipped": N, "errors": [...]}
         """
         text = csv_bytes.decode("utf-8-sig", errors="replace")
@@ -712,25 +715,59 @@ Regras:
             if difficulty not in ("Easy", "Medium", "Hard"):
                 difficulty = "Medium"
 
-            # Create Exercise
+            explicacao = row.get("explicacao") or None
+
+            # Create Exercise (quiz bank)
             exercise = Exercise(
                 subject_id=subject_id,
                 question_text=enunciado,
-                explanation=row.get("explicacao") or None,
+                explanation=explicacao,
                 difficulty=difficulty,
                 correct_answer=gabarito,
             )
             self.db.add(exercise)
             self.db.flush()
 
-            for letter, text in opt_texts.items():
+            for letter, opt_text in opt_texts.items():
                 pos = letter_map[letter]
                 self.db.add(ExerciseOption(
                     exercise_id=exercise.id,
-                    text=text,
+                    text=opt_text,
                     is_correct=(letter == gabarito),
                     position=pos,
                 ))
+
+            # Also create a multiple_choice Flashcard in the deck when requested
+            if deck_id is not None:
+                tags = []
+                if disciplina:
+                    tags.append(f"assunto:{disciplina}")
+
+                correct_text = opt_texts.get(gabarito, "")
+                back_text = f"{gabarito}) {correct_text}"
+                if explicacao:
+                    back_text += f"\n\n{explicacao}"
+
+                flashcard = Flashcard(
+                    deck_id=deck_id,
+                    card_type="multiple_choice",
+                    front=enunciado,
+                    back=back_text,
+                    explanation=explicacao,
+                    difficulty=difficulty,
+                    tags=tags,
+                )
+                self.db.add(flashcard)
+                self.db.flush()
+
+                for letter, opt_text in opt_texts.items():
+                    pos = letter_map[letter]
+                    self.db.add(FlashcardOption(
+                        flashcard_id=flashcard.id,
+                        text=opt_text,
+                        is_correct=(letter == gabarito),
+                        position=pos,
+                    ))
 
             self.db.commit()
             imported += 1

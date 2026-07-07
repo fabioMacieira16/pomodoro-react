@@ -98,7 +98,7 @@ export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Prop
     setError(null);
     setQuizResult(null);
     try {
-      const result = await importQuizCSV(quizFile);
+      const result = await importQuizCSV(quizFile, deck?.id);
       setQuizResult(result);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -365,6 +365,11 @@ export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Prop
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {quizResult.imported} questão(ões) importada(s)
                   </p>
+                  {deck && quizResult.imported > 0 && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Adicionadas ao deck <strong>"{deck.name}"</strong> e ao banco de questões.
+                    </p>
+                  )}
                   {quizResult.skipped > 0 && (
                     <p className="text-sm text-gray-500 mt-1">{quizResult.skipped} linha(s) ignorada(s)</p>
                   )}
@@ -378,7 +383,7 @@ export function CSVImporter({ deck, onClose, tabs = ALL_TABS, defaultTab }: Prop
                     onClick={onClose}
                     className="mt-4 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
                   >
-                    Fechar
+                    {deck ? 'Ver Cartões' : 'Fechar'}
                   </button>
                 </div>
               ) : (

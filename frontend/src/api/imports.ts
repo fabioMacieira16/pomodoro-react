@@ -13,9 +13,10 @@ export interface QuizPDFResult {
   session_mode: string;
 }
 
-export const importQuizCSV = (file: File): Promise<QuizImportResult> => {
+export const importQuizCSV = (file: File, deckId?: number | null): Promise<QuizImportResult> => {
   const form = new FormData();
   form.append('file', file);
+  if (deckId != null) form.append('deck_id', String(deckId));
   return api
     .post<QuizImportResult>('/quiz/import-csv', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
