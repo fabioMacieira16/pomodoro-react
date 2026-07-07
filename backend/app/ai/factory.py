@@ -6,7 +6,7 @@ server-level AI_PROVIDER / .env values when present.
 """
 from typing import TYPE_CHECKING, Optional
 
-from app.core.config import settings as app_settings
+from app.core.config import get_settings
 from app.core.crypto import decrypt_secret
 from app.ai.providers.base import AIProvider, ProviderConfig
 from app.ai.providers.mock import MockProvider
@@ -21,23 +21,24 @@ if TYPE_CHECKING:
 
 def get_provider(user_setting: Optional["Setting"] = None) -> AIProvider:
     """Return the active LLM provider, honoring a user's saved preference if any."""
+    cfg = get_settings()  # relê o .env a cada chamada
     name = (
         (user_setting.ai_provider_preference if user_setting and user_setting.ai_provider_preference else "")
-        or app_settings.AI_PROVIDER
+        or cfg.AI_PROVIDER
     ).lower()
 
     if name == "openai":
-        api_key = app_settings.OPENAI_API_KEY
+        api_key = cfg.OPENAI_API_KEY
         if user_setting and user_setting.ai_api_key_encrypted:
             api_key = decrypt_secret(user_setting.ai_api_key_encrypted) or api_key
         return OpenAIProvider(
             api_key=api_key,
-            config=ProviderConfig(model=app_settings.OPENAI_MODEL),
+            config=ProviderConfig(model=cfg.OPENAI_MODEL),
         )
 
     if name == "ollama":
-        base_url = (user_setting and user_setting.ollama_base_url) or app_settings.OLLAMA_BASE_URL
-        model = (user_setting and user_setting.ollama_model) or app_settings.OLLAMA_MODEL
+        base_url = (user_setting and user_setting.ollama_base_url) or cfg.OLLAMA_BASE_URL
+        model = (user_setting and user_setting.ollama_model) or cfg.OLLAMA_MODEL
         return OllamaProvider(
             base_url=base_url,
             model=model,
@@ -49,8 +50,9 @@ def get_provider(user_setting: Optional["Setting"] = None) -> AIProvider:
 
 def get_transcriber() -> Transcriber:
     """Return the active transcription provider."""
-    if app_settings.USE_WHISPER:
-        return WhisperTranscriber(model_name=app_settings.WHISPER_MODEL)
+    cfg = get_settings()
+    if cfg.USE_WHISPER:
+        return WhisperTranscriber(model_name=cfg.WHISPER_MODEL)
     return _MockTranscriber()
 
 

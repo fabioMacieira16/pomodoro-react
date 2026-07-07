@@ -28,7 +28,14 @@ class OpenAIProvider(AIProvider):
 
     async def complete_json(self, prompt: str) -> Any:
         text = await self.complete(prompt)
-        return json.loads(text)
+        # Remove blocos de markdown que o modelo pode incluir (```json ... ```)
+        stripped = text.strip()
+        if stripped.startswith("```"):
+            first_newline = stripped.find("\n")
+            last_fence = stripped.rfind("```")
+            if first_newline != -1 and last_fence > first_newline:
+                stripped = stripped[first_newline + 1:last_fence].strip()
+        return json.loads(stripped)
 
     async def _request(self, prompt: str) -> dict:
         async with httpx.AsyncClient(timeout=self.config.timeout) as client:

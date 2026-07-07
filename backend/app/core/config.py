@@ -29,7 +29,16 @@ class Settings(BaseSettings):
     # LangChain orchestration (requires langchain package)
     USE_LANGCHAIN: bool = False
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+def get_settings() -> "Settings":
+    """Recarrega as configurações do .env a cada chamada (útil em dev com --reload)."""
+    return Settings()
 
 
 settings = Settings()
