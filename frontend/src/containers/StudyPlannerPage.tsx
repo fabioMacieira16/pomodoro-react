@@ -30,6 +30,7 @@ interface EditalData {
     peso: number;
     pontuacao_max: number;
   }>;
+  programa_por_cargo?: Record<string, string[]>;
   data_prova: string | null;
   vagas: number | null;
   salario: string | null;
@@ -78,14 +79,29 @@ const StudyPlannerPage: React.FC = () => {
   };
 
   const handleUpload = async (file: File) => {
-    const result = await uploadFile(file);
+    // Sempre envia como edital para que a análise seja feita
+    const result = await uploadFile(file, undefined, undefined, 'edital');
     if (!result) return;
 
-    const info: EditalData | null = result.edital_info ?? null;
-    if (!info) {
-      // Sem info de edital, cai no wizard
+    const raw = result.edital_info ?? null;
+    if (!raw) {
       setShowWizard(true);
       return;
+    }
+
+    // Garante que disciplinas está populado mesmo quando a IA não encontrou a tabela
+    const info: EditalData = { ...raw };
+    if (Object.keys(info.disciplinas || {}).length === 0) {
+      if (info.disciplinas_detalhadas?.length) {
+        info.disciplinas = Object.fromEntries(
+          info.disciplinas_detalhadas.map((d) => [d.disciplina, d.pontuacao_max || d.num_questoes || 1])
+        );
+      } else if (info.programa_por_cargo && Object.keys(info.programa_por_cargo).length > 0) {
+        // Usa tópicos do primeiro cargo como disciplinas com peso igual
+        const topicos = Object.values(info.programa_por_cargo as Record<string, string[]>).flat();
+        const unicos = [...new Set(topicos)];
+        info.disciplinas = Object.fromEntries(unicos.map((t) => [t, 1]));
+      }
     }
 
     setEditalData(info);

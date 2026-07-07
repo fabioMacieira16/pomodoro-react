@@ -100,14 +100,23 @@ class StudyPlannerService:
             has_studied_edital=True,
         )
 
-        if edital.disciplinas:
+        disciplinas = edital.disciplinas
+        # Fallback: usar disciplinas do StudyContext se o edital não trouxe nenhuma
+        if not disciplinas:
+            ctx = StudyContextService.get_context()
+            if ctx.subject_weights:
+                disciplinas = {k: float(v) for k, v in ctx.subject_weights.items()}
+            elif ctx.subjects:
+                disciplinas = {s: 1.0 for s in ctx.subjects}
+
+        if disciplinas:
             exam = self._upsert_exam(wizard)
             # Remove tópicos anteriores para recriar a partir do edital
             self.db.query(ExamTopic).filter_by(exam_id=exam.id).delete()
             self.db.commit()
 
-            max_pont = max(edital.disciplinas.values(), default=1.0) or 1.0
-            sorted_discs = sorted(edital.disciplinas.items(), key=lambda x: -x[1])
+            max_pont = max(disciplinas.values(), default=1.0) or 1.0
+            sorted_discs = sorted(disciplinas.items(), key=lambda x: -x[1])
             num_discs = len(sorted_discs) or 1
 
             for i, (disc, pont) in enumerate(sorted_discs, 1):

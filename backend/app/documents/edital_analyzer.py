@@ -137,8 +137,21 @@ class EditalAnalyzer:
                     # Constrói dicionário backwards-compat: {disciplina: pontuacao_max}
                     info.disciplinas = {d.disciplina: d.pontuacao_max for d in info.disciplinas_detalhadas}
                 else:
-                    # Fallback: campo legado
-                    info.disciplinas = ai_info.get("disciplinas", {})
+                    # Fallback 1: campo legado "disciplinas" dict direto da IA
+                    legacy = ai_info.get("disciplinas", {})
+                    if isinstance(legacy, dict):
+                        for disc_name, peso_val in legacy.items():
+                            try:
+                                info.disciplinas[str(disc_name)] = float(peso_val)
+                            except (ValueError, TypeError):
+                                info.disciplinas[str(disc_name)] = 1.0
+
+                # Fallback 2: extrair de programa_por_cargo quando tabela não foi encontrada
+                if not info.disciplinas and info.programa_por_cargo:
+                    for cargo_topicos in info.programa_por_cargo.values():
+                        for topico in cargo_topicos:
+                            if topico and topico not in info.disciplinas:
+                                info.disciplinas[topico] = 1.0
 
                 # IA pode corrigir detecções por regex
                 if ai_info.get("concurso") and len(ai_info["concurso"]) > 3:
@@ -147,7 +160,7 @@ class EditalAnalyzer:
                     info.banca = ai_info["banca"]
             except Exception as e:
                 print(f"[EditalAnalyzer] AI extraction failed: {e}")
-        
+
         return info
     
     def _extract_banca(self, text: str) -> Optional[str]:
@@ -304,43 +317,49 @@ class EditalAnalyzer:
         prompt = f"""
 Você é um especialista em análise de editais de concursos públicos brasileiros.
 
-Analise o edital abaixo e extraia as informações em JSON. Preste MUITA atenção à tabela de disciplinas.
+Analise o edital abaixo e extraia as informações em JSON. Preste MUITA atenção às disciplinas/matérias.
 
 REGRAS:
-1. Para "disciplinas_tabela": encontre TODAS as tabelas com colunas de matérias/disciplinas.
-   Nomes comuns das colunas: "Área de Conhecimento", "Disciplina", "Número de Questões", "Peso por Questão", "Pontuação Máxima"
-   - "area": valor da coluna "Área de Conhecimento" (ex: "Conhecimentos Gerais", "Conhecimentos Específicos")
+1. Para "disciplinas_tabela": encontre tabelas com colunas de matérias.
+   Nomes comuns: "Área de Conhecimento", "Disciplina", "Número de Questões", "Peso por Questão", "Pontuação Máxima".
+   - "area": "Conhecimentos Gerais" ou "Conhecimentos Específicos"
    - "disciplina": nome da matéria
-   - "num_questoes": número de questões (inteiro)
-   - "peso": peso por questão (número)
-   - "pontuacao_max": pontuação máxima = num_questoes × peso
+   - "num_questoes": número de questões (inteiro, 0 se não encontrar)
+   - "peso": peso por questão (1.0 se não encontrar)
+   - "pontuacao_max": pontuação máxima (num_questoes × peso se não encontrar)
 
-2. Para "programa_por_cargo": encontre o conteúdo programático específico de cada cargo.
-   Procure seções como "CONTEÚDO PROGRAMÁTICO", "PROGRAMA", "EIXOS TEMÁTICOS".
-   Liste os tópicos/assuntos específicos (ex: SQL, Banco de Dados, Redes).
+2. Se NÃO encontrar tabela formatada, use "disciplinas" como fallback — um dicionário simples:
+   {{"Língua Portuguesa": 10.0, "Direito Constitucional": 20.0, "Banco de Dados": 30.0}}
+   Onde o valor é a pontuação/peso relativo da matéria (use 1.0 se não souber).
 
-3. Para "cargos": liste TODOS os cargos disponíveis com seus nomes completos.
+3. Para "programa_por_cargo": conteúdo programático específico de cada cargo.
+   Procure seções "CONTEÚDO PROGRAMÁTICO", "PROGRAMA", "EIXOS TEMÁTICOS".
+   Liste tópicos específicos (ex: SQL, Banco de Dados, Redes de Computadores).
+
+4. Para "cargos": liste TODOS os cargos com nomes completos.
+
+IMPORTANTE: Mesmo que as tabelas estejam mal formatadas no texto, tente identificar
+todas as matérias/disciplinas que o candidato precisará estudar.
 
 EXEMPLO DE SAÍDA ESPERADA:
 {{
-  "concurso": "ALECE 2024",
+  "concurso": "SEFAZ-CE 2024",
   "banca": "CESPE/CEBRASPE",
-  "cargos": ["Analista Legislativo - Tecnologia da Informação", "Técnico Legislativo"],
+  "cargos": ["Auditor Fiscal da Receita Estadual", "Agente de Tributos Estaduais"],
   "disciplinas_tabela": [
     {{"area": "Conhecimentos Gerais", "disciplina": "Língua Portuguesa", "num_questoes": 10, "peso": 1.0, "pontuacao_max": 10.0}},
-    {{"area": "Conhecimentos Gerais", "disciplina": "Noções de Informática", "num_questoes": 5, "peso": 1.0, "pontuacao_max": 5.0}},
-    {{"area": "Conhecimentos Gerais", "disciplina": "Legislação e Ética no Serviço Público", "num_questoes": 5, "peso": 1.0, "pontuacao_max": 5.0}},
-    {{"area": "Conhecimentos Específicos", "disciplina": "Banco de Dados", "num_questoes": 15, "peso": 2.0, "pontuacao_max": 30.0}},
-    {{"area": "Conhecimentos Específicos", "disciplina": "Engenharia de Software", "num_questoes": 10, "peso": 2.0, "pontuacao_max": 20.0}}
+    {{"area": "Conhecimentos Específicos", "disciplina": "Direito Tributário", "num_questoes": 20, "peso": 2.0, "pontuacao_max": 40.0}},
+    {{"area": "Conhecimentos Específicos", "disciplina": "Contabilidade Geral", "num_questoes": 15, "peso": 2.0, "pontuacao_max": 30.0}}
   ],
+  "disciplinas": {{}},
   "programa_por_cargo": {{
-    "Analista Legislativo - Tecnologia da Informação": [
-      "SQL e Banco de Dados Relacional", "PostgreSQL", "Modelo Entidade-Relacionamento",
-      "Sistemas Operacionais Linux", "Redes de Computadores", "Segurança da Informação"
+    "Auditor Fiscal da Receita Estadual": [
+      "Direito Tributário", "Contabilidade Geral", "Direito Constitucional",
+      "Língua Portuguesa", "Raciocínio Lógico"
     ]
   }},
   "requisitos": {{
-    "Analista Legislativo - Tecnologia da Informação": "Nível superior em Ciência da Computação ou áreas afins"
+    "Auditor Fiscal da Receita Estadual": "Nível superior em qualquer área"
   }}
 }}
 
