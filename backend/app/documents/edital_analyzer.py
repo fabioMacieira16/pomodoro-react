@@ -17,6 +17,19 @@ from pathlib import Path
 
 from app.ai.factory import get_provider
 
+# Mapa estado → sigla para concursos de tribunais
+_ESTADOS_SIGLA = {
+    "ACRE": "AC", "ALAGOAS": "AL", "AMAPÁ": "AP", "AMAZONAS": "AM",
+    "BAHIA": "BA", "CEARÁ": "CE", "DISTRITO FEDERAL": "DF",
+    "ESPIRITO SANTO": "ES", "ESPÍRITO SANTO": "ES", "GOIÁS": "GO",
+    "MARANHÃO": "MA", "MATO GROSSO DO SUL": "MS", "MATO GROSSO": "MT",
+    "MINAS GERAIS": "MG", "PARÁ": "PA", "PARAÍBA": "PB", "PARANÁ": "PR",
+    "PERNAMBUCO": "PE", "PIAUÍ": "PI", "RIO DE JANEIRO": "RJ",
+    "RIO GRANDE DO NORTE": "RN", "RIO GRANDE DO SUL": "RS",
+    "RONDÔNIA": "RO", "RORAIMA": "RR", "SANTA CATARINA": "SC",
+    "SÃO PAULO": "SP", "SERGIPE": "SE", "TOCANTINS": "TO",
+}
+
 
 class DisciplinaDetalhe:
     """Linha da tabela de conteúdo do edital"""
@@ -52,6 +65,8 @@ class EditalInfo:
         self.vagas: Optional[int] = None
         self.salario: Optional[str] = None
         self.requisitos: Dict[str, str] = {}  # {cargo: requisito}
+        self.is_retification: bool = False  # True se for edital de retificação
+        self.aviso: Optional[str] = None  # mensagem de aviso para o usuário
 
     def to_dict(self) -> dict:
         return {
@@ -66,6 +81,8 @@ class EditalInfo:
             "vagas": self.vagas,
             "salario": self.salario,
             "requisitos": self.requisitos,
+            "is_retification": self.is_retification,
+            "aviso": self.aviso,
         }
 
 
@@ -89,14 +106,24 @@ class EditalAnalyzer:
     async def analyze(self, text: str) -> EditalInfo:
         """Análise completa do edital"""
         info = EditalInfo()
-        
+
+        # Detecta se é edital de retificação
+        text_upper_head = text[:3000].upper()
+        if re.search(r"RETIFICA[CÇ][AÃ]O|DE RETIFICA[CÇ]", text_upper_head):
+            info.is_retification = True
+            info.aviso = (
+                "Este documento é um Edital de Retificação e pode não conter "
+                "todas as informações do concurso (cargos, disciplinas, banca). "
+                "Para resultados completos, importe o edital de abertura de inscrições."
+            )
+
         # Extração com regex (rápido)
-        info.banca = self._extract_banca(text)
-        info.concurso = self._extract_concurso(text)
+        info.orgao = self._extract_orgao(text)
+        info.banca = self._extract_banca(text, info.orgao)
+        info.concurso = self._extract_concurso(text, info.orgao)
         info.data_prova = self._extract_data_prova(text)
         info.salario = self._extract_salario(text)
         info.vagas = self._extract_vagas(text)
-        info.orgao = self._extract_orgao(text)
         
         # Extração com IA (mais preciso)
         if self.provider.is_available():
@@ -163,46 +190,124 @@ class EditalAnalyzer:
 
         return info
     
-    def _extract_banca(self, text: str) -> Optional[str]:
+    def _extract_banca(self, text: str, orgao: Optional[str] = None) -> Optional[str]:
         """Detecta a banca organizadora"""
         text_upper = text.upper()
-        
+
         for banca in self.BANCAS:
             if banca in text_upper:
                 return banca
-        
-        # Padrões adicionais
+
+        # Padrões adicionais com suporte a acentos
         patterns = [
-            r"BANCA\s*ORGANIZADORA[:\s]+([A-Z\s]+)",
-            r"REALIZAÇÃO[:\s]+([A-Z\s]+)",
-            r"EXECUTORA[:\s]+([A-Z\s]+)",
+            r"BANCA\s*ORGANIZADORA[:\s]+([A-ZÀ-Ú\s]{3,30}?)(?:\n|$|\.|,)",
+            r"ORGANIZA[CÇ][AÃ]O[:\s]+([A-ZÀ-Ú\s]{3,30}?)(?:\n|$|\.|,)",
+            r"REALIZA[CÇ][AÃ]O[:\s]+([A-ZÀ-Ú\s]{3,30}?)(?:\n|$|\.|,)",
+            r"EXECUTORA[:\s]+([A-ZÀ-Ú\s]{3,30}?)(?:\n|$|\.|,)",
         ]
-        
+
         for pattern in patterns:
             match = re.search(pattern, text_upper)
             if match:
                 banca = match.group(1).strip()
-                if len(banca) < 30:  # evita capturar parágrafo inteiro
+                if 3 <= len(banca) <= 30:
                     return banca
-        
+
+        # Fallback: se o orgao for um tribunal, usa a sigla curta (TJ-CE, TRF-5, etc.)
+        if orgao:
+            orgao_up = orgao.upper()
+            if "TRIBUNAL" in orgao_up:
+                tj = re.search(
+                    r"TRIBUNAL\s+DE\s+JUSTI[CÇ]A\s+(?:DO\s+)?ESTADO\s+(?:DE|DO|DA)\s+([A-ZÀ-Ú]+)",
+                    orgao_up
+                )
+                if tj:
+                    estado = tj.group(1).strip()
+                    for nome_estado, sg in _ESTADOS_SIGLA.items():
+                        if estado.startswith(nome_estado):
+                            return f"TJ-{sg}"
+                # TRF, TRE genérico
+                trf = re.search(r"(TRF|TRE|TST|STJ|STF)\b", orgao_up)
+                if trf:
+                    return trf.group(1)
+                # Último recurso: usa sigla do orgao
+                palavras = [p for p in orgao_up.split() if len(p) > 2 and p.isalpha()]
+                if palavras:
+                    return " ".join(palavras[:3])
+
         return None
-    
-    def _extract_concurso(self, text: str) -> Optional[str]:
+
+    def _extract_concurso(self, text: str, orgao: Optional[str] = None) -> Optional[str]:
         """Detecta nome do concurso"""
-        patterns = [
-            r"CONCURSO\s+PÚBLICO\s+([A-Z\s\-/]+)(?:\d{4}|\n)",
-            r"EDITAL\s+(?:N[º°]\s*)?[\d/]+\s*[-–]\s*([A-Z\s\-/]+)",
-            r"PREFEITURA\s+(?:MUNICIPAL\s+)?DE\s+([A-ZÀ-Ú\s]+)",
-            r"GOVERNO\s+DO\s+ESTADO\s+(?:DE|DO)\s+([A-Z\s]+)",
+        text_head = text[:5000]
+
+        # Tribunal de Justiça → "TJ-CE", "TJ-SP", etc.
+        tj_match = re.search(
+            r"TRIBUNAL\s+DE\s+JUSTI[CÇ]A\s+(?:DO\s+)?ESTADO\s+(?:DE|DO|DA)\s+([A-ZÀ-Ú\s]+?)(?:\n|,|\.|$)",
+            text_head, re.IGNORECASE
+        )
+        if tj_match:
+            estado = tj_match.group(1).strip().upper()
+            sigla = None
+            # Tenta sigla exata primeiro
+            for nome_estado, sg in _ESTADOS_SIGLA.items():
+                if estado.startswith(nome_estado):
+                    sigla = sg
+                    break
+            if not sigla:
+                # Dois primeiros não-espaços como fallback
+                sigla = "".join(estado.split()[:1])[:2]
+            ano = re.search(r"\b(20\d{2})\b", text[:500])
+            ano_str = f" {ano.group(1)}" if ano else ""
+            return f"TJ-{sigla}{ano_str}"
+
+        # TRF, TRE, TST e outros tribunais federais
+        fed_match = re.search(
+            r"(TRIBUNAL\s+(?:REGIONAL|SUPERIOR|FEDERAL)[^\n]{3,40}?)(?:\n|$)",
+            text_head, re.IGNORECASE
+        )
+        if fed_match:
+            nome = fed_match.group(1).strip()
+            if 5 <= len(nome) <= 70:
+                return nome
+
+        # "CONCURSO PÚBLICO PARA/DE ..." — aceita acentos
+        cp_match = re.search(
+            r"CONCURSO\s+P[UÚ]BLICO\s+([A-ZÀ-Ú\s\-/]{5,70}?)(?:\n|\s{3,}|\d{4}|$)",
+            text_head, re.IGNORECASE
+        )
+        if cp_match:
+            nome = cp_match.group(1).strip().rstrip(" -/")
+            if 5 <= len(nome) <= 80:
+                return nome
+
+        # "EDITAL Nº XX/YYYY – NOME" — ignora retificações
+        ed_match = re.search(
+            r"EDITAL\s+N[º°]?\s*[\d/]+\s*[-–]\s*(?!DE\s+RETIFI)([A-ZÀ-Ú\s\-/]{5,70}?)(?:\n|$)",
+            text_head, re.IGNORECASE
+        )
+        if ed_match:
+            nome = ed_match.group(1).strip()
+            if 5 <= len(nome) <= 80:
+                return nome
+
+        other_patterns = [
+            r"PREFEITURA\s+(?:MUNICIPAL\s+)?DE\s+([A-ZÀ-Ú\s]{5,50}?)(?:\n|$|\.|,)",
+            r"GOVERNO\s+DO\s+ESTADO\s+(?:DE|DO)\s+([A-ZÀ-Ú\s]{3,40}?)(?:\n|$|\.|,)",
         ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, text[:5000])  # primeiras páginas
+        for pattern in other_patterns:
+            match = re.search(pattern, text_head, re.IGNORECASE)
             if match:
                 nome = match.group(1).strip()
                 if 5 <= len(nome) <= 80:
                     return nome
-        
+
+        # Último recurso: usa o orgao como nome do concurso
+        if orgao and len(orgao) >= 5:
+            ano = re.search(r"\b(20\d{2})\b", text[:500])
+            ano_str = f" {ano.group(1)}" if ano else ""
+            return f"{orgao}{ano_str}"
+
         return None
     
     def _extract_cargos(self, text: str) -> List[str]:
@@ -293,20 +398,24 @@ class EditalAnalyzer:
     
     def _extract_orgao(self, text: str) -> Optional[str]:
         """Detecta órgão/instituição"""
+        text_head = text[:3000]
         patterns = [
-            r"PREFEITURA\s+(?:MUNICIPAL\s+)?DE\s+([A-ZÀ-Ú\s-]+)",
-            r"GOVERNO\s+DO\s+ESTADO\s+(?:DE|DO)\s+([A-Z]+)",
-            r"TRIBUNAL\s+(?:DE\s+)?([A-ZÀ-Ú\s]+)",
-            r"SECRETARIA\s+(?:DE\s+)?([A-ZÀ-Ú\s]+)",
+            # Tribunal completo: "TRIBUNAL DE JUSTIÇA DO ESTADO DO CEARÁ"
+            r"(TRIBUNAL\s+DE\s+JUSTI[CÇ]A\s+DO\s+ESTADO\s+(?:DE|DO|DA)\s+[A-ZÀ-Ú]+)",
+            # TRF, TRE, TST
+            r"(TRIBUNAL\s+(?:REGIONAL|SUPERIOR)\s+(?:FEDERAL|DO\s+TRABALHO|ELEITORAL)[A-ZÀ-Ú\s-]{0,40}?)(?:\n|$)",
+            r"PREFEITURA\s+(?:MUNICIPAL\s+)?DE\s+([A-ZÀ-Ú\s-]{3,50}?)(?:\n|$|\.|,)",
+            r"GOVERNO\s+DO\s+ESTADO\s+(?:DE|DO)\s+([A-ZÀ-Ú\s]{3,40}?)(?:\n|$|\.|,)",
+            r"SECRETARIA\s+(?:DE\s+)?([A-ZÀ-Ú\s]{3,40}?)(?:\n|$|\.|,)",
         ]
-        
+
         for pattern in patterns:
-            match = re.search(pattern, text[:3000])
+            match = re.search(pattern, text_head, re.IGNORECASE)
             if match:
                 orgao = match.group(1).strip()
-                if 3 <= len(orgao) <= 60:
+                if 3 <= len(orgao) <= 80:
                     return orgao
-        
+
         return None
     
     async def _extract_with_ai(self, text: str) -> dict:

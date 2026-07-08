@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudyPlannerStore, WizardAnswers, EditalFromInput } from '../store/studyPlannerStore';
+import { usePlanTaskStore } from '../store/planTaskStore';
 import { useDocumentStore } from '../store/documentStore';
 import './StudyPlannerPage.css';
 
@@ -34,6 +35,8 @@ interface EditalData {
   data_prova: string | null;
   vagas: number | null;
   salario: string | null;
+  is_retification?: boolean;
+  aviso?: string | null;
 }
 
 type ImportStep = 'upload' | 'cargo_selection' | 'quick_setup';
@@ -47,6 +50,7 @@ const StudyPlannerPage: React.FC = () => {
   } = useStudyPlannerStore();
 
   const { uploadFile, isIndexing } = useDocumentStore();
+  const { clearTasks } = usePlanTaskStore();
 
   // Wizard manual
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -62,6 +66,7 @@ const StudyPlannerPage: React.FC = () => {
   const [quickDailyHours, setQuickDailyHours] = useState(4);
   const [quickAvailDays, setQuickAvailDays] = useState<number[]>([0, 1, 2, 3, 4]);
   const [quickExamDate, setQuickExamDate] = useState('');
+  const [manualCargo, setManualCargo] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,7 +95,11 @@ const StudyPlannerPage: React.FC = () => {
     }
 
     // Garante que disciplinas está populado mesmo quando a IA não encontrou a tabela
-    const info: EditalData = { ...raw };
+    const info: EditalData = {
+      ...raw,
+      is_retification: result.is_retification ?? raw.is_retification ?? false,
+      aviso: result.aviso ?? raw.aviso ?? null,
+    };
     if (Object.keys(info.disciplinas || {}).length === 0) {
       if (info.disciplinas_detalhadas?.length) {
         info.disciplinas = Object.fromEntries(
@@ -128,9 +137,11 @@ const StudyPlannerPage: React.FC = () => {
   const handleGenerateFromEdital = async () => {
     if (!editalData) return;
 
+    const cargoFinal = selectedCargo || manualCargo.trim() || 'Candidato';
+
     const input: EditalFromInput = {
       concurso: editalData.concurso || 'Concurso Público',
-      cargo: selectedCargo || 'Candidato',
+      cargo: cargoFinal,
       banca: editalData.banca || undefined,
       exam_date: quickExamDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       daily_hours: quickDailyHours,
@@ -142,6 +153,7 @@ const StudyPlannerPage: React.FC = () => {
 
     const state = useStudyPlannerStore.getState();
     if (state.activePlan && !state.planError) {
+      clearTasks(); // força PlanoPage a buscar o contexto atualizado com o novo concurso/cargo
       navigate('/plano');
     }
   };
@@ -174,6 +186,7 @@ const StudyPlannerPage: React.FC = () => {
       };
       submitWizard(finalAnswers).then(() => {
         setShowWizard(false);
+        clearTasks();
         navigate('/plano');
       });
     }
@@ -230,8 +243,15 @@ const StudyPlannerPage: React.FC = () => {
       {/* ── Seleção de cargo ── */}
       {importStep === 'cargo_selection' && editalData && (
         <div className="planner-content">
+          {editalData.aviso && (
+            <div className="edital-aviso">
+              ⚠️ {editalData.aviso}
+            </div>
+          )}
           <div className="edital-preview">
-            <div className="edital-preview__badge">✅ Edital analisado</div>
+            <div className="edital-preview__badge">
+              {editalData.is_retification ? '⚠️ Edital de Retificação' : '✅ Edital analisado'}
+            </div>
             <div className="edital-preview__title">{editalData.concurso || 'Concurso'}</div>
             {editalData.banca && (
               <div className="edital-preview__meta">Banca: <strong>{editalData.banca}</strong></div>
@@ -271,19 +291,28 @@ const StudyPlannerPage: React.FC = () => {
       {/* ── Quick setup ── */}
       {importStep === 'quick_setup' && editalData && (
         <div className="planner-content">
+          {editalData.aviso && (
+            <div className="edital-aviso">
+              ⚠️ {editalData.aviso}
+            </div>
+          )}
           <div className="edital-preview">
-            <div className="edital-preview__badge">✅ Edital analisado</div>
+            <div className="edital-preview__badge">
+              {editalData.is_retification ? '⚠️ Edital de Retificação' : '✅ Edital analisado'}
+            </div>
             <div className="edital-preview__title">{editalData.concurso || 'Concurso'}</div>
             {selectedCargo && (
               <div className="edital-preview__cargo">📌 {selectedCargo}</div>
             )}
             <div className="edital-preview__disc-count">
-              {Object.keys(editalData.disciplinas).length} disciplinas •{' '}
-              {editalData.banca || 'Banca não identificada'}
+              {Object.keys(editalData.disciplinas).length > 0
+                ? `${Object.keys(editalData.disciplinas).length} disciplinas`
+                : 'Disciplinas não identificadas'}{' '}
+              • {editalData.banca || 'Banca não identificada'}
             </div>
 
             {/* Miniatura das disciplinas */}
-            {Object.keys(editalData.disciplinas).length > 0 && (
+            {Object.keys(editalData.disciplinas).length > 0 ? (
               <div className="edital-disc-chips">
                 {Object.keys(editalData.disciplinas).slice(0, 8).map(d => (
                   <span key={d} className="edital-disc-chip">{d}</span>
@@ -294,11 +323,32 @@ const StudyPlannerPage: React.FC = () => {
                   </span>
                 )}
               </div>
+            ) : (
+              <div className="edital-no-disc">
+                Nenhuma disciplina foi extraída automaticamente.
+                {editalData.is_retification
+                  ? ' Importe o edital de abertura para obter as disciplinas.'
+                  : ' O plano usará tópicos padrão para a banca selecionada.'}
+              </div>
             )}
           </div>
 
           <div className="quick-setup">
             <h3 className="quick-setup__title">Configure seu plano</h3>
+
+            {/* Campo de cargo — exibe quando não foi auto-detectado */}
+            {!selectedCargo && (
+              <div className="quick-setup__field">
+                <label>💼 Cargo pretendido</label>
+                <input
+                  type="text"
+                  className="wizard-input"
+                  placeholder="Ex: Analista Judiciário – TI, Técnico…"
+                  value={manualCargo}
+                  onChange={e => setManualCargo(e.target.value)}
+                />
+              </div>
+            )}
 
             <div className="quick-setup__field">
               <label>📅 Data da prova</label>

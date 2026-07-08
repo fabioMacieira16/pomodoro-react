@@ -108,6 +108,8 @@ async def upload_document(
         "indexing": indexing_result.model_dump(),
         "edital_info": edital_info.to_dict() if edital_info else None,
         "requires_cargo_selection": edital_info and len(edital_info.cargos) > 1 if edital_info else False,
+        "is_retification": edital_info.is_retification if edital_info else False,
+        "aviso": edital_info.aviso if edital_info else None,
     }
 
 

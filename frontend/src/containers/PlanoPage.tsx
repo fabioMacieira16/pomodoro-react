@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlanTaskStore, DAY_NAMES, getDateForDayOfWeek, getTodayDayOfWeek, type PlanTask } from '../store/planTaskStore';
 import { useSelectedTask } from '../store/selectedTaskStore';
-import { useStudyContext } from '../store/studyContextStore';
+import { useStudyContext, type WeeklySchedule } from '../store/studyContextStore';
+import { useStudyPlannerStore } from '../store/studyPlannerStore';
 import './PlanoPage.css';
+
+const PLAN_DAY_MAP: Record<string, number> = {
+  Seg: 0, Ter: 1, Qua: 2, Qui: 3, Sex: 4, 'Sáb': 5, Dom: 6,
+};
 
 type View = 'kanban' | 'calendar';
 
@@ -270,29 +275,44 @@ const PlanoPage: React.FC = () => {
   const { tasks, weekStart, generatedAt, concurso, toggleComplete, generateFromSchedule } = usePlanTaskStore();
   const { selectedTask, select } = useSelectedTask();
   const { context, fetchContext } = useStudyContext();
+  const { activePlan, fetchActivePlan } = useStudyPlannerStore();
 
-  // Carrega o contexto e gera as tarefas automaticamente se necessário
+  // Carrega o contexto e o plano ativo se não temos tarefas
   useEffect(() => {
-    const loadContextAndGenerateTasks = async () => {
-      // Se não temos tarefas, tenta carregar do backend
-      if (tasks.length === 0) {
-        await fetchContext();
-      }
-    };
-    loadContextAndGenerateTasks();
+    if (tasks.length === 0) {
+      fetchContext();
+      fetchActivePlan();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Gera as tarefas quando o contexto é carregado
+  // Gera tarefas do kanban a partir do contexto ou do plano ativo (fallback)
   useEffect(() => {
-    if (tasks.length === 0 && context.weekly_schedule.length > 0) {
-      generateFromSchedule(
-        context.weekly_schedule, 
-        context.performances, 
-        context.concurso
-      );
+    if (tasks.length > 0) return;
+
+    // Fonte primária: StudyContext.weekly_schedule (in-memory, mais fresco)
+    if (context.weekly_schedule.length > 0) {
+      generateFromSchedule(context.weekly_schedule, context.performances, context.concurso);
+      return;
     }
-  }, [context.weekly_schedule, context.performances, context.concurso, tasks.length, generateFromSchedule]);
+
+    // Fallback: plano ativo persistido no banco (sobrevive reinicialização do backend)
+    if (activePlan?.weekly_schedule && Object.keys(activePlan.weekly_schedule).length > 0) {
+      const dayHours = activePlan.total_study_hours /
+        Math.max(1, Object.values(activePlan.weekly_schedule).filter(s => s.length > 0).length);
+
+      const schedule: WeeklySchedule[] = Object.entries(activePlan.weekly_schedule)
+        .filter(([, subjects]) => subjects.length > 0)
+        .map(([day, subjects]) => ({
+          day_of_week: PLAN_DAY_MAP[day] ?? 0,
+          subjects,
+          study_hours: dayHours,
+        }));
+
+      generateFromSchedule(schedule, context.performances, activePlan.concurso);
+    }
+  }, [context.weekly_schedule, context.performances, context.concurso,
+      tasks.length, activePlan, generateFromSchedule]);
 
   const todayTasks = tasks.filter(t => t.day_of_week === getTodayDayOfWeek());
   const todayDone = todayTasks.filter(t => t.completed).length;

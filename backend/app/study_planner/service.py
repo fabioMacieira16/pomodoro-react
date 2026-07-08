@@ -79,7 +79,12 @@ class StudyPlannerService:
             for i, (day, subjects) in enumerate(weekly_schedule.items())
         ]
         try:
-            StudyContextService.update_context(weekly_schedule=weekly_ctx)
+            StudyContextService.update_context(
+                weekly_schedule=weekly_ctx,
+                concurso=wizard.concurso,
+                cargo=wizard.cargo,
+                banca=wizard.banca,
+            )
         except Exception:
             pass
 

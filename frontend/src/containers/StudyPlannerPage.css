@@ -421,6 +421,25 @@
   border-color: var(--pomo-border);
 }
 
+.edital-aviso {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  color: #92400e;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.edital-no-disc {
+  font-size: 0.82rem;
+  color: var(--pomo-text-muted);
+  font-style: italic;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 /* ── Cargo Selection ── */
 .cargo-select-title {
   font-size: 1rem;

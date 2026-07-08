@@ -65,4 +65,5 @@ class MockProvider(AIProvider):
         try:
             return json.loads(text)
         except json.JSONDecodeError:
-            return {"text": text}
+            # Retorna vazio para que o chamador use o fallback por regex
+            return {}
