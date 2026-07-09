@@ -561,3 +561,220 @@
   font-size: 1.2rem;
   color: var(--pomo-text-muted);
 }
+
+/* ── Editais salvos ── */
+.editais-salvos {
+  margin-bottom: 24px;
+}
+
+.editais-salvos__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pomo-text-muted);
+  margin-bottom: 10px;
+}
+
+.edital-saved-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--pomo-surface);
+  border: 1.5px solid var(--pomo-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  transition: border-color 0.15s;
+}
+
+.edital-saved-card:hover {
+  border-color: #667eea;
+}
+
+.edital-saved-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.edital-saved-card__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--pomo-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edital-saved-card__meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--pomo-text-muted);
+}
+
+.edital-saved-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.edital-saved-card__use-btn {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.edital-saved-card__use-btn:hover { opacity: 0.88; }
+
+.edital-saved-card__remove-btn {
+  background: none;
+  border: 1px solid var(--pomo-border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--pomo-text-muted);
+  transition: color 0.15s, border-color 0.15s;
+}
+.edital-saved-card__remove-btn:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* ── Editor de disciplinas ── */
+.disc-editor {
+  background: var(--pomo-surface);
+  border: 1.5px solid var(--pomo-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.disc-editor__header {
+  margin-bottom: 14px;
+}
+
+.disc-editor__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.disc-editor__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #667eea;
+  color: #fff;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+}
+
+.disc-editor__hint {
+  font-size: 0.8rem;
+  color: var(--pomo-text-muted);
+  margin: 0;
+}
+
+.disc-editor__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.disc-editor__empty {
+  font-size: 0.85rem;
+  color: var(--pomo-text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.disc-editor__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(102, 126, 234, 0.07);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  border-radius: 8px;
+  padding: 7px 12px;
+}
+
+.disc-editor__item-name {
+  font-size: 0.88rem;
+  color: var(--pomo-text);
+}
+
+.disc-editor__item-remove {
+  background: none;
+  border: none;
+  color: var(--pomo-text-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.disc-editor__item-remove:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.disc-editor__add-row {
+  display: flex;
+  gap: 8px;
+}
+
+.disc-editor__input {
+  flex: 1;
+  padding: 9px 13px;
+  border: 1.5px solid var(--pomo-border);
+  border-radius: 9px;
+  background: var(--pomo-input-bg);
+  color: var(--pomo-text);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.disc-editor__input:focus { border-color: #667eea; }
+
+.disc-editor__add-btn {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.disc-editor__add-btn:disabled { opacity: 0.4; cursor: default; }
+.disc-editor__add-btn:hover:not(:disabled) { opacity: 0.88; }
+
+.disc-editor__warning {
+  font-size: 0.82rem;
+  color: #f59e0b;
+  margin: 4px 0 0;
+  text-align: center;
+}

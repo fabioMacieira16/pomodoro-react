@@ -341,7 +341,8 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
                 onChange={(e) => setExplanation(e.target.value)}
                 rows={2}
                 placeholder="Explique por que esta é a resposta correta..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                style={{ maxHeight: '200px' }}
               />
             </div>
           )}

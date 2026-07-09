@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStudyPlannerStore, WizardAnswers, EditalFromInput } from '../store/studyPlannerStore';
 import { usePlanTaskStore } from '../store/planTaskStore';
 import { useDocumentStore } from '../store/documentStore';
+import { useEditalListStore, SavedEdital } from '../store/editalListStore';
 import './StudyPlannerPage.css';
 
 const DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -41,6 +42,44 @@ interface EditalData {
 
 type ImportStep = 'upload' | 'cargo_selection' | 'quick_setup';
 
+// ── Edital Card na lista ───────────────────────────────────────────────────────
+
+interface EditalCardProps {
+  edital: SavedEdital;
+  onUse: () => void;
+  onRemove: () => void;
+}
+
+const EditalCard: React.FC<EditalCardProps> = ({ edital, onUse, onRemove }) => {
+  const numDisc = Object.keys(edital.disciplinas).length;
+  const dateStr = edital.data_prova
+    ? new Date(edital.data_prova).toLocaleDateString('pt-BR')
+    : 'Data não informada';
+
+  return (
+    <div className="edital-saved-card">
+      <div className="edital-saved-card__info">
+        <div className="edital-saved-card__title">{edital.concurso}</div>
+        <div className="edital-saved-card__meta">
+          {edital.banca && <span>{edital.banca}</span>}
+          <span>{numDisc} disciplinas</span>
+          <span>Prova: {dateStr}</span>
+        </div>
+      </div>
+      <div className="edital-saved-card__actions">
+        <button className="edital-saved-card__use-btn" onClick={onUse}>
+          Usar este
+        </button>
+        <button className="edital-saved-card__remove-btn" onClick={onRemove} title="Remover">
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
 const StudyPlannerPage: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -51,6 +90,7 @@ const StudyPlannerPage: React.FC = () => {
 
   const { uploadFile, isIndexing } = useDocumentStore();
   const { clearTasks } = usePlanTaskStore();
+  const { editais, addEdital, updateDisciplinas, removeEdital } = useEditalListStore();
 
   // Wizard manual
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -61,6 +101,11 @@ const StudyPlannerPage: React.FC = () => {
   const [importStep, setImportStep] = useState<ImportStep>('upload');
   const [editalData, setEditalData] = useState<EditalData | null>(null);
   const [selectedCargo, setSelectedCargo] = useState<string>('');
+  const [currentEditalId, setCurrentEditalId] = useState<string | null>(null);
+
+  // Disciplinas editáveis na tela quick_setup
+  const [editableDisciplinas, setEditableDisciplinas] = useState<Record<string, number>>({});
+  const [newDiscName, setNewDiscName] = useState('');
 
   // Quick setup
   const [quickDailyHours, setQuickDailyHours] = useState(4);
@@ -72,6 +117,13 @@ const StudyPlannerPage: React.FC = () => {
 
   useEffect(() => { fetchActivePlan(); }, [fetchActivePlan]);
 
+  // Sincroniza disciplinas editáveis quando edital muda
+  useEffect(() => {
+    if (editalData) {
+      setEditableDisciplinas({ ...editalData.disciplinas });
+    }
+  }, [editalData]);
+
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
@@ -81,10 +133,10 @@ const StudyPlannerPage: React.FC = () => {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) await handleUpload(file);
+    e.target.value = '';
   };
 
   const handleUpload = async (file: File) => {
-    // Sempre envia como edital para que a análise seja feita
     const result = await uploadFile(file, undefined, undefined, 'edital');
     if (!result) return;
 
@@ -94,19 +146,19 @@ const StudyPlannerPage: React.FC = () => {
       return;
     }
 
-    // Garante que disciplinas está populado mesmo quando a IA não encontrou a tabela
     const info: EditalData = {
       ...raw,
       is_retification: result.is_retification ?? raw.is_retification ?? false,
       aviso: result.aviso ?? raw.aviso ?? null,
     };
+
+    // Garante disciplinas populadas
     if (Object.keys(info.disciplinas || {}).length === 0) {
       if (info.disciplinas_detalhadas?.length) {
         info.disciplinas = Object.fromEntries(
           info.disciplinas_detalhadas.map((d) => [d.disciplina, d.pontuacao_max || d.num_questoes || 1])
         );
       } else if (info.programa_por_cargo && Object.keys(info.programa_por_cargo).length > 0) {
-        // Usa tópicos do primeiro cargo como disciplinas com peso igual
         const topicos = Object.values(info.programa_por_cargo as Record<string, string[]>).flat();
         const unicos = [...new Set(topicos)];
         info.disciplinas = Object.fromEntries(unicos.map((t) => [t, 1]));
@@ -115,11 +167,21 @@ const StudyPlannerPage: React.FC = () => {
 
     setEditalData(info);
 
-    // Pré-preenche data da prova se encontrada
     if (info.data_prova) {
       const d = new Date(info.data_prova);
       setQuickExamDate(d.toISOString().split('T')[0]);
     }
+
+    // Salva no store de editais
+    const editalId = addEdital({
+      concurso: info.concurso || 'Concurso',
+      banca: info.banca,
+      cargos: info.cargos,
+      disciplinas: info.disciplinas,
+      disciplinas_detalhadas: info.disciplinas_detalhadas || [],
+      data_prova: info.data_prova,
+    });
+    setCurrentEditalId(editalId);
 
     if (result.requires_cargo_selection && info.cargos.length > 1) {
       setImportStep('cargo_selection');
@@ -129,9 +191,57 @@ const StudyPlannerPage: React.FC = () => {
     }
   };
 
+  // Usa um edital já salvo no store
+  const handleUseSavedEdital = (edital: SavedEdital) => {
+    const info: EditalData = {
+      concurso: edital.concurso,
+      banca: edital.banca,
+      cargos: edital.cargos,
+      disciplinas: edital.disciplinas,
+      disciplinas_detalhadas: edital.disciplinas_detalhadas,
+      data_prova: edital.data_prova,
+      vagas: null,
+      salario: null,
+    };
+    setEditalData(info);
+    setCurrentEditalId(edital.id);
+
+    if (edital.data_prova) {
+      const d = new Date(edital.data_prova);
+      setQuickExamDate(d.toISOString().split('T')[0]);
+    }
+
+    if (edital.cargos.length > 1) {
+      setImportStep('cargo_selection');
+    } else {
+      if (edital.cargos.length === 1) setSelectedCargo(edital.cargos[0]);
+      setImportStep('quick_setup');
+    }
+  };
+
   const handleCargoSelect = (cargo: string) => {
     setSelectedCargo(cargo);
     setImportStep('quick_setup');
+  };
+
+  // Disciplinas editáveis
+  const handleAddDisciplina = () => {
+    const name = newDiscName.trim();
+    if (!name) return;
+    setEditableDisciplinas((prev) => ({ ...prev, [name]: 1 }));
+    setNewDiscName('');
+    if (currentEditalId) {
+      updateDisciplinas(currentEditalId, { ...editableDisciplinas, [name]: 1 });
+    }
+  };
+
+  const handleRemoveDisciplina = (disc: string) => {
+    setEditableDisciplinas((prev) => {
+      const next = { ...prev };
+      delete next[disc];
+      if (currentEditalId) updateDisciplinas(currentEditalId, next);
+      return next;
+    });
   };
 
   const handleGenerateFromEdital = async () => {
@@ -146,14 +256,14 @@ const StudyPlannerPage: React.FC = () => {
       exam_date: quickExamDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       daily_hours: quickDailyHours,
       available_days: quickAvailDays,
-      disciplinas: editalData.disciplinas,
+      disciplinas: editableDisciplinas,
     };
 
     await generateFromEdital(input);
 
     const state = useStudyPlannerStore.getState();
     if (state.activePlan && !state.planError) {
-      clearTasks(); // força PlanoPage a buscar o contexto atualizado com o novo concurso/cargo
+      clearTasks();
       navigate('/plano');
     }
   };
@@ -230,6 +340,21 @@ const StudyPlannerPage: React.FC = () => {
               : '📎 Arraste o PDF do edital ou clique para selecionar'}
           </div>
 
+          {/* Lista de editais já importados */}
+          {editais.length > 0 && (
+            <div className="editais-salvos">
+              <h3 className="editais-salvos__title">Editais importados</h3>
+              {editais.map((edital) => (
+                <EditalCard
+                  key={edital.id}
+                  edital={edital}
+                  onUse={() => handleUseSavedEdital(edital)}
+                  onRemove={() => removeEdital(edital.id)}
+                />
+              ))}
+            </div>
+          )}
+
           <div className="planner-divider">— ou —</div>
 
           <button className="start-wizard-btn" onClick={() => setShowWizard(true)}>
@@ -304,39 +429,62 @@ const StudyPlannerPage: React.FC = () => {
             {selectedCargo && (
               <div className="edital-preview__cargo">📌 {selectedCargo}</div>
             )}
-            <div className="edital-preview__disc-count">
-              {Object.keys(editalData.disciplinas).length > 0
-                ? `${Object.keys(editalData.disciplinas).length} disciplinas`
-                : 'Disciplinas não identificadas'}{' '}
-              • {editalData.banca || 'Banca não identificada'}
-            </div>
-
-            {/* Miniatura das disciplinas */}
-            {Object.keys(editalData.disciplinas).length > 0 ? (
-              <div className="edital-disc-chips">
-                {Object.keys(editalData.disciplinas).slice(0, 8).map(d => (
-                  <span key={d} className="edital-disc-chip">{d}</span>
-                ))}
-                {Object.keys(editalData.disciplinas).length > 8 && (
-                  <span className="edital-disc-chip edital-disc-chip--more">
-                    +{Object.keys(editalData.disciplinas).length - 8}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="edital-no-disc">
-                Nenhuma disciplina foi extraída automaticamente.
-                {editalData.is_retification
-                  ? ' Importe o edital de abertura para obter as disciplinas.'
-                  : ' O plano usará tópicos padrão para a banca selecionada.'}
-              </div>
-            )}
           </div>
 
+          {/* ── Disciplinas editáveis ── */}
+          <div className="disc-editor">
+            <div className="disc-editor__header">
+              <h3 className="disc-editor__title">
+                Disciplinas do Kanban
+                <span className="disc-editor__count">{Object.keys(editableDisciplinas).length}</span>
+              </h3>
+              <p className="disc-editor__hint">
+                Confira, adicione ou remova disciplinas antes de gerar o plano
+              </p>
+            </div>
+
+            <div className="disc-editor__list">
+              {Object.keys(editableDisciplinas).length === 0 ? (
+                <p className="disc-editor__empty">
+                  Nenhuma disciplina extraída — adicione manualmente abaixo
+                </p>
+              ) : (
+                Object.keys(editableDisciplinas).map((disc) => (
+                  <div key={disc} className="disc-editor__item">
+                    <span className="disc-editor__item-name">{disc}</span>
+                    <button
+                      className="disc-editor__item-remove"
+                      onClick={() => handleRemoveDisciplina(disc)}
+                      title="Remover"
+                    >✕</button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="disc-editor__add-row">
+              <input
+                type="text"
+                className="disc-editor__input"
+                placeholder="Ex: Direito Tributário"
+                value={newDiscName}
+                onChange={(e) => setNewDiscName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddDisciplina()}
+              />
+              <button
+                className="disc-editor__add-btn"
+                onClick={handleAddDisciplina}
+                disabled={!newDiscName.trim()}
+              >
+                + Adicionar
+              </button>
+            </div>
+          </div>
+
+          {/* ── Configurações ── */}
           <div className="quick-setup">
             <h3 className="quick-setup__title">Configure seu plano</h3>
 
-            {/* Campo de cargo — exibe quando não foi auto-detectado */}
             {!selectedCargo && (
               <div className="quick-setup__field">
                 <label>💼 Cargo pretendido</label>
@@ -396,10 +544,16 @@ const StudyPlannerPage: React.FC = () => {
             <button
               className="generate-btn"
               onClick={handleGenerateFromEdital}
-              disabled={wizardLoading || !quickExamDate || quickAvailDays.length === 0}
+              disabled={wizardLoading || !quickExamDate || quickAvailDays.length === 0 || Object.keys(editableDisciplinas).length === 0}
             >
               {wizardLoading ? '⏳ Gerando plano...' : '🚀 Gerar Plano de Estudos'}
             </button>
+
+            {Object.keys(editableDisciplinas).length === 0 && (
+              <p className="disc-editor__warning">
+                ⚠️ Adicione pelo menos uma disciplina para gerar o plano
+              </p>
+            )}
 
             <button className="back-btn" style={{ marginTop: 8 }}
               onClick={() => setImportStep(editalData.cargos.length > 1 ? 'cargo_selection' : 'upload')}>

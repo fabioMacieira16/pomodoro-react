@@ -277,29 +277,24 @@ const PlanoPage: React.FC = () => {
   const { context, fetchContext } = useStudyContext();
   const { activePlan, fetchActivePlan } = useStudyPlannerStore();
 
-  // Carrega o contexto e o plano ativo se não temos tarefas
+  // Busca contexto e plano sempre que as tasks estiverem vazias
   useEffect(() => {
     if (tasks.length === 0) {
       fetchContext();
       fetchActivePlan();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks.length]);
 
-  // Gera tarefas do kanban a partir do contexto ou do plano ativo (fallback)
+  // Gera tarefas do kanban a partir do plano ativo (fonte principal, persistida no banco)
+  // ou do StudyContext (in-memory, disponível logo após gerar o plano)
   useEffect(() => {
     if (tasks.length > 0) return;
 
-    // Fonte primária: StudyContext.weekly_schedule (in-memory, mais fresco)
-    if (context.weekly_schedule.length > 0) {
-      generateFromSchedule(context.weekly_schedule, context.performances, context.concurso);
-      return;
-    }
-
-    // Fallback: plano ativo persistido no banco (sobrevive reinicialização do backend)
+    // Fonte primária: plano persistido no banco (sempre confiável)
     if (activePlan?.weekly_schedule && Object.keys(activePlan.weekly_schedule).length > 0) {
-      const dayHours = activePlan.total_study_hours /
-        Math.max(1, Object.values(activePlan.weekly_schedule).filter(s => s.length > 0).length);
+      const activeDays = Object.values(activePlan.weekly_schedule).filter((s) => s.length > 0).length;
+      const dayHours = activePlan.total_study_hours / Math.max(1, activeDays);
 
       const schedule: WeeklySchedule[] = Object.entries(activePlan.weekly_schedule)
         .filter(([, subjects]) => subjects.length > 0)
@@ -310,6 +305,12 @@ const PlanoPage: React.FC = () => {
         }));
 
       generateFromSchedule(schedule, context.performances, activePlan.concurso);
+      return;
+    }
+
+    // Fallback: StudyContext in-memory (disponível na mesma sessão do backend)
+    if (context.weekly_schedule.length > 0) {
+      generateFromSchedule(context.weekly_schedule, context.performances, context.concurso);
     }
   }, [context.weekly_schedule, context.performances, context.concurso,
       tasks.length, activePlan, generateFromSchedule]);
