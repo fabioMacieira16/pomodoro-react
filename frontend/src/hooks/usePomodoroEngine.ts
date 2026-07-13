@@ -22,6 +22,7 @@ interface PersistedState {
   timeRemaining: number;
   pomodoroCount: number;
   startedAtMs: number | null;
+  pausedStatus?: 'paused';
 }
 
 const STORAGE_KEY = 'pomo-timer-v2';
@@ -137,7 +138,9 @@ export function usePomodoroEngine() {
 
   const [status, setStatus] = useState<TimerStatus>(() => {
     const saved = loadPersisted();
-    if (!saved || saved.startedAtMs === null) return 'idle';
+    if (!saved || saved.startedAtMs === null) {
+      return saved?.pausedStatus === 'paused' ? 'paused' : 'idle';
+    }
     const elapsed = Math.floor((Date.now() - saved.startedAtMs) / 1000);
     return elapsed < getDuration(saved.phase) ? 'running' : 'finished';
   });
@@ -174,6 +177,7 @@ export function usePomodoroEngine() {
       timeRemaining,
       pomodoroCount,
       startedAtMs: status === 'running' ? Date.now() - (getDuration(phase) - timeRemaining) * 1000 : null,
+      pausedStatus: status === 'paused' ? 'paused' : undefined,
     });
   }, [phase, timeRemaining, pomodoroCount, status]);
 

@@ -27,9 +27,10 @@ MAX_PDF_CONTENT_CHARS = 20000
 
 class QuizService:
 
-    def __init__(self, db: Session, user_id: int):
+    def __init__(self, db: Session, user_id: int, user_setting=None):
         self.db = db
         self.user_id = user_id
+        self.user_setting = user_setting
 
     # ── Mode decision ─────────────────────────────────────────────────────
 
@@ -261,7 +262,7 @@ class QuizService:
         # Try to get real PDF content for this subject
         pdf_content = self._get_subject_pdf_content(subject_id) if subject_id else ""
 
-        provider = get_provider()
+        provider = get_provider(self.user_setting)
         if not provider.is_available():
             return []
 
@@ -475,7 +476,7 @@ Regras:
         self, content_text: str, num_questions: int, subject_id: Optional[int]
     ) -> List[Exercise]:
         """Generate multiple-choice questions from PDF content (e.g. a past exam)."""
-        provider = get_provider()
+        provider = get_provider(self.user_setting)
         if not provider.is_available():
             return []
 

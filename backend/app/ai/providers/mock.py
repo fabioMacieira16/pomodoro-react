@@ -58,6 +58,35 @@ class MockProvider(AIProvider):
                     }
                 ],
             })
+        if "questão" in p or "questões" in p or "múltipla escolha" in p or "questao" in p or "multipla" in p:
+            return json.dumps([
+                {
+                    "question_text": "[Mock] Qual é o principal objetivo da questão de múltipla escolha?",
+                    "hint": "Pense no propósito da avaliação.",
+                    "explanation": "Questões de múltipla escolha avaliam conhecimento objetivo e são amplamente usadas em concursos.",
+                    "difficulty": "Easy",
+                    "correct_answer": "A",
+                    "options": [
+                        {"position": 0, "text": "Avaliar conhecimento de forma objetiva"},
+                        {"position": 1, "text": "Testar apenas memorização"},
+                        {"position": 2, "text": "Substituir provas dissertativas"},
+                        {"position": 3, "text": "Dificultar a avaliação"},
+                    ],
+                },
+                {
+                    "question_text": "[Mock] O que significa 'gabarito' em concursos públicos?",
+                    "hint": "Relacionado ao resultado da prova.",
+                    "explanation": "Gabarito é a lista das respostas corretas de uma prova ou questão.",
+                    "difficulty": "Easy",
+                    "correct_answer": "B",
+                    "options": [
+                        {"position": 0, "text": "O enunciado da questão"},
+                        {"position": 1, "text": "A resposta oficial correta"},
+                        {"position": 2, "text": "O número da questão"},
+                        {"position": 3, "text": "O critério de correção subjetivo"},
+                    ],
+                },
+            ])
         return "[Mock] Resposta genérica do provider mock."
 
     async def complete_json(self, prompt: str) -> Any:

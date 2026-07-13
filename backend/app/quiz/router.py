@@ -12,12 +12,14 @@ from app.quiz.schemas import (
     QuizAnswerResult, PomodoroQuizMode
 )
 from app.quiz.service import QuizService
+from app.settings.service import settings_service
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
 
 def _svc(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> QuizService:
-    return QuizService(db=db, user_id=current_user.id)
+    setting = settings_service.get_or_create(db, current_user.id)
+    return QuizService(db=db, user_id=current_user.id, user_setting=setting)
 
 
 @router.get("/mode", response_model=PomodoroQuizMode, summary="Decide quiz/study/revision mode for current Pomodoro")
@@ -82,7 +84,8 @@ async def generate_quiz_from_pdf(
             ),
         )
 
-    svc = QuizService(db=db, user_id=current_user.id)
+    setting = settings_service.get_or_create(db, current_user.id)
+    svc = QuizService(db=db, user_id=current_user.id, user_setting=setting)
     try:
         return await svc.generate_quiz_from_pdf(text, num_questions, subject_id, pomodoro_session_id)
     except ValueError as e:

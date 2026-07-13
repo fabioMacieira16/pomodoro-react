@@ -17,7 +17,17 @@ def create_session(
 ):
     data = session_in.model_dump()
     data["user_id"] = current_user.id
-    return pomodoro_repo.create(db, data)
+    created = pomodoro_repo.create(db, data)
+    if created.completed and created.session_type == "Pomodoro":
+        try:
+            from app.achievements.service import AchievementService
+            AchievementService(db).register_event(
+                current_user.id, "POMODORO_COMPLETED",
+                value=created.duration_minutes or 25,
+            )
+        except Exception:
+            pass
+    return created
 
 
 @router.get("/stats", response_model=dtos.PomodoroStatsResponse)

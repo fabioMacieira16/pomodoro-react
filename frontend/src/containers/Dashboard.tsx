@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { data, isLoading, error, fetchDashboard } = useDashboardStore();
   const { context, fetchContext, getWeakSubjects, getPendingReviews } = useStudyContext();
-  const { stats: ankiStats, fetchStats: fetchAnkiStats } = useAnkiStore();
+  const { fetchStats: fetchAnkiStats } = useAnkiStore();
   const { summary: achSummary, recent: achRecent, stats: achStats, fetch: fetchAchievements } = useAchievementStore();
 
   const taskStats = useMemo(() => {
@@ -78,17 +78,6 @@ const Dashboard: React.FC = () => {
     const dow = (todayDow + offset) % 7;
     return { name: DAY_NAMES[dow], tasks: planTasks.filter(t => t.day_of_week === dow).sort((a, b) => a.position - b.position) };
   }).filter(d => d.tasks.length > 0);
-
-  // Computed metrics from context performances
-  const totalQuestions = context.performances.reduce(
-    (sum, p) => sum + p.correct_answers + p.wrong_answers,
-    0
-  );
-  const totalCorrect = context.performances.reduce((sum, p) => sum + p.correct_answers, 0);
-  const totalWrong = context.performances.reduce((sum, p) => sum + p.wrong_answers, 0);
-  const overallAccuracy = totalQuestions > 0
-    ? Math.round((totalCorrect / totalQuestions) * 100)
-    : 0;
 
   // Discipline rankings from performances
   const rankedByHours = [...context.performances].sort((a, b) => b.study_hours - a.study_hours);
@@ -197,24 +186,6 @@ const Dashboard: React.FC = () => {
             </section>
           )}
 
-          {/* Stats de Questões e Flashcards */}
-          <section className="dashboard__metrics-extended">
-            <h3 className="dashboard__section-title">📊 Questões & Flashcards</h3>
-            <div className="dashboard__stats-grid dashboard__stats-grid--compact">
-              <StatCard label="Questões respondidas" value={totalQuestions} />
-              <StatCard label="Corretas" value={totalCorrect} />
-              <StatCard label="Erradas" value={totalWrong} />
-              <StatCard
-                label="Taxa de acerto"
-                value={totalQuestions > 0 ? `${overallAccuracy}%` : '—'}
-              />
-              <StatCard label="Flashcards criados" value={ankiStats?.total_cards ?? '—'} />
-              <StatCard label="Revisões realizadas" value={ankiStats?.total_reviews ?? '—'} />
-              <StatCard label="Retenção Flashcards" value={ankiStats ? `${Math.round(ankiStats.retention_rate)}%` : '—'} />
-              <StatCard label="Dias de revisão" value={ankiStats?.streak_days ?? '—'} unit="dias" />
-            </div>
-          </section>
-
           {/* Tasks concluídas */}
           {taskStats.todayTotal > 0 && (
             <section className="dashboard__metrics-extended">
@@ -257,15 +228,6 @@ const Dashboard: React.FC = () => {
               max={data.stats.weekly_goal_minutes}
               unit=" min"
             />
-            {ankiStats && totalQuestions > 0 && (
-              <ConsistencyBar
-                label="Taxa de acerto geral"
-                value={overallAccuracy}
-                max={100}
-                unit="%"
-                color="rgba(139, 92, 246, 0.85)"
-              />
-            )}
           </section>
         </>
       )}
