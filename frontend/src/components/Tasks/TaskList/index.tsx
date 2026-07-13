@@ -4,7 +4,14 @@ import TaskContext from './context';
 import Task from '../Task';
 import { Task as TaskType } from '../../../types';
 import { useSelectedTask } from '../../../store/selectedTaskStore';
+import { EmojiPicker } from '../EmojiPicker';
 import './styles.css';
+
+function splitEmojiFromTitle(title: string): { emoji: string; text: string } {
+  const m = title.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u);
+  if (m) return { emoji: m[1], text: title.slice(m[0].length) };
+  return { emoji: '', text: title };
+}
 
 const TASK_STATS_KEY = 'pomodoro-task-stats';
 const DAY_COMPLETED_KEY = 'pomodoro-day-completed';
@@ -71,6 +78,7 @@ function persistTemplates(templates: TaskTemplate[]) {
 
 const TaskList: React.FC = () => {
   const [input, setInput] = useState('');
+  const [taskEmoji, setTaskEmoji] = useState('');
   const [tasks, setTasks] = useState<TaskType[]>(
     JSON.parse(window.localStorage.getItem('pomodoro-react-tasks') || '[]')
   );
@@ -80,7 +88,9 @@ const TaskList: React.FC = () => {
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
   const [showLoadTemplate, setShowLoadTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [templateEmoji, setTemplateEmoji] = useState('');
   const [templateItems, setTemplateItems] = useState<string[]>(['']);
+  const [templateItemEmojis, setTemplateItemEmojis] = useState<string[]>(['']);
   const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(loadTemplates);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const listMenuRef = useRef<HTMLDivElement>(null);
@@ -204,9 +214,11 @@ const TaskList: React.FC = () => {
 
   function addTask() {
     if (!input.trim()) return;
+    const titleText = input.trim();
+    const title = taskEmoji ? `${taskEmoji} ${titleText}` : titleText;
     const newTask: TaskType = {
       id: Date.now(),
-      title: input.trim(),
+      title,
       completed: false,
       priority: 'Medium',
       estimated_minutes: 25,
@@ -216,21 +228,30 @@ const TaskList: React.FC = () => {
     };
     setTasks([...tasks, newTask]);
     setInput('');
+    setTaskEmoji('');
   }
 
   // ── Template handlers ────────────────────────────────────────────────────
   function openCreateTemplate() {
     setEditingTemplateId(null);
+    setTemplateEmoji('');
     setTemplateName('');
-    setTemplateItems(tasks.length > 0 ? tasks.map(t => t.title) : ['']);
+    const baseTitles = tasks.length > 0 ? tasks.map(t => t.title) : [''];
+    const parsed = baseTitles.map(splitEmojiFromTitle);
+    setTemplateItems(parsed.map(p => p.text));
+    setTemplateItemEmojis(parsed.map(p => p.emoji));
     setListMenuOpen(false);
     setShowCreateTemplate(true);
   }
 
   function openEditTemplate(tpl: TaskTemplate) {
     setEditingTemplateId(tpl.id);
-    setTemplateName(tpl.name);
-    setTemplateItems([...tpl.tasks]);
+    const { emoji: tplEmoji, text: tplText } = splitEmojiFromTitle(tpl.name);
+    setTemplateName(tplText);
+    setTemplateEmoji(tplEmoji);
+    const parsed = tpl.tasks.map(splitEmojiFromTitle);
+    setTemplateItems(parsed.map(p => p.text));
+    setTemplateItemEmojis(parsed.map(p => p.emoji));
     setShowLoadTemplate(false);
     setShowCreateTemplate(true);
   }
@@ -241,8 +262,15 @@ const TaskList: React.FC = () => {
   }
 
   function handleSaveTemplate() {
-    const name = templateName.trim();
-    const taskTitles = templateItems.filter(t => t.trim());
+    const nameText = templateName.trim();
+    const name = templateEmoji ? `${templateEmoji} ${nameText}` : nameText;
+    const taskTitles = templateItems
+      .map((t, i) => {
+        const text = t.trim();
+        const emoji = templateItemEmojis[i] || '';
+        return emoji ? `${emoji} ${text}` : text;
+      })
+      .filter(t => t.trim());
     if (!name || taskTitles.length === 0) return;
     let updated: TaskTemplate[];
     if (editingTemplateId) {
@@ -284,14 +312,20 @@ const TaskList: React.FC = () => {
 
   function addTemplateItem() {
     setTemplateItems(prev => [...prev, '']);
+    setTemplateItemEmojis(prev => [...prev, '']);
   }
 
   function removeTemplateItem(index: number) {
     setTemplateItems(prev => prev.filter((_, i) => i !== index));
+    setTemplateItemEmojis(prev => prev.filter((_, i) => i !== index));
   }
 
   function updateTemplateItem(index: number, value: string) {
     setTemplateItems(prev => prev.map((t, i) => i === index ? value : t));
+  }
+
+  function updateTemplateItemEmoji(index: number, emoji: string) {
+    setTemplateItemEmojis(prev => prev.map((e, i) => i === index ? emoji : e));
   }
 
   return (
@@ -390,6 +424,7 @@ const TaskList: React.FC = () => {
             </div>
 
             <div className="task-list__add">
+              <EmojiPicker value={taskEmoji} onChange={setTaskEmoji} placement="up" />
               <input
                 className="task-list__add-input"
                 value={input}
@@ -419,14 +454,17 @@ const TaskList: React.FC = () => {
             <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
               <div>
                 <label className="block text-gray-300 text-xs font-medium mb-1">Nome do template</label>
-                <input
-                  type="text"
-                  value={templateName}
-                  onChange={e => setTemplateName(e.target.value)}
-                  placeholder="Ex: Segunda-feira, Revisão semanal..."
-                  autoFocus
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="flex items-center gap-2">
+                  <EmojiPicker value={templateEmoji} onChange={setTemplateEmoji} placement="down" />
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={e => setTemplateName(e.target.value)}
+                    placeholder="Ex: Segunda-feira, Revisão semanal..."
+                    autoFocus
+                    className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               <div>
@@ -434,6 +472,7 @@ const TaskList: React.FC = () => {
                 <div className="space-y-2">
                   {templateItems.map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
+                      <EmojiPicker value={templateItemEmojis[i] || ''} onChange={emoji => updateTemplateItemEmoji(i, emoji)} placement="down" />
                       <input
                         type="text"
                         value={item}
