@@ -198,7 +198,9 @@ export interface Flashcard {
   front: string;
   back: string;
   hint?: string;
+  hint_image?: string;
   explanation?: string;
+  explanation_image?: string;
   tags: string[];
   difficulty: string;
   repetitions: number;

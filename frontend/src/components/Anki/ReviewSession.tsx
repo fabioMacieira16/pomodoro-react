@@ -162,7 +162,7 @@ export function ReviewSession() {
                 <div className="w-full">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-3 text-center">Pergunta</p>
                   <p className="text-xl font-medium text-gray-900 dark:text-white whitespace-pre-wrap mb-6 text-center">{card.front}</p>
-                  {card.hint && (
+                  {(card.hint || card.hint_image) && (
                     <div className="text-center mb-4">
                       <button
                         onClick={(e) => { e.stopPropagation(); setShowHint(!showHint); }}
@@ -173,7 +173,10 @@ export function ReviewSession() {
                         {showHint ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
                       {showHint && (
-                        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">{card.hint}</p>
+                        <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">
+                          {card.hint && <p>{card.hint}</p>}
+                          {card.hint_image && <img src={card.hint_image} alt="Dica" className="mt-2 max-h-48 mx-auto rounded object-contain" />}
+                        </div>
                       )}
                     </div>
                   )}
@@ -224,10 +227,11 @@ export function ReviewSession() {
                           ? 'Você acertou!' 
                           : 'Você errou.'}
                       </p>
-                      {card.explanation && (
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-                          <strong>Por que é a alternativa correta:</strong> {card.explanation}
-                        </p>
+                      {(card.explanation || card.explanation_image) && (
+                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                          {card.explanation && <p><strong>Por que é a alternativa correta:</strong> {card.explanation}</p>}
+                          {card.explanation_image && <img src={card.explanation_image} alt="Justificativa" className="mt-2 max-h-64 mx-auto rounded object-contain" />}
+                        </div>
                       )}
                     </div>
                   )}
@@ -237,7 +241,7 @@ export function ReviewSession() {
                 <div className="w-full">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-3 text-center">Afirmação</p>
                   <p className="text-xl font-medium text-gray-900 dark:text-white whitespace-pre-wrap mb-6 text-center">{card.front}</p>
-                  {card.hint && (
+                  {(card.hint || card.hint_image) && (
                     <div className="text-center mb-4">
                       <button
                         onClick={(e) => { e.stopPropagation(); setShowHint(!showHint); }}
@@ -248,7 +252,10 @@ export function ReviewSession() {
                         {showHint ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
                       {showHint && (
-                        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">{card.hint}</p>
+                        <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">
+                          {card.hint && <p>{card.hint}</p>}
+                          {card.hint_image && <img src={card.hint_image} alt="Dica" className="mt-2 max-h-48 mx-auto rounded object-contain" />}
+                        </div>
                       )}
                     </div>
                   )}
@@ -283,10 +290,11 @@ export function ReviewSession() {
                       <p className={`text-sm font-semibold ${selectedTrueFalse === card.back ? 'text-green-600' : 'text-red-600'}`}>
                         {selectedTrueFalse === card.back ? 'Você acertou!' : 'Você errou.'} A afirmação é {card.back.toLowerCase()}.
                       </p>
-                      {card.explanation && (
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-                          {card.explanation}
-                        </p>
+                      {(card.explanation || card.explanation_image) && (
+                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                          {card.explanation && <p>{card.explanation}</p>}
+                          {card.explanation_image && <img src={card.explanation_image} alt="Justificativa" className="mt-2 max-h-64 mx-auto rounded object-contain" />}
+                        </div>
                       )}
                     </div>
                   )}
@@ -296,7 +304,7 @@ export function ReviewSession() {
                 <div className="text-center">
                   <p className="text-xs uppercase tracking-wide text-gray-400 mb-4">Pergunta</p>
                   <p className="text-xl font-medium text-gray-900 dark:text-white whitespace-pre-wrap">{card.front}</p>
-                  {card.hint && (
+                  {(card.hint || card.hint_image) && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowHint(!showHint); }}
                       className="mt-4 flex items-center gap-1 text-sm text-yellow-600 hover:text-yellow-700 mx-auto"
@@ -306,8 +314,11 @@ export function ReviewSession() {
                       {showHint ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                     </button>
                   )}
-                  {showHint && card.hint && (
-                    <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">{card.hint}</p>
+                  {showHint && (card.hint || card.hint_image) && (
+                    <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-3 py-2">
+                      {card.hint && <p>{card.hint}</p>}
+                      {card.hint_image && <img src={card.hint_image} alt="Dica" className="mt-2 max-h-48 mx-auto rounded object-contain" />}
+                    </div>
                   )}
                   <p className="mt-6 text-sm text-gray-400">Clique para revelar</p>
                 </div>

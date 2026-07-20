@@ -281,7 +281,9 @@ class FlashcardCreate(BaseModel):
     front: str
     back: str
     hint: Optional[str] = None
+    hint_image: Optional[str] = None
     explanation: Optional[str] = None
+    explanation_image: Optional[str] = None
     tags: List[str] = []
     difficulty: str = "Medium"
     options: List[FlashcardOptionCreate] = []
@@ -291,7 +293,9 @@ class FlashcardUpdate(BaseModel):
     front: Optional[str] = None
     back: Optional[str] = None
     hint: Optional[str] = None
+    hint_image: Optional[str] = None
     explanation: Optional[str] = None
+    explanation_image: Optional[str] = None
     tags: Optional[List[str]] = None
     difficulty: Optional[str] = None
     options: Optional[List[FlashcardOptionCreate]] = None
@@ -303,7 +307,9 @@ class FlashcardResponse(BaseModel):
     front: str
     back: str
     hint: Optional[str]
+    hint_image: Optional[str] = None
     explanation: Optional[str] = None
+    explanation_image: Optional[str] = None
     tags: List[str]
     difficulty: str
     repetitions: int

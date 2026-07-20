@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { X, CheckCircle2 } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { X, CheckCircle2, ImagePlus, Trash2 } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { useStudyContext } from '../../store/studyContextStore';
 import { useSubjectStore } from '../../store/subjectStore';
@@ -36,7 +36,11 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
   const [front, setFront] = useState(card?.front ?? '');
   const [back, setBack] = useState(card?.back ?? '');
   const [hint, setHint] = useState(card?.hint ?? '');
+  const [hintImage, setHintImage] = useState<string | undefined>(card?.hint_image);
   const [explanation, setExplanation] = useState(card?.explanation ?? '');
+  const [explanationImage, setExplanationImage] = useState<string | undefined>(card?.explanation_image);
+  const hintImageRef = useRef<HTMLInputElement>(null);
+  const explanationImageRef = useRef<HTMLInputElement>(null);
   const [difficulty, setDifficulty] = useState(card?.difficulty ?? 'Medium');
   const [assunto, setAssunto] = useState<string>(() => {
     // Recover assunto from tags (format: "assunto:XXX")
@@ -56,6 +60,14 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
   const selectedDeck = decks.find(d => d.id === selectedDeckId) ?? deck;
 
@@ -88,7 +100,9 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
       setFront(card.front);
       setBack(card.back);
       setHint(card.hint ?? '');
+      setHintImage(card.hint_image);
       setExplanation(card.explanation ?? '');
+      setExplanationImage(card.explanation_image);
       setDifficulty(card.difficulty);
       const assuntoTag = card.tags?.find(t => t.startsWith('assunto:'));
       setAssunto(assuntoTag ? assuntoTag.replace('assunto:', '') : '');
@@ -136,7 +150,9 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         front: front.trim(),
         back: effectiveBack,
         hint: hint.trim() || undefined,
+        hint_image: hintImage || undefined,
         explanation: (cardType === 'true_false' || cardType === 'multiple_choice') ? (explanation.trim() || undefined) : undefined,
+        explanation_image: (cardType === 'true_false' || cardType === 'multiple_choice') ? (explanationImage || undefined) : undefined,
         difficulty,
         tags: buildTags(),
         options:
@@ -152,7 +168,9 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
         setFront('');
         setBack('');
         setHint('');
+        setHintImage(undefined);
         setExplanation('');
+        setExplanationImage(undefined);
         setOptions(emptyOptions());
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
@@ -300,6 +318,37 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
                 placeholder="Explique o motivo da afirmação ser verdadeira ou falsa..."
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
+              <input
+                ref={explanationImageRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setExplanationImage(await toBase64(file));
+                  e.target.value = '';
+                }}
+              />
+              {explanationImage ? (
+                <div className="mt-1.5 relative inline-block">
+                  <img src={explanationImage} alt="Justificativa" className="max-h-32 rounded border border-gray-200 dark:border-gray-600 object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => setExplanationImage(undefined)}
+                    className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded p-0.5 hover:bg-red-600"
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => explanationImageRef.current?.click()}
+                  className="mt-1 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                >
+                  <ImagePlus size={12} /> Adicionar imagem
+                </button>
+              )}
             </div>
           )}
 
@@ -344,6 +393,37 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
                 style={{ maxHeight: '200px' }}
               />
+              <input
+                ref={explanationImageRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setExplanationImage(await toBase64(file));
+                  e.target.value = '';
+                }}
+              />
+              {explanationImage ? (
+                <div className="mt-1.5 relative inline-block">
+                  <img src={explanationImage} alt="Justificativa" className="max-h-32 rounded border border-gray-200 dark:border-gray-600 object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => setExplanationImage(undefined)}
+                    className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded p-0.5 hover:bg-red-600"
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => explanationImageRef.current?.click()}
+                  className="mt-1 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                >
+                  <ImagePlus size={12} /> Adicionar imagem
+                </button>
+              )}
             </div>
           )}
 
@@ -357,6 +437,37 @@ export function FlashcardForm({ deck, card, onClose }: FlashcardFormProps) {
                 onChange={(e) => setHint(e.target.value)}
                 className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
+              <input
+                ref={hintImageRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setHintImage(await toBase64(file));
+                  e.target.value = '';
+                }}
+              />
+              {hintImage ? (
+                <div className="mt-1.5 relative">
+                  <img src={hintImage} alt="Dica" className="max-h-24 rounded border border-gray-200 dark:border-gray-600 object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => setHintImage(undefined)}
+                    className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded p-0.5 hover:bg-red-600"
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => hintImageRef.current?.click()}
+                  className="mt-1 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                >
+                  <ImagePlus size={12} /> Adicionar imagem
+                </button>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dificuldade</label>
