@@ -20,7 +20,11 @@ if TYPE_CHECKING:
 
 
 def get_provider(user_setting: Optional["Setting"] = None) -> AIProvider:
-    """Return the active LLM provider, honoring a user's saved preference if any."""
+    """Return the active LLM provider, honoring a user's saved preference if any.
+
+    Falls back to the server-default provider when the user's preferred provider
+    is not available (e.g. OpenAI selected but no API key, or Ollama not running).
+    """
     cfg = get_settings()  # relê o .env a cada chamada
     name = (
         (user_setting.ai_provider_preference if user_setting and user_setting.ai_provider_preference else "")
@@ -31,20 +35,27 @@ def get_provider(user_setting: Optional["Setting"] = None) -> AIProvider:
         api_key = cfg.OPENAI_API_KEY
         if user_setting and user_setting.ai_api_key_encrypted:
             api_key = decrypt_secret(user_setting.ai_api_key_encrypted) or api_key
-        return OpenAIProvider(
+        provider = OpenAIProvider(
             api_key=api_key,
             config=ProviderConfig(model=cfg.OPENAI_MODEL),
         )
+        if provider.is_available():
+            return provider
+        # API key not configured — fall back to server default below
 
-    if name == "ollama":
+    elif name == "ollama":
         base_url = (user_setting and user_setting.ollama_base_url) or cfg.OLLAMA_BASE_URL
         model = (user_setting and user_setting.ollama_model) or cfg.OLLAMA_MODEL
-        return OllamaProvider(
+        provider = OllamaProvider(
             base_url=base_url,
             model=model,
             config=ProviderConfig(model=model),
         )
+        if provider.is_available():
+            return provider
+        # Ollama unreachable — fall back to server default below
 
+    # "mock" or fallback when preferred provider is unavailable
     return MockProvider()
 
 
