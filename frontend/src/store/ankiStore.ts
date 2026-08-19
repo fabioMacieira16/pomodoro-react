@@ -75,7 +75,7 @@ interface AnkiState {
   deleteFlashcard: (id: number) => Promise<void>;
 
   // Review actions
-  startReview: (deckId: number, assunto?: string | null) => Promise<void>;
+  startReview: (deckId: number, assunto?: string | null, force?: boolean) => Promise<void>;
   startReviewAll: (deckId: number, assunto?: string | null) => Promise<void>;
   submitReview: (quality: number) => Promise<void>;
   endReview: () => void;
@@ -182,8 +182,8 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
 
   // ── Review ──────────────────────────────────────────────────────────────────────
 
-  startReview: async (deckId, assunto) => {
-    const queue = await ankiApi.fetchReviewQueue(deckId);
+  startReview: async (deckId, assunto, force = false) => {
+    const queue = await ankiApi.fetchReviewQueue(deckId, 50, force);
     const filteredQueue = assunto
       ? queue.filter((c) => {
           const tag = c.tags?.find((t) => t.startsWith('assunto:'));

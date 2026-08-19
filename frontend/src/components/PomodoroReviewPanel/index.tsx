@@ -34,7 +34,11 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
     endReview,
   } = useAnkiStore();
 
-  const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
+  // Restore selectedDeckId from active session (e.g. after navigation)
+  const activeDeckIdFromQueue =
+    isReviewing && reviewQueue.length > 0 ? reviewQueue[currentCardIndex]?.deck_id ?? reviewQueue[0]?.deck_id ?? null : null;
+
+  const [selectedDeckId, setSelectedDeckId] = useState<number | null>(activeDeckIdFromQueue);
   const [isFlipped, setIsFlipped] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedOptionPos, setSelectedOptionPos] = useState<number | null>(null);
@@ -44,6 +48,13 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
     if (decks.length === 0) void fetchDecks();
   }, [decks.length, fetchDecks]);
 
+  // Sync selectedDeckId when an active session is detected after decks load
+  useEffect(() => {
+    if (isReviewing && selectedDeckId === null && activeDeckIdFromQueue !== null) {
+      setSelectedDeckId(activeDeckIdFromQueue);
+    }
+  }, [isReviewing, selectedDeckId, activeDeckIdFromQueue]);
+
   const suggestedDeck = useMemo(
     () => decks.find((d) => matchesSubject(d, subjectName)) ?? null,
     [decks, subjectName]
@@ -52,7 +63,7 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
   useEffect(() => {
     if (suggestedDeck && selectedDeckId === null && !isReviewing) {
       setSelectedDeckId(suggestedDeck.id);
-      void startReview(suggestedDeck.id);
+      void startReview(suggestedDeck.id, null, true);
     }
   }, [suggestedDeck, selectedDeckId, isReviewing, startReview]);
 
@@ -64,7 +75,7 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
 
   const handlePickDeck = (deckId: number) => {
     setSelectedDeckId(deckId);
-    void startReview(deckId);
+    void startReview(deckId, null, true);
   };
 
   const handleSwitchDeck = () => {
@@ -83,9 +94,25 @@ export function PomodoroReviewPanel({ subjectName }: PomodoroReviewPanelProps) {
   const activeDeck = selectedDeckId !== null ? decks.find((d) => d.id === selectedDeckId) ?? null : null;
 
   if (!isReviewing || selectedDeckId === null) {
+    const hasActiveSession = isReviewing && reviewQueue.length > 0 && currentCardIndex < reviewQueue.length;
     return (
       <div className="rp-panel">
         <h3 className="rp-title">🧠 Modo Revisão</h3>
+
+        {hasActiveSession && (
+          <div className="rp-resume-banner">
+            <span className="rp-resume-banner__text">
+              ⏸ Sessão pausada — {reviewQueue.length - currentCardIndex} cartões restantes
+            </span>
+            <button
+              className="rp-resume-banner__btn"
+              onClick={() => setSelectedDeckId(activeDeckIdFromQueue ?? reviewQueue[0].deck_id)}
+            >
+              Continuar
+            </button>
+          </div>
+        )}
+
         <p className="rp-hint">Escolha um baralho para revisar enquanto o tempo corre:</p>
         <div className="rp-deck-list">
           {decks.filter((d) => d.card_count > 0).map((d) => (

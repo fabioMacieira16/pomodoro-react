@@ -258,3 +258,38 @@
 .rp-switch-btn:hover {
   background: var(--pomo-hover);
 }
+
+/* ── Resume Banner ── */
+.rp-resume-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 10px;
+}
+
+.rp-resume-banner__text {
+  font-size: 0.84rem;
+  color: #eab308;
+  font-weight: 500;
+}
+
+.rp-resume-banner__btn {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #eab308;
+  color: #000;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.rp-resume-banner__btn:hover {
+  opacity: 0.85;
+}
