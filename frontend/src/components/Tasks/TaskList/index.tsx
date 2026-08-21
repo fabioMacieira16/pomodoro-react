@@ -86,13 +86,14 @@ const TaskList: React.FC = () => {
   const [dayCompleted, setDayCompleted] = useState(isDayComplete);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
-  const [showLoadTemplate, setShowLoadTemplate] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateEmoji, setTemplateEmoji] = useState('');
   const [templateItems, setTemplateItems] = useState<string[]>(['']);
   const [templateItemEmojis, setTemplateItemEmojis] = useState<string[]>(['']);
   const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(loadTemplates);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [returnToManager, setReturnToManager] = useState(false);
   const listMenuRef = useRef<HTMLDivElement>(null);
   const { selectedTask, select } = useSelectedTask();
   const selectedTaskId = selectedTask?.id ?? null;
@@ -232,16 +233,27 @@ const TaskList: React.FC = () => {
   }
 
   // ── Template handlers ────────────────────────────────────────────────────
-  function openCreateTemplate() {
+  function openTemplateManager() {
+    setListMenuOpen(false);
+    setShowTemplateManager(true);
+  }
+
+  function openNewTemplate() {
     setEditingTemplateId(null);
     setTemplateEmoji('');
     setTemplateName('');
-    const baseTitles = tasks.length > 0 ? tasks.map(t => t.title) : [''];
-    const parsed = baseTitles.map(splitEmojiFromTitle);
+    setTemplateItems(['']);
+    setTemplateItemEmojis(['']);
+    setShowTemplateManager(false);
+    setReturnToManager(true);
+    setShowCreateTemplate(true);
+  }
+
+  // Copia as tarefas de hoje para os campos do editor.
+  function fillFromCurrentTasks() {
+    const parsed = tasks.map(t => splitEmojiFromTitle(t.title));
     setTemplateItems(parsed.map(p => p.text));
     setTemplateItemEmojis(parsed.map(p => p.emoji));
-    setListMenuOpen(false);
-    setShowCreateTemplate(true);
   }
 
   function openEditTemplate(tpl: TaskTemplate) {
@@ -252,13 +264,18 @@ const TaskList: React.FC = () => {
     const parsed = tpl.tasks.map(splitEmojiFromTitle);
     setTemplateItems(parsed.map(p => p.text));
     setTemplateItemEmojis(parsed.map(p => p.emoji));
-    setShowLoadTemplate(false);
+    setShowTemplateManager(false);
+    setReturnToManager(true);
     setShowCreateTemplate(true);
   }
 
   function closeTemplateModal() {
     setShowCreateTemplate(false);
     setEditingTemplateId(null);
+    if (returnToManager) {
+      setReturnToManager(false);
+      setShowTemplateManager(true);
+    }
   }
 
   function handleSaveTemplate() {
@@ -307,7 +324,7 @@ const TaskList: React.FC = () => {
     setDayCompleted(false);
     clearDayComplete();
     select(null);
-    setShowLoadTemplate(false);
+    setShowTemplateManager(false);
   }
 
   function addTemplateItem() {
@@ -377,14 +394,10 @@ const TaskList: React.FC = () => {
                     Limpar todas
                   </button>
                   <div className="task-list__dropdown-sep" />
-                  <button onClick={openCreateTemplate}>
-                    📋 Criar template
+                  <button onClick={openTemplateManager}>
+                    📋 Templates
+                    {savedTemplates.length > 0 && ` (${savedTemplates.length})`}
                   </button>
-                  {savedTemplates.length > 0 && (
-                    <button onClick={() => { setShowLoadTemplate(true); setListMenuOpen(false); }}>
-                      📂 Carregar template
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -493,12 +506,23 @@ const TaskList: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={addTemplateItem}
-                  className="mt-2 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                >
-                  + Adicionar tarefa
-                </button>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <button
+                    onClick={addTemplateItem}
+                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                  >
+                    + Adicionar tarefa
+                  </button>
+                  {tasks.length > 0 && (
+                    <button
+                      onClick={fillFromCurrentTasks}
+                      className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                      title="Substitui os campos acima pelas tarefas de hoje"
+                    >
+                      📥 Usar tarefas do dia ({tasks.length})
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -521,18 +545,21 @@ const TaskList: React.FC = () => {
         </div>
       )}
 
-      {/* ── Modal: Carregar template ──────────────────────────────────── */}
-      {showLoadTemplate && (
+      {/* ── Modal: Templates (listar / criar / editar) ────────────────── */}
+      {showTemplateManager && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-              <h2 className="text-white font-semibold text-sm">Carregar Template</h2>
-              <button onClick={() => setShowLoadTemplate(false)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
+              <h2 className="text-white font-semibold text-sm">Templates</h2>
+              <button onClick={() => setShowTemplateManager(false)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
             </div>
 
             <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
               {savedTemplates.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-6">Nenhum template salvo</p>
+                <p className="text-gray-400 text-sm text-center py-6">
+                  Nenhum template salvo ainda.<br />
+                  <span className="text-gray-500 text-xs">Crie o primeiro em "+ Novo template".</span>
+                </p>
               ) : (
                 savedTemplates.map(tpl => (
                   <div key={tpl.id} className="border border-white/10 rounded-xl p-4 bg-white/5">
@@ -574,12 +601,18 @@ const TaskList: React.FC = () => {
               )}
             </div>
 
-            <div className="px-5 py-4 border-t border-white/10">
+            <div className="flex gap-3 px-5 py-4 border-t border-white/10">
               <button
-                onClick={() => setShowLoadTemplate(false)}
-                className="w-full py-2 border border-white/20 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition-colors"
+                onClick={() => setShowTemplateManager(false)}
+                className="flex-1 py-2 border border-white/20 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition-colors"
               >
                 Fechar
+              </button>
+              <button
+                onClick={openNewTemplate}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+              >
+                + Novo template
               </button>
             </div>
           </div>
