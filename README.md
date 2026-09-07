@@ -528,23 +528,6 @@ npm run dev
 # App em http://localhost:3000
 ```
 
-### Execução rápida em dois terminais
-
-Terminal 1:
-
-```powershell
-cd backend
-.\.venv311\Scripts\Activate.ps1
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir .
-```
-
-Terminal 2:
-
-```powershell
-cd frontend
-npm run dev
-```
-
 ### Observações para ambiente local
 
 - O backend local foi validado com `Python 3.11`. Com `Python 3.13`, o projeto pode falhar por incompatibilidade com a stack atual.
