@@ -519,7 +519,6 @@ pip install -r requirements.txt
 Copy-Item ..\.env.example .env -Force
 
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-
 # 2) Frontend
 cd ..\frontend
 npm install
@@ -565,3 +564,4 @@ npm run dev
 ## 📄 Licença
 
 MIT
+
