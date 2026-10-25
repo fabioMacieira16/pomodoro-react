@@ -82,7 +82,7 @@ export default function Task({ task, index }: TaskProps) {
       title: editTitle.trim() || task.title,
       description: editNote,
       estimated_minutes: estPomo * 25,
-      subject_id: editSubjectId,
+      subject_id: editSubjectId ?? undefined,
     });
     setEditing(false);
   };
