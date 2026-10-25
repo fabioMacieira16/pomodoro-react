@@ -80,6 +80,26 @@ body {
   transition: background 0.3s;
 }
 
+.app-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+}
+
+.app-title-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--pomo-text-muted);
+}
+
+.app-title-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  opacity: 0.6;
+  color: var(--pomo-text-muted);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
