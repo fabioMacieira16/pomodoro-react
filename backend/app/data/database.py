@@ -6,6 +6,10 @@ from app.core.config import settings
 
 
 def _resolve_database_uri(uri: str) -> str:
+    # Alguns provedores entregam "postgres://", que o SQLAlchemy 2.x não aceita.
+    if uri.startswith("postgres://"):
+        uri = "postgresql://" + uri[len("postgres://"):]
+
     sqlite_prefix = "sqlite:///"
     absolute_sqlite_prefix = "sqlite:////"
 
@@ -17,10 +21,14 @@ def _resolve_database_uri(uri: str) -> str:
     absolute_path = (backend_root / relative_path).resolve()
     return f"{sqlite_prefix}{absolute_path.as_posix()}"
 
-engine = create_engine(
-    _resolve_database_uri(settings.SQLALCHEMY_DATABASE_URI),
-    connect_args={"check_same_thread": False},
-)
+DATABASE_URI = _resolve_database_uri(settings.SQLALCHEMY_DATABASE_URI)
+
+if DATABASE_URI.startswith("sqlite"):
+    # check_same_thread só existe no SQLite.
+    engine = create_engine(DATABASE_URI, connect_args={"check_same_thread": False})
+else:
+    # pre_ping descarta conexões que o pooler (ex.: Supabase) já fechou.
+    engine = create_engine(DATABASE_URI, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

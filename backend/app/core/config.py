@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     ALLOW_DEV_AUTH_BYPASS: bool = True
     DEV_AUTH_USERNAME: str = "admin"
 
+    # ── CORS ───────────────────────────────────────────────────────────────────
+    # Origens permitidas além do localhost, separadas por vírgula
+    # (ex.: "https://meuapp.vercel.app,https://meuapp-stg.vercel.app").
+    CORS_ORIGINS: str = ""
+    # Regex extra opcional (ex.: previews do Vercel: r"https://meuapp-.*\.vercel\.app").
+    CORS_ORIGIN_REGEX: str = ""
+
     # ── AI Module ──────────────────────────────────────────────────────────────
     # Provider: "mock" (default, no API key needed) | "openai" | "ollama"
     AI_PROVIDER: str = "mock"

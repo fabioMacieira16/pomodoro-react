@@ -37,4 +37,5 @@ USER appuser
 EXPOSE 8000
 
 # Workers: 2*CPU+1 is a common heuristic
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Render, Cloud Run e similares injetam $PORT; localmente cai em 8000.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2"]

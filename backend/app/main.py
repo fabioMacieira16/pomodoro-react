@@ -26,9 +26,16 @@ async def _startup():
     finally:
         db.close()
 
+_LOCAL_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+_cors_origins = [o.strip().rstrip("/") for o in app_settings.CORS_ORIGINS.split(",") if o.strip()]
+_cors_regex = _LOCAL_ORIGIN_REGEX
+if app_settings.CORS_ORIGIN_REGEX:
+    _cors_regex = f"(?:{_LOCAL_ORIGIN_REGEX})|(?:{app_settings.CORS_ORIGIN_REGEX})"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origins=_cors_origins,
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
