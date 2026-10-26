@@ -18,8 +18,11 @@ app = FastAPI(title=app_settings.PROJECT_NAME)
 @app.on_event("startup")
 async def _startup():
     from app.achievements.service import ensure_tables, seed_achievements
-    from app.data.database import SessionLocal
+    from app.data.database import SessionLocal, engine
+    from app.data.rls import enable_rls_on_public_tables
     ensure_tables()
+    # Depois de ensure_tables, para cobrir também as tabelas criadas por ele.
+    enable_rls_on_public_tables(engine)
     db = SessionLocal()
     try:
         seed_achievements(db)

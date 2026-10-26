@@ -15,6 +15,8 @@ api.interceptors.request.use(async (config) => {
   if (supabase) {
     const { data } = await supabase.auth.getSession();
     token = data.session?.access_token ?? null;
+    // Sem sessão não adianta chamar a API (voltaria 401); quem chamou trata como "offline".
+    if (!token) throw new axios.CanceledError('Faça login para usar este recurso.');
   } else {
     token = localStorage.getItem('token');
   }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { APP_LABEL, APP_NAME, APP_TAGLINE } from '../appInfo';
-import LogoutButton from './LogoutButton';
+import AuthButton from './AuthButton';
 
 const FixedMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -76,7 +76,7 @@ const FixedMenu: React.FC = () => {
           {isFullscreen ? '⊞' : '⛶'}
         </button>
 
-        <LogoutButton />
+        <AuthButton />
       </div>
     </header>
   );

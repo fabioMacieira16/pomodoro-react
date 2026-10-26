@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { APP_LABEL, APP_NAME, APP_TAGLINE } from '../appInfo';
 import { useAuthStore } from '../store/authStore';
 import './LoginPage.css';
@@ -6,6 +7,18 @@ import './LoginPage.css';
 type Mode = 'signin' | 'signup' | 'forgot';
 
 const MIN_PASSWORD = 8;
+const RETURN_TO_KEY = 'focoplus-return-to';
+
+// Google e o link de confirmação por e-mail recarregam o app em "/"; guardamos a tela
+// atual para devolver a pessoa a ela depois (lido em index.tsx).
+function rememberReturnPath() {
+  try {
+    const path = window.location.pathname;
+    if (path !== '/' && path !== '/login') sessionStorage.setItem(RETURN_TO_KEY, path);
+  } catch {
+    // sessionStorage indisponível: a pessoa cai em "/".
+  }
+}
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -17,6 +30,7 @@ const GoogleIcon = () => (
 );
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
   const recovery = useAuthStore((s) => s.recovery);
   const signIn = useAuthStore((s) => s.signIn);
   const signUp = useAuthStore((s) => s.signUp);
@@ -75,6 +89,7 @@ const LoginPage: React.FC = () => {
         const err = await signIn(cleanEmail, password);
         if (err) setError(err);
       } else if (mode === 'signup') {
+        rememberReturnPath();
         const { error: err, needsConfirmation } = await signUp(cleanEmail, password);
         if (err) {
           setError(err);
@@ -101,6 +116,7 @@ const LoginPage: React.FC = () => {
     setError(null);
     setInfo(null);
     setBusy(true);
+    rememberReturnPath();
     const err = await signInWithGoogle();
     // Em caso de sucesso a página é redirecionada ao Google.
     if (err) {
@@ -210,6 +226,12 @@ const LoginPage: React.FC = () => {
               <button type="button" onClick={() => switchMode('signin')}>Voltar para entrar</button>
             )}
           </nav>
+        )}
+
+        {!recovery && (
+          <div className="login-links login-links-center">
+            <button type="button" onClick={() => navigate('/')}>Voltar ao Pomodoro</button>
+          </div>
         )}
 
         <footer className="login-footer">{APP_LABEL}</footer>
