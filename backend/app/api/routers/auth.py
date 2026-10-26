@@ -6,10 +6,23 @@ from app.core import security
 from app.data.database import get_db
 from app.data.repositories import user_repo
 
+from app.core.config import settings
+
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _ensure_local_auth_enabled():
+    """Cadastro e login próprios só existem no modo local; com Supabase, a autenticação é dele."""
+    if settings.supabase_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Use o login do Supabase",
+        )
+
 
 @router.post("/register", response_model=dtos.UserResponse)
 def register(user_in: dtos.UserCreate, db: Session = Depends(get_db)):
+    _ensure_local_auth_enabled()
     user = user_repo.get_by_username(db, user_in.username)
     if user:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -24,8 +37,10 @@ def register(user_in: dtos.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=dtos.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    _ensure_local_auth_enabled()
     user = user_repo.get_by_username(db, form_data.username)
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
+    # Usuários criados pelo Supabase não têm senha local.
+    if not user or not user.hashed_password or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

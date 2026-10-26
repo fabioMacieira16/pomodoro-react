@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api',
@@ -7,9 +8,16 @@ const api = axios.create({
   },
 });
 
-// Interceptor for auth token if needed
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+// Com Supabase o token vem da sessão (o SDK renova o access token sozinho);
+// no modo local usa o token do login próprio, se houver.
+api.interceptors.request.use(async (config) => {
+  let token: string | null;
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    token = data.session?.access_token ?? null;
+  } else {
+    token = localStorage.getItem('token');
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

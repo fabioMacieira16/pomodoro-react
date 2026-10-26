@@ -8,7 +8,10 @@ import Pomodoro from './containers/Pomodoro';
 import Dashboard from './containers/Dashboard';
 import AnkiPage from './containers/AnkiPage';
 import EstudosPage from './containers/EstudosPage';
+import LoginPage from './containers/LoginPage';
 import FixedMenu from './components/FixedMenu';
+import { isAuthEnabled } from './api/supabase';
+import { useAuthStore } from './store/authStore';
 import AchievementCelebration from './components/AchievementCelebration';
 import { usePomodoroSettings } from './store/pomodoroSettingsStore';
 import './style.css';
@@ -47,6 +50,21 @@ function ThemeBootstrap() {
   return null;
 }
 
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user);
+  const loading = useAuthStore((state) => state.loading);
+  const recovery = useAuthStore((state) => state.recovery);
+  const init = useAuthStore((state) => state.init);
+
+  useEffect(() => init(), [init]);
+
+  // Sem Supabase configurado (dev local) o app abre direto, como antes.
+  if (!isAuthEnabled) return <>{children}</>;
+  if (loading) return <div className="auth-loading">Carregando…</div>;
+  if (!user || recovery) return <LoginPage />;
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   const location = useLocation();
   const isPomodoro = location.pathname === '/';
@@ -74,8 +92,10 @@ root.render(
   <React.StrictMode>
     <DndProvider backend={HTML5Backend}>
       <BrowserRouter>
-        <ThemeBootstrap />
-        <AppRoutes />
+        <AuthGate>
+          <ThemeBootstrap />
+          <AppRoutes />
+        </AuthGate>
       </BrowserRouter>
     </DndProvider>
   </React.StrictMode>

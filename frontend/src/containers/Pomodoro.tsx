@@ -5,6 +5,7 @@ import TimeDisplay from '../components/TimeDisplay';
 import Controls from '../components/Controls';
 import Shortcuts from '../components/Shortcuts';
 import ToggleSound from '../components/ToggleSound';
+import LogoutButton from '../components/LogoutButton';
 import ToggleTask from '../components/Tasks/TaskToggle';
 import TaskList from '../components/Tasks/TaskList';
 import ProductivityModal from '../components/ProductivityModal';
@@ -284,6 +285,7 @@ const Pomodoro: React.FC = () => {
             sound={settings.soundEnabled}
             toggleSound={() => settings.update({ soundEnabled: !settings.soundEnabled })}
           />
+          <LogoutButton />
         </div>
       </header>
 

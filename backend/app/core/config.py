@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     ALLOW_DEV_AUTH_BYPASS: bool = True
     DEV_AUTH_USERNAME: str = "admin"
 
+    # ── Supabase Auth ──────────────────────────────────────────────────────────
+    # Com SUPABASE_URL definido, o backend aceita só tokens do Supabase e ignora
+    # ALLOW_DEV_AUTH_BYPASS. Vazio = modo local (login próprio / usuário de dev).
+    SUPABASE_URL: str = ""
+    # Só necessário em projetos que ainda assinam o JWT com HS256.
+    SUPABASE_JWT_SECRET: str = ""
+
     # ── CORS ───────────────────────────────────────────────────────────────────
     # Origens permitidas além do localhost, separadas por vírgula
     # (ex.: "https://meuapp.vercel.app,https://meuapp-stg.vercel.app").
@@ -35,6 +42,10 @@ class Settings(BaseSettings):
 
     # LangChain orchestration (requires langchain package)
     USE_LANGCHAIN: bool = False
+
+    @property
+    def supabase_enabled(self) -> bool:
+        return bool(self.SUPABASE_URL.strip())
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -46,6 +46,12 @@ class UserRepository(BaseRepository[User]):
     def get_by_username(self, db: Session, username: str) -> User | None:
         return db.query(self.model).filter(self.model.username == username).first()
 
+    def get_by_email(self, db: Session, email: str) -> User | None:
+        return db.query(self.model).filter(self.model.email == email).first()
+
+    def get_by_auth_uid(self, db: Session, auth_uid: str) -> User | None:
+        return db.query(self.model).filter(self.model.auth_uid == auth_uid).first()
+
 class TaskRepository(BaseRepository[Task]):
     def __init__(self):
         super().__init__(Task)
