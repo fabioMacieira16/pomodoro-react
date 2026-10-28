@@ -1,21 +1,26 @@
 .ToggleTask {
-  position: absolute;
-  width: 27px;
-  height: 24px;
-  right: 115px;
-  top: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
-  font-size: 24px;
-  color: #666;
-  opacity: 0.5;
+  color: var(--pomo-text-muted, #666);
+  opacity: 0.7;
   transition: all 0.3s;
   outline: 0;
   cursor: pointer;
   padding: 0;
-  text-align: left;
+}
+
+.ToggleTask:hover {
+  opacity: 1;
+  background: var(--pomo-hover, rgba(255, 255, 255, 0.06));
 }
 
 .ToggleTask.active {
   opacity: 1;
+  color: var(--pomo-accent, #ef4444);
 }
