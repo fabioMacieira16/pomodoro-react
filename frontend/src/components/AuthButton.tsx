@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { isAuthEnabled } from '../api/supabase';
 import { useAuthStore } from '../store/authStore';
 
-/** "Entrar" para visitantes e "Sair" para quem já tem sessão. */
+/** Nome completo (Google ou cadastro); sem ele, a parte do e-mail antes do @. */
+function displayName(user: { name?: string; email: string }): string {
+  return user.name?.trim() || user.email.split('@')[0];
+}
+
+/** "Entrar" para visitantes; nome da pessoa e "Sair" para quem já tem sessão. */
 const AuthButton: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
@@ -20,9 +25,14 @@ const AuthButton: React.FC = () => {
   }
 
   return (
-    <button className="auth-btn" onClick={() => void signOut()} title={`Conectado como ${user.email}`}>
-      Sair
-    </button>
+    <>
+      <span className="auth-user" title={`Conectado como ${user.email}`}>
+        {displayName(user)}
+      </span>
+      <button className="auth-btn" onClick={() => void signOut()}>
+        Sair
+      </button>
+    </>
   );
 };
 

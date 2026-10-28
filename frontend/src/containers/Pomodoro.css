@@ -152,6 +152,23 @@ body {
   background: var(--pomo-hover);
 }
 
+.auth-user {
+  margin-left: 12px;
+  max-width: 180px;
+  overflow: hidden;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pomo-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .auth-user {
+    display: none;
+  }
+}
+
 .auth-btn-primary {
   color: #fff;
   background: var(--pomo-accent);
