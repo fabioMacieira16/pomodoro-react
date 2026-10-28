@@ -480,7 +480,7 @@ body {
   margin: 2px 0 0;
 }
 
-/* ── Util row (ToggleTask + Settings) ────────────────────────────────────── */
+/* ── Util row (Settings) ─────────────────────────────────────────────────── */
 .pomo-util-row {
   display: flex;
   align-items: center;
