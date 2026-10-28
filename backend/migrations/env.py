@@ -22,7 +22,12 @@ import os
 import sys
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
 from app.domain.models import Base
+from app.data.database import DATABASE_URI
 target_metadata = Base.metadata
+
+# A URL vem das settings (.env / variáveis de ambiente), não do alembic.ini.
+# "%" é escapado porque o ConfigParser interpreta "%" como interpolação.
+config.set_main_option("sqlalchemy.url", DATABASE_URI.replace("%", "%%"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

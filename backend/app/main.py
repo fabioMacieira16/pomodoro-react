@@ -18,17 +18,27 @@ app = FastAPI(title=app_settings.PROJECT_NAME)
 @app.on_event("startup")
 async def _startup():
     from app.achievements.service import ensure_tables, seed_achievements
-    from app.data.database import SessionLocal
+    from app.data.database import SessionLocal, engine
+    from app.data.rls import enable_rls_on_public_tables
     ensure_tables()
+    # Depois de ensure_tables, para cobrir também as tabelas criadas por ele.
+    enable_rls_on_public_tables(engine)
     db = SessionLocal()
     try:
         seed_achievements(db)
     finally:
         db.close()
 
+_LOCAL_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+_cors_origins = [o.strip().rstrip("/") for o in app_settings.CORS_ORIGINS.split(",") if o.strip()]
+_cors_regex = _LOCAL_ORIGIN_REGEX
+if app_settings.CORS_ORIGIN_REGEX:
+    _cors_regex = f"(?:{_LOCAL_ORIGIN_REGEX})|(?:{app_settings.CORS_ORIGIN_REGEX})"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origins=_cors_origins,
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

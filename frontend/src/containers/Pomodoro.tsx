@@ -5,7 +5,7 @@ import TimeDisplay from '../components/TimeDisplay';
 import Controls from '../components/Controls';
 import Shortcuts from '../components/Shortcuts';
 import ToggleSound from '../components/ToggleSound';
-import ToggleTask from '../components/Tasks/TaskToggle';
+import AuthButton from '../components/AuthButton';
 import TaskList from '../components/Tasks/TaskList';
 import ProductivityModal from '../components/ProductivityModal';
 import SettingsPanel from '../components/SettingsPanel';
@@ -48,10 +48,6 @@ const Pomodoro: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showStudyModeModal, setShowStudyModeModal] = useState(false);
   const [modalSubject, setModalSubject] = useState<string>('');
-  const [taskOpen, setTaskOpen] = useState(() => {
-    const saved = localStorage.getItem('pomodoro-react-taskStatus');
-    return saved ? JSON.parse(saved) : false;
-  });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const headerRevealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -213,14 +209,6 @@ const Pomodoro: React.FC = () => {
     settings.syncToBackend();
   };
 
-  const handleToggleTask = () => {
-    setTaskOpen((p: boolean) => {
-      const next = !p;
-      localStorage.setItem('pomodoro-react-taskStatus', JSON.stringify(next));
-      return next;
-    });
-  };
-
   const isTimerActive = engine.status === 'running' || engine.status === 'paused';
   const isRunning = engine.status === 'running';
   const isReviewMode = studyCtx.context.current_pomodoro_mode === 'review' && isTimerActive;
@@ -284,6 +272,7 @@ const Pomodoro: React.FC = () => {
             sound={settings.soundEnabled}
             toggleSound={() => settings.update({ soundEnabled: !settings.soundEnabled })}
           />
+          <AuthButton />
         </div>
       </header>
 
@@ -365,19 +354,16 @@ const Pomodoro: React.FC = () => {
             </div>
           )}
 
-          {/* Util row: show when not actively running (idle, paused, finished) */}
-          {!isRunning && (
+          {/* Util row: configurações só com o timer parado (idle ou finalizado) */}
+          {!isTimerActive && (
             <div className="pomo-util-row">
-              <ToggleTask task={taskOpen} toggleTask={handleToggleTask} />
-              {!isTimerActive && (
-                <button
-                  className="icon-btn pomo-settings-btn"
-                  onClick={() => setSettingsOpen(true)}
-                  title="Configurações"
-                >
-                  ⚙️
-                </button>
-              )}
+              <button
+                className="icon-btn pomo-settings-btn"
+                onClick={() => setSettingsOpen(true)}
+                title="Configurações"
+              >
+                ⚙️
+              </button>
             </div>
           )}
 
@@ -402,7 +388,7 @@ const Pomodoro: React.FC = () => {
         </div>
 
         {/* Task panel: visible when paused or idle/finished (not in review/quiz mode) */}
-        {!isReviewMode && !isQuizMode && !isRunning && taskOpen && (
+        {!isReviewMode && !isQuizMode && !isRunning && (
           <div className="TaskPainel">
             <TaskList />
           </div>
