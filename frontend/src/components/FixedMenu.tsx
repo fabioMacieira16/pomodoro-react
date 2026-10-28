@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { APP_LABEL, APP_NAME, APP_TAGLINE } from '../appInfo';
+import AuthButton from './AuthButton';
 
 const FixedMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -28,7 +30,11 @@ const FixedMenu: React.FC = () => {
 
   return (
     <header className="app-header">
-      <div />
+      <div className="app-title" title={`${APP_NAME} — ${APP_TAGLINE}`}>
+        <span className="app-title-name">{APP_NAME}</span>
+        <span className="app-title-label">{APP_LABEL}</span>
+      </div>
+
       <div className="header-actions">
         <button
           className={`icon-btn ${isActive('/') ? 'active' : ''}`}
@@ -69,6 +75,8 @@ const FixedMenu: React.FC = () => {
         >
           {isFullscreen ? '⊞' : '⛶'}
         </button>
+
+        <AuthButton />
       </div>
     </header>
   );
