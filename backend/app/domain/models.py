@@ -149,7 +149,6 @@ class AnkiDeck(Base):
     name = Column(String, index=True)
     description = Column(Text, nullable=True)
     color = Column(String, default="#3b82f6")
-    is_public = Column(Boolean, nullable=False, default=False)
     user_id = Column(Integer, ForeignKey("users.id"))
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
     parent_deck_id = Column(Integer, ForeignKey("anki_decks.id"), nullable=True)

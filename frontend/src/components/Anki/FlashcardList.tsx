@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Brain, Zap, ChevronRight, Layers, Upload, Search, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Brain, Zap, ChevronRight, Layers, Upload, Search } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { FlashcardForm } from './FlashcardForm';
 import { AIGenerator } from './AIGenerator';
@@ -25,8 +25,6 @@ interface FlashcardListProps {
   onBack: () => void;
   onStartReview: (deck: Deck, assunto?: string | null) => void;
   onSwitchDeck?: (deckId: number) => void;
-  readOnly?: boolean;
-  onCopyDeck?: (deck: Deck) => Promise<void>;
 }
 
 function getAssunto(card: Flashcard): string | null {
@@ -48,7 +46,7 @@ interface Baralho {
   cards: Flashcard[];
 }
 
-export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readOnly = false, onCopyDeck }: FlashcardListProps) {
+export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck }: FlashcardListProps) {
   const { flashcards, fetchFlashcards, deleteFlashcard, isLoadingCards, startReviewAll } = useAnkiStore();
   const [showForm, setShowForm] = useState(false);
   const [showAI, setShowAI] = useState(false);
@@ -56,8 +54,6 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [selectedAssunto, setSelectedAssunto] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCopying, setIsCopying] = useState(false);
-  const [copyError, setCopyError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFlashcards(deck.id);
@@ -66,19 +62,6 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
   useEffect(() => {
     setSelectedAssunto(null);
   }, [deck.id]);
-
-  const handleCopyDeck = async () => {
-    if (!onCopyDeck) return;
-    setIsCopying(true);
-    setCopyError(null);
-    try {
-      await onCopyDeck(deck);
-    } catch {
-      setCopyError('Não foi possível adicionar este deck. Tente novamente.');
-    } finally {
-      setIsCopying(false);
-    }
-  };
 
   const handleDelete = async (card: Flashcard) => {
     if (window.confirm('Excluir este flashcard?')) {
@@ -133,16 +116,6 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">{deck.name}</h2>
         </div>
         <div className="flex gap-2">
-          {readOnly ? (
-            <button
-              onClick={handleCopyDeck}
-              disabled={isCopying || !onCopyDeck}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium"
-            >
-              <Copy size={14} />
-              {isCopying ? 'Adicionando...' : 'Adicionar à minha biblioteca'}
-            </button>
-          ) : <>
           <button
             onClick={() => setShowAI(true)}
             className="flex items-center gap-2 px-3 py-2 border border-purple-300 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors text-sm font-medium"
@@ -193,16 +166,8 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
               </div>
             );
           })()}
-          </>}
         </div>
       </div>
-
-      {readOnly && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
-          Visualização pública: as respostas e os cartões são somente leitura. Adicione uma cópia à sua biblioteca para estudar e editar.
-        </div>
-      )}
-      {copyError && <p role="alert" className="mb-4 text-sm text-red-600">{copyError}</p>}
 
       {/* ── Campo de pesquisa ─────────────────────────────────────────────────── */}
       <div className="mb-4">
@@ -310,17 +275,17 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
             </div>
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className={`grid ${readOnly ? 'grid-cols-[60px_1fr_1fr_90px]' : 'grid-cols-[60px_1fr_70px_90px_70px]'} items-center px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 border-b border-gray-100 dark:border-gray-700`}>
+              <div className="grid grid-cols-[60px_1fr_70px_90px_70px] items-center px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 border-b border-gray-100 dark:border-gray-700">
                 <span>Tipo</span>
                 <span>Pergunta</span>
-                {readOnly ? <span>Resposta</span> : <span className="text-center">Status</span>}
+                <span className="text-center">Status</span>
                 <span className="text-center">Dificul.</span>
-                {!readOnly && <span className="text-right">Ações</span>}
+                <span className="text-right">Ações</span>
               </div>
               {visibleCards.map((card, idx) => (
                 <div
                   key={card.id}
-                  className={`grid ${readOnly ? 'grid-cols-[60px_1fr_1fr_90px]' : 'grid-cols-[60px_1fr_70px_90px_70px]'} items-center px-4 py-2.5 gap-2 border-b border-gray-50 dark:border-gray-700/50 last:border-b-0 ${
+                  className={`grid grid-cols-[60px_1fr_70px_90px_70px] items-center px-4 py-2.5 gap-2 border-b border-gray-50 dark:border-gray-700/50 last:border-b-0 ${
                     idx % 2 === 1 ? 'bg-gray-50/50 dark:bg-gray-700/20' : ''
                   }`}
                 >
@@ -328,16 +293,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
                     {CARD_TYPE_LABELS[card.card_type] ?? card.card_type}
                   </span>
                   <span className="min-w-0 truncate text-sm text-gray-900 dark:text-white">{card.front}</span>
-                  {readOnly ? (
-                    <div className="min-w-0 text-sm text-gray-700 dark:text-gray-300">
-                      <p className="line-clamp-2" title={card.back}>{card.back}</p>
-                      {card.options.length > 0 && (
-                        <ul className="mt-1 space-y-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          {card.options.map((option) => <li key={option.id}>{option.text}</li>)}
-                        </ul>
-                      )}
-                    </div>
-                  ) : <span className="text-center">
+                  <span className="text-center">
                     {isNew(card) ? (
                       <span className="text-[11px] font-semibold text-blue-600">Novo</span>
                     ) : isDue(card) ? (
@@ -347,9 +303,9 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
                         {card.next_review ? new Date(card.next_review).toLocaleDateString('pt-BR') : '—'}
                       </span>
                     )}
-                  </span>}
+                  </span>
                   <span className="text-center text-xs text-gray-400">{card.difficulty}</span>
-                  {!readOnly && <span className="flex items-center justify-end gap-1">
+                  <span className="flex items-center justify-end gap-1">
                     <button
                       onClick={() => { setEditingCard(card); setShowForm(true); }}
                       className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
@@ -362,7 +318,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
                     >
                       <Trash2 size={13} />
                     </button>
-                  </span>}
+                  </span>
                 </div>
               ))}
             </div>
@@ -370,7 +326,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
         </div>
       )}
 
-      {!readOnly && showForm && (
+      {showForm && (
         <FlashcardForm
           deck={deck}
           card={editingCard}
@@ -378,7 +334,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
         />
       )}
 
-      {!readOnly && showAI && (
+      {showAI && (
         <AIGenerator
           deck={deck}
           onClose={(resultDeckId) => {
@@ -388,7 +344,7 @@ export function FlashcardList({ deck, onBack, onStartReview, onSwitchDeck, readO
         />
       )}
 
-      {!readOnly && showImport && (
+      {showImport && (
         <CSVImporter
           deck={deck}
           tabs={['flashcards', 'questoes']}

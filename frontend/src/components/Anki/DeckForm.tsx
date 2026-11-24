@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { X } from 'lucide-react';
 import { useAnkiStore } from '../../store/ankiStore';
 import { useStudyContext } from '../../store/studyContextStore';
@@ -24,11 +23,9 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
   const [name, setName] = useState(deck?.name ?? '');
   const [description, setDescription] = useState(deck?.description ?? '');
   const [color, setColor] = useState(deck?.color ?? COLORS[0]);
-  const [isPublic, setIsPublic] = useState(deck?.is_public ?? false);
   const [parentDeckId, setParentDeckId] = useState<number | ''>(deck?.parent_deck_id ?? '');
   const [subjectId, setSubjectId] = useState<number | ''>(deck?.subject_id ?? '');
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchSubjects();
@@ -39,7 +36,6 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
       setName(deck.name);
       setDescription(deck.description ?? '');
       setColor(deck.color);
-      setIsPublic(deck.is_public);
       setParentDeckId(deck.parent_deck_id ?? '');
       setSubjectId(deck.subject_id ?? '');
     }
@@ -52,13 +48,11 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    setSaveError(null);
     try {
       const payload: Partial<Deck> = {
         name: name.trim(),
         description: description.trim() || undefined,
         color,
-        is_public: isPublic,
         parent_deck_id: parentDeckId || undefined,
         subject_id: subjectId || undefined,
       };
@@ -68,12 +62,6 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
         await createDeck(payload);
       }
       onClose();
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        setSaveError('Não autorizado. Verifique sua sessão e se o SUPABASE_URL do backend corresponde ao VITE_SUPABASE_URL do frontend.');
-      } else {
-        setSaveError('Não foi possível salvar o deck. Tente novamente.');
-      }
     } finally {
       setSaving(false);
     }
@@ -136,19 +124,6 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
             />
           </div>
 
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              className="mt-1 accent-blue-600"
-            />
-            <span>
-              <span className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tornar este deck público</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">Outros usuários poderão visualizar os cartões e copiar o deck para a biblioteca deles.</span>
-            </span>
-          </label>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cor</label>
             <div className="flex gap-2 flex-wrap">
@@ -179,8 +154,6 @@ export function DeckForm({ deck, onClose }: DeckFormProps) {
                 ))}
             </select>
           </div>
-
-          {saveError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{saveError}</p>}
 
           <div className="flex gap-3 pt-2">
             <button

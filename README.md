@@ -34,7 +34,7 @@ O app tem **4 páginas principais**, cada uma com propósito único:
 | 🍅 **Pomodoro** | Timer com sessões, pausas e métricas | Base do foco e da consistência |
 | 📅 **Agenda Inteligente** | Plano de estudos adaptado à data da prova | Prioriza o que importa, quando importa |
 | 📊 **Central de Desempenho** | Heatmap, conquistas, streak, ranking pessoal | Transforma esforço invisível em dados visíveis — e recompensa |
-| 🧠 **Sistema Anki + IA** | Revisão espaçada gerada a partir de PDFs, vídeos, erros e questões; decks públicos copiáveis | **O diferencial absurdo** — memória de longo prazo automática |
+| 🧠 **Sistema Anki + IA** | Revisão espaçada gerada a partir de PDFs, vídeos, erros e questões | **O diferencial absurdo** — memória de longo prazo automática |
 | 🏆 **Sistema de Conquistas** | Gamificação integrada ao Dashboard — sem telas extras | Mantém a motivação com progressão real e recompensas visíveis |
 
 ---
