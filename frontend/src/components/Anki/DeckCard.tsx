@@ -6,6 +6,7 @@ interface DeckCardProps {
   onStudy: (deck: Deck) => void;
   onEdit: (deck: Deck) => void;
   onDelete: (deck: Deck) => void;
+  readOnly?: boolean;
   onClick: (deck: Deck) => void;
   draggable?: boolean;
   isDragging?: boolean;
@@ -22,6 +23,7 @@ export function DeckCard({
   onStudy,
   onEdit,
   onDelete,
+  readOnly = false,
   onClick,
   draggable,
   isDragging,
@@ -88,12 +90,13 @@ export function DeckCard({
         {/* Actions */}
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={() => onStudy(deck)}
-            disabled={deck.card_count === 0}
+            onClick={() => readOnly ? onClick(deck) : onStudy(deck)}
+            disabled={!readOnly && deck.card_count === 0}
             className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Estudar
+            {readOnly ? 'Visualizar' : 'Estudar'}
           </button>
+          {!readOnly && <>
           <button
             onClick={() => onEdit(deck)}
             className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -106,6 +109,7 @@ export function DeckCard({
           >
             ×
           </button>
+          </>}
         </div>
       </div>
     </div>

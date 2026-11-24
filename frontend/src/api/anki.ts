@@ -9,6 +9,12 @@ export const fetchDecks = () =>
 export const fetchDeckTree = () =>
   api.get<Deck[]>('/anki/decks/tree').then((r) => r.data);
 
+export const fetchPublicDecks = () =>
+  api.get<Deck[]>('/anki/decks/public').then((r) => r.data);
+
+export const copyPublicDeck = (id: number) =>
+  api.post<Deck>(`/anki/decks/${id}/copy`).then((r) => r.data);
+
 export const createDeck = (data: Partial<Deck>) =>
   api.post<Deck>('/anki/decks/', data).then((r) => r.data);
 

@@ -16,6 +16,7 @@ def _enrich_deck(db, deck) -> dict:
         "name": deck.name,
         "description": deck.description,
         "color": deck.color,
+        "is_public": deck.is_public,
         "user_id": deck.user_id,
         "subject_id": deck.subject_id,
         "parent_deck_id": deck.parent_deck_id,
@@ -46,6 +47,15 @@ def get_deck_tree(db: Session = Depends(get_db), current_user: User = Depends(ge
     return roots
 
 
+@router.get("/public", response_model=list[dtos.PublicDeckResponse])
+def list_public_decks(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    decks = anki_deck_repo.get_public(db, current_user.id)
+    return [
+        {**_enrich_deck(db, deck), "due_count": 0, "new_count": 0}
+        for deck in decks
+    ]
+
+
 @router.post("/", response_model=dtos.DeckResponse)
 def create_deck(deck_in: dtos.DeckCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     data = deck_in.model_dump()
@@ -69,6 +79,54 @@ def update_deck(deck_id: int, deck_in: dtos.DeckUpdate, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Deck not found")
     updated = anki_deck_repo.update(db, deck, deck_in.model_dump(exclude_unset=True))
     return _enrich_deck(db, updated)
+
+
+@router.post("/{deck_id}/copy", response_model=dtos.DeckResponse)
+def copy_public_deck(deck_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from app.domain.models import AnkiDeck, Flashcard, FlashcardOption
+
+    source = anki_deck_repo.get(db, deck_id)
+    if not source or not source.is_public or source.user_id == current_user.id:
+        raise HTTPException(status_code=404, detail="Public deck not found")
+
+    copied = AnkiDeck(
+        name=source.name,
+        description=source.description,
+        color=source.color,
+        is_public=False,
+        user_id=current_user.id,
+    )
+    db.add(copied)
+    db.flush()
+
+    for source_card in source.flashcards:
+        copied_card = Flashcard(
+            deck_id=copied.id,
+            card_type=source_card.card_type,
+            front=source_card.front,
+            back=source_card.back,
+            hint=source_card.hint,
+            hint_image=source_card.hint_image,
+            explanation=source_card.explanation,
+            explanation_image=source_card.explanation_image,
+            tags=list(source_card.tags or []),
+            difficulty=source_card.difficulty,
+        )
+        db.add(copied_card)
+        db.flush()
+        db.add_all([
+            FlashcardOption(
+                flashcard_id=copied_card.id,
+                text=option.text,
+                is_correct=option.is_correct,
+                position=option.position,
+            )
+            for option in source_card.options
+        ])
+
+    db.commit()
+    db.refresh(copied)
+    return _enrich_deck(db, copied)
 
 
 @router.delete("/{deck_id}")

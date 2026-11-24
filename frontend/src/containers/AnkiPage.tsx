@@ -11,13 +11,15 @@ import type { Deck } from '../types';
 type AnkiView = 'decks' | 'flashcards' | 'dashboard';
 
 const AnkiPage: React.FC = () => {
-  const { startReview, isReviewing, resumeReview, reviewQueue, currentCardIndex, sessionCorrect, sessionTotal, decks } = useAnkiStore();
+  const { startReview, isReviewing, resumeReview, reviewQueue, currentCardIndex, sessionCorrect, sessionTotal, decks, copyPublicDeck } = useAnkiStore();
   const { context } = useStudyContext();
   const { subjects: subjectList } = useSubjectStore();
 
   const [view, setView] = useState<AnkiView>('decks');
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
+  const [selectedDeckIsPublic, setSelectedDeckIsPublic] = useState(false);
   const [disciplineFilter, setDisciplineFilter] = useState<string>('');
+  const [showPublicDecks, setShowPublicDecks] = useState(false);
 
   const canOpenCards = selectedDeck !== null;
   const hasPausedSession = !isReviewing && reviewQueue.length > 0 && currentCardIndex < reviewQueue.length;
@@ -45,9 +47,16 @@ const AnkiPage: React.FC = () => {
       })
     : decks;
 
-  const handleSelectDeck = (deck: Deck) => {
+  const handleSelectDeck = (deck: Deck, isPublic = false) => {
     setSelectedDeck(deck);
+    setSelectedDeckIsPublic(isPublic);
     setView('flashcards');
+  };
+
+  const handleCopyPublicDeck = async (deck: Deck) => {
+    const copied = await copyPublicDeck(deck.id);
+    setSelectedDeck(copied);
+    setSelectedDeckIsPublic(false);
   };
 
   const handleStartReview = async (deck: Deck, assunto?: string | null) => {
@@ -56,6 +65,7 @@ const AnkiPage: React.FC = () => {
 
   const handleBack = () => {
     setSelectedDeck(null);
+    setSelectedDeckIsPublic(false);
     setView('decks');
   };
 
@@ -74,7 +84,7 @@ const AnkiPage: React.FC = () => {
           </div>
 
           {/* Discipline filter — only show on decks view */}
-          {view === 'decks' && (
+          {view === 'decks' && !showPublicDecks && (
             <div className="flex items-center gap-2 flex-1 max-w-sm">
               <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 Disciplina:
@@ -103,7 +113,7 @@ const AnkiPage: React.FC = () => {
 
           <nav className="flex gap-1">
             <button
-              onClick={() => { setView('decks'); setSelectedDeck(null); }}
+              onClick={() => { setView('decks'); setSelectedDeck(null); setSelectedDeckIsPublic(false); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 view === 'decks'
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
@@ -138,7 +148,7 @@ const AnkiPage: React.FC = () => {
         </div>
 
         {/* Discipline filter summary bar */}
-        {view === 'decks' && disciplineFilter && (
+        {view === 'decks' && !showPublicDecks && disciplineFilter && (
           <div className="max-w-6xl mx-auto px-6 pb-2">
             <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
               Exibindo {filteredDecks.length} deck{filteredDecks.length !== 1 ? 's' : ''} de "{disciplineFilter}"
@@ -172,7 +182,7 @@ const AnkiPage: React.FC = () => {
       <main className="max-w-6xl mx-auto px-6 py-8">
         {view === 'decks' && (
           <div className="space-y-4">
-            {!disciplineFilter && (
+            {!disciplineFilter && !showPublicDecks && (
               <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
                 Selecione um deck para abrir os cartões, editar flashcards ou iniciar uma revisão.
                 Use o filtro de disciplina acima para encontrar decks específicos.
@@ -182,6 +192,8 @@ const AnkiPage: React.FC = () => {
               onSelectDeck={handleSelectDeck}
               onStartReview={handleStartReview}
               filteredDecks={filteredDecks}
+              showPublicDecks={showPublicDecks}
+              onTogglePublicDecks={() => setShowPublicDecks((value) => !value)}
             />
           </div>
         )}
@@ -192,6 +204,8 @@ const AnkiPage: React.FC = () => {
             onBack={handleBack}
             onStartReview={handleStartReview}
             onSwitchDeck={handleSwitchDeck}
+            readOnly={selectedDeckIsPublic}
+            onCopyDeck={handleCopyPublicDeck}
           />
         )}
 

@@ -382,6 +382,14 @@ class AnkiDeckRepository(BaseRepository[AnkiDeck]):
     def get_by_user(self, db: Session, user_id: int) -> list[AnkiDeck]:
         return db.query(self.model).filter(self.model.user_id == user_id).order_by(self.model.name).all()
 
+    def get_public(self, db: Session, exclude_user_id: int) -> list[AnkiDeck]:
+        return (
+            db.query(self.model)
+            .filter(self.model.is_public.is_(True), self.model.user_id != exclude_user_id)
+            .order_by(self.model.name)
+            .all()
+        )
+
     def get_root_decks(self, db: Session, user_id: int) -> list[AnkiDeck]:
         """Return top-level decks (no parent)."""
         return (

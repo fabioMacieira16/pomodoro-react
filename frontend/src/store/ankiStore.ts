@@ -66,6 +66,7 @@ interface AnkiState {
   setCurrentDeck: (deck: Deck | null) => void;
   createDeck: (data: Partial<Deck>) => Promise<Deck>;
   updateDeck: (id: number, data: Partial<Deck>) => Promise<void>;
+  copyPublicDeck: (id: number) => Promise<Deck>;
   deleteDeck: (id: number) => Promise<void>;
 
   // Flashcard actions
@@ -140,6 +141,12 @@ export const useAnkiStore = create<AnkiState>((set, get) => ({
       decks: s.decks.map((d) => (d.id === id ? updated : d)),
       currentDeck: s.currentDeck?.id === id ? updated : s.currentDeck,
     }));
+  },
+
+  copyPublicDeck: async (id) => {
+    const deck = await ankiApi.copyPublicDeck(id);
+    set((s) => ({ decks: [...s.decks, deck] }));
+    return deck;
   },
 
   deleteDeck: async (id) => {
