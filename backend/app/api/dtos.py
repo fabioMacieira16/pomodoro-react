@@ -225,7 +225,6 @@ class DeckCreate(BaseModel):
     name: str
     description: Optional[str] = None
     color: str = "#3b82f6"
-    is_public: bool = False
     subject_id: Optional[int] = None
     parent_deck_id: Optional[int] = None
 
@@ -233,7 +232,6 @@ class DeckUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     color: Optional[str] = None
-    is_public: bool = False
     subject_id: Optional[int] = None
     parent_deck_id: Optional[int] = None
 
@@ -242,24 +240,9 @@ class DeckResponse(BaseModel):
     name: str
     description: Optional[str]
     color: str
-    is_public: bool
     user_id: int
     subject_id: Optional[int]
     parent_deck_id: Optional[int]
-    created_at: datetime
-    card_count: int = 0
-    due_count: int = 0
-    new_count: int = 0
-
-    class Config:
-        from_attributes = True
-
-class PublicDeckResponse(BaseModel):
-    id: int
-    name: str
-    description: Optional[str]
-    color: str
-    is_public: bool
     created_at: datetime
     card_count: int = 0
     due_count: int = 0

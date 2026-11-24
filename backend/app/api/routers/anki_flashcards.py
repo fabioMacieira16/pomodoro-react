@@ -20,32 +20,10 @@ def _owns_deck(db, deck_id, user_id):
     return deck
 
 
-def _readable_deck(db, deck_id, user_id):
-    deck = anki_deck_repo.get(db, deck_id)
-    if not deck or (deck.user_id != user_id and not deck.is_public):
-        raise HTTPException(status_code=404, detail="Deck not found")
-    return deck
-
-
-def _public_card_response(card):
-    response = dtos.FlashcardResponse.model_validate(card)
-    return response.model_copy(update={
-        "repetitions": 0,
-        "easiness_factor": 2.5,
-        "interval": 0,
-        "lapses": 0,
-        "last_reviewed": None,
-        "next_review": None,
-    })
-
-
 @router.get("/deck/{deck_id}", response_model=list[dtos.FlashcardResponse])
 def list_flashcards(deck_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    deck = _readable_deck(db, deck_id, current_user.id)
-    cards = flashcard_repo.get_by_deck(db, deck_id)
-    if deck.user_id != current_user.id:
-        return [_public_card_response(card) for card in cards]
-    return cards
+    _owns_deck(db, deck_id, current_user.id)
+    return flashcard_repo.get_by_deck(db, deck_id)
 
 
 @router.post("/", response_model=dtos.FlashcardResponse)
@@ -240,9 +218,7 @@ def get_flashcard(card_id: int, db: Session = Depends(get_db), current_user: Use
     card = flashcard_repo.get(db, card_id)
     if not card:
         raise HTTPException(status_code=404, detail="Flashcard not found")
-    deck = _readable_deck(db, card.deck_id, current_user.id)
-    if deck.user_id != current_user.id:
-        return _public_card_response(card)
+    _owns_deck(db, card.deck_id, current_user.id)
     return card
 
 

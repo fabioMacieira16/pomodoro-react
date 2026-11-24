@@ -218,8 +218,7 @@ export interface Deck {
   name: string;
   description?: string;
   color: string;
-  user_id?: number;
-  is_public: boolean;
+  user_id: number;
   subject_id?: number;
   parent_deck_id?: number;
   created_at: string;
